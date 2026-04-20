@@ -1,6 +1,9 @@
-import { ToolLoopAgent, jsonSchema, stepCountIs, tool } from "ai";
+import { jsonSchema, stepCountIs, tool } from "ai";
+import { tracedAI } from "@/lib/langsmith-ai";
 import { getVolcengineChatModel } from "@/lib/volcengine";
 import { searchTavily } from "@/lib/tavily";
+
+const { ToolLoopAgent } = tracedAI;
 
 const tavilySearchTool = tool({
   description:

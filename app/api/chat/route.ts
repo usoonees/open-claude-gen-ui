@@ -1,7 +1,9 @@
 import { createAgentUIStreamResponse, type UIMessage } from "ai";
 import { writeChat } from "@/lib/chat-store";
 import { chatAgent } from "@/lib/chat-agent";
+import { langsmithClient } from "@/lib/langsmith-ai";
 import { volcengineConfig } from "@/lib/volcengine";
+import { after } from "next/server";
 
 export const maxDuration = 60;
 
@@ -34,6 +36,12 @@ export async function POST(request: Request) {
       "VOLCENGINE_ACK_API_KEY is empty. Add your Volcengine API key to .env.local before chatting.",
       { status: 503 }
     );
+  }
+
+  if (process.env.LANGSMITH_TRACING === "true") {
+    after(async () => {
+      await langsmithClient.awaitPendingTraceBatches();
+    });
   }
 
   return createAgentUIStreamResponse({

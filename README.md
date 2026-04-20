@@ -14,7 +14,7 @@ pnpm install
 cp .env.example .env.local
 ```
 
-Fill in `VOLCENGINE_ACK_API_KEY` in `.env.local` when you are ready to call the model. Add `TAVILY_API_KEY` if you want the agent to use live web search. Both keys are intentionally blank in source control examples.
+Fill in `VOLCENGINE_ACK_API_KEY` in `.env.local` when you are ready to call the model. Add `TAVILY_API_KEY` if you want the agent to use live web search. Set `LANGSMITH_TRACING=true` and add `LANGSMITH_API_KEY` if you want LangSmith traces for the agent loop, LLM calls, tool calls, and tool results. Keys are intentionally blank in source control examples.
 
 Run the app:
 
@@ -32,6 +32,10 @@ Open <http://localhost:3000>.
 | `VOLCENGINE_ACK_BASE_URL` | `https://ark.cn-beijing.volces.com/api/v3` | OpenAI-compatible Volcengine endpoint. Override this for an AI acceleration gateway BaseUrl. |
 | `VOLCENGINE_ACK_MODEL` | `doubao-seed-2-0-pro-260215` | Volcengine model or endpoint ID used by the chat route. |
 | `TAVILY_API_KEY` | empty | Server-side Tavily API key used by the agent's web-search tool. |
+| `LANGSMITH_TRACING` | `false` | Enables LangSmith tracing when set to `true`. |
+| `LANGSMITH_ENDPOINT` | `https://api.smith.langchain.com` | LangSmith API endpoint. |
+| `LANGSMITH_API_KEY` | empty | Server-side LangSmith API key used for trace ingestion. |
+| `LANGSMITH_PROJECT` | `gen-ui` | LangSmith project name for chat traces. |
 
 The runtime also accepts `VOLCENGINE_ARK_API_KEY`, `VOLCENGINE_ARK_BASE_URL`, and `VOLCENGINE_ARK_MODEL` as aliases.
 
