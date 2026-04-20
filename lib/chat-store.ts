@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { UIMessage } from "ai";
 
@@ -9,6 +9,7 @@ export type StoredChat = {
   messages: UIMessage[];
   title: string;
   updatedAt: string;
+  titleSource?: "generated" | "custom";
 };
 
 export type ChatSummary = {
@@ -16,6 +17,19 @@ export type ChatSummary = {
   title: string;
   updatedAt: string;
 };
+
+function isCustomTitle(chat: Partial<StoredChat> | null | undefined) {
+  return chat?.titleSource === "custom" && typeof chat.title === "string";
+}
+
+async function readStoredChatFile(id: string): Promise<StoredChat | null> {
+  try {
+    const file = await readFile(chatPath(id), "utf8");
+    return JSON.parse(file) as StoredChat;
+  } catch {
+    return null;
+  }
+}
 
 async function ensureStoreDir() {
   await mkdir(storeDir, { recursive: true, mode: 0o700 });
@@ -73,35 +87,46 @@ export async function listChats(): Promise<ChatSummary[]> {
 }
 
 export async function readChat(id: string): Promise<StoredChat> {
-  try {
-    const file = await readFile(chatPath(id), "utf8");
-    const chat = JSON.parse(file) as StoredChat;
+  const chat = await readStoredChatFile(id);
 
-    return {
-      id: chat.id || id,
-      messages: Array.isArray(chat.messages) ? chat.messages : [],
-      title: chat.title || titleFromMessages(chat.messages || []),
-      updatedAt: chat.updatedAt || new Date(0).toISOString(),
-    };
-  } catch {
+  if (!chat) {
     return {
       id,
       messages: [],
       title: "New chat",
       updatedAt: new Date(0).toISOString(),
+      titleSource: "generated",
     };
   }
+
+  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+  const generatedTitle = titleFromMessages(messages);
+
+  return {
+    id: chat.id || id,
+    messages,
+    title: isCustomTitle(chat) ? chat.title.trim() : chat.title || generatedTitle,
+    updatedAt: chat.updatedAt || new Date(0).toISOString(),
+    titleSource: chat.titleSource === "custom" ? "custom" : "generated",
+  };
 }
 
 export async function writeChat(id: string, messages: UIMessage[]) {
   await ensureStoreDir();
 
   const cleanMessages = sanitizeMessages(messages);
+  const existingChat = await readStoredChatFile(id);
+  const generatedTitle = titleFromMessages(cleanMessages);
+  const customTitle =
+    existingChat?.titleSource === "custom" && typeof existingChat.title === "string"
+      ? existingChat.title.trim()
+      : null;
   const chat: StoredChat = {
     id,
     messages: cleanMessages,
-    title: titleFromMessages(cleanMessages),
+    title: customTitle || generatedTitle,
     updatedAt: new Date().toISOString(),
+    titleSource: customTitle ? "custom" : "generated",
   };
 
   await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
@@ -109,4 +134,41 @@ export async function writeChat(id: string, messages: UIMessage[]) {
   });
 
   return chat;
+}
+
+export async function renameChat(id: string, title: string) {
+  await ensureStoreDir();
+
+  const existingChat = await readStoredChatFile(id);
+
+  if (!existingChat) {
+    return null;
+  }
+
+  const normalizedTitle = title.trim();
+
+  if (!normalizedTitle) {
+    throw new Error("Chat title cannot be empty.");
+  }
+
+  const messages = Array.isArray(existingChat.messages) ? existingChat.messages : [];
+  const chat: StoredChat = {
+    id: existingChat.id || id,
+    messages,
+    title: normalizedTitle,
+    updatedAt: new Date().toISOString(),
+    titleSource: "custom",
+  };
+
+  await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
+    mode: 0o600,
+  });
+
+  return chat;
+}
+
+export async function deleteChat(id: string) {
+  await ensureStoreDir();
+
+  await rm(chatPath(id), { force: true });
 }

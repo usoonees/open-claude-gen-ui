@@ -391,6 +391,34 @@ function PanelIcon() {
   );
 }
 
+function EllipsisIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M5 12h.01M12 12h.01M19 12h.01" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m4 20 4.5-1 9-9a2.1 2.1 0 0 0-3-3l-9 9L4 20Z" />
+      <path d="m13.5 6.5 3 3" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 12h10l1-12" />
+      <path d="M9 7V4h6v3" />
+    </svg>
+  );
+}
+
 function PaperclipIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -412,16 +440,37 @@ function debugChat(event: string, detail: Record<string, unknown> = {}) {
   console.debug(`[chat-ui ${time}ms] ${event}`, detail);
 }
 
+function titleFromUserText(text: string) {
+  const normalized = text.trim() || "New chat";
+
+  return normalized.length > 48 ? `${normalized.slice(0, 45)}...` : normalized;
+}
+
+function createOptimisticUserMessage(text: string): UIMessage {
+  return {
+    id: `local-${createChatId()}`,
+    role: "user",
+    parts: [{ type: "text", text }],
+  };
+}
+
 export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [input, setInput] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [openMenuChatId, setOpenMenuChatId] = useState<string | null>(null);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [chatPendingDelete, setChatPendingDelete] = useState<ChatSummary | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const chatIdRef = useRef(chatId);
   const lastLoadedChatIdRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const copyResetTimerRef = useRef<number | null>(null);
+  const sidebarMenuRef = useRef<HTMLDivElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -442,6 +491,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const { error, messages, sendMessage, setMessages, status, stop } = useChat({
     transport,
     onFinish: () => {
+      void loadChatList();
       requestAnimationFrame(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth" });
       });
@@ -471,6 +521,63 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!editingChatId || !renameInputRef.current) {
+      return;
+    }
+
+    renameInputRef.current.focus();
+    renameInputRef.current.select();
+  }, [editingChatId]);
+
+  useEffect(() => {
+    if (!openMenuChatId) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        sidebarMenuRef.current &&
+        event.target instanceof Node &&
+        !sidebarMenuRef.current.contains(event.target)
+      ) {
+        setOpenMenuChatId(null);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpenMenuChatId(null);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuChatId]);
+
+  useEffect(() => {
+    if (!chatPendingDelete) {
+      return;
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setChatPendingDelete(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [chatPendingDelete]);
 
   async function loadChatList() {
     const startedAt = performance.now();
@@ -558,19 +665,22 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (
-        event.repeat ||
-        !event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        event.shiftKey ||
-        event.key.toLowerCase() !== "k"
-      ) {
+      if (event.repeat || !event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
         return;
       }
 
-      event.preventDefault();
-      startNewChat();
+      const key = event.key.toLowerCase();
+
+      if (key === "k") {
+        event.preventDefault();
+        startNewChat();
+        return;
+      }
+
+      if (key === "b") {
+        event.preventDefault();
+        toggleSidebar();
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -580,23 +690,57 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     };
   }, [startNewChat]);
 
-  async function saveMessages(nextMessages: UIMessage[]) {
+  async function saveMessages(nextChatId: string, nextMessages: UIMessage[]) {
     const startedAt = performance.now();
     debugChat("chat-save:start", {
-      chatId,
+      chatId: nextChatId,
       messageCount: nextMessages.length,
     });
     await fetch("/api/chat/history", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: chatId, messages: nextMessages }),
+      body: JSON.stringify({ id: nextChatId, messages: nextMessages }),
     });
 
     debugChat("chat-save:done", {
-      chatId,
+      chatId: nextChatId,
       durationMs: Math.round(performance.now() - startedAt),
     });
     await loadChatList();
+  }
+
+  async function persistOptimisticUserTurn(chatIdToSave: string, text: string) {
+    try {
+      await saveMessages(chatIdToSave, [
+        ...messages,
+        createOptimisticUserMessage(text),
+      ]);
+    } catch (error) {
+      debugChat("chat-save:error", {
+        chatId: chatIdToSave,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      setChatList((currentChats) => {
+        const existingChat = currentChats.find((chat) => chat.id === chatIdToSave);
+        const nextUpdatedAt = new Date().toISOString();
+
+        if (existingChat) {
+          return [
+            { ...existingChat, updatedAt: nextUpdatedAt },
+            ...currentChats.filter((chat) => chat.id !== chatIdToSave),
+          ];
+        }
+
+        return [
+          {
+            id: chatIdToSave,
+            title: titleFromUserText(text),
+            updatedAt: nextUpdatedAt,
+          },
+          ...currentChats,
+        ];
+      });
+    }
   }
 
   function replaceUrl(nextId?: string | null) {
@@ -625,6 +769,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   function startNewChat() {
     debugChat("new-chat:start", { from: chatIdRef.current, to: null });
     stop();
+    setOpenMenuChatId(null);
+    setEditingChatId(null);
+    setEditingTitle("");
+    setChatPendingDelete(null);
     setChatId(null);
     chatIdRef.current = null;
     lastLoadedChatIdRef.current = null;
@@ -635,6 +783,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     debugChat("new-chat:done", { chatId: null });
   }
 
+  function toggleSidebar() {
+    setIsSidebarOpen((current) => !current);
+  }
+
   function openChat(nextId: string) {
     if (nextId === chatIdRef.current) {
       debugChat("open-chat:skip-active", { chatId: nextId });
@@ -643,6 +795,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
     debugChat("open-chat:start", { from: chatIdRef.current, to: nextId });
     stop();
+    setOpenMenuChatId(null);
+    setEditingChatId(null);
+    setEditingTitle("");
+    setChatPendingDelete(null);
     setChatId(nextId);
     chatIdRef.current = nextId;
     replaceUrl(nextId);
@@ -694,6 +850,70 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
   }
 
+  function beginSidebarRename(chat: ChatSummary) {
+    setOpenMenuChatId(null);
+    setEditingChatId(chat.id);
+    setEditingTitle(chat.title);
+  }
+
+  function cancelSidebarRename() {
+    setEditingChatId(null);
+    setEditingTitle("");
+  }
+
+  async function commitSidebarRename(chat: ChatSummary) {
+    const nextTitle = editingTitle.trim();
+
+    if (!nextTitle || nextTitle === chat.title) {
+      cancelSidebarRename();
+      return;
+    }
+
+    const response = await fetch("/api/chat/history", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: chat.id, title: nextTitle }),
+    });
+
+    if (!response.ok) {
+      debugChat("chat-rename:error", { chatId: chat.id, status: response.status });
+      return;
+    }
+
+    cancelSidebarRename();
+    await loadChatList();
+  }
+
+  function promptSidebarDelete(chat: ChatSummary) {
+    setOpenMenuChatId(null);
+    setChatPendingDelete(chat);
+  }
+
+  async function confirmSidebarDelete() {
+    if (!chatPendingDelete) {
+      return;
+    }
+
+    const chat = chatPendingDelete;
+    setChatPendingDelete(null);
+
+    const response = await fetch(
+      `/api/chat/history?id=${encodeURIComponent(chat.id)}`,
+      { method: "DELETE" }
+    );
+
+    if (!response.ok) {
+      debugChat("chat-delete:error", { chatId: chat.id, status: response.status });
+      return;
+    }
+
+    if (chat.id === chatIdRef.current) {
+      startNewChat();
+    }
+
+    await loadChatList();
+  }
+
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
 
@@ -710,6 +930,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       chatId: activeChatId,
       length: messageText.length,
     });
+    void persistOptimisticUserTurn(activeChatId, messageText);
     await sendMessage({
       role: "user",
       parts: [{ type: "text", text: messageText }],
@@ -731,6 +952,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       chatId: activeChatId,
       prompt,
     });
+    void persistOptimisticUserTurn(activeChatId, prompt);
     await sendMessage({
       role: "user",
       parts: [{ type: "text", text: prompt }],
@@ -743,70 +965,198 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Chat navigation">
-        <div className="sidebar-top">
+      <aside
+        aria-label="Chat navigation"
+        className={isSidebarOpen ? "sidebar" : "sidebar is-collapsed"}
+      >
+        <div className="sidebar-inner">
+          <div className="sidebar-top">
+            <button
+              aria-label="Toggle sidebar"
+              className="ghost-icon"
+              onClick={toggleSidebar}
+              title="Toggle sidebar (Cmd+B)"
+              type="button"
+            >
+              <PanelIcon />
+            </button>
+            <div className="header-spacer" />
+          </div>
+
           <button
-            aria-label="Toggle sidebar"
-            className="ghost-icon"
-            title="Toggle sidebar"
+            className="new-chat-button"
+            onClick={startNewChat}
+            title="Start a new chat (Cmd+K)"
             type="button"
           >
-            <PanelIcon />
+            <NewChatIcon />
+            <span>New Chat</span>
           </button>
-          <div className="header-spacer" />
-        </div>
 
-        <button
-          className="new-chat-button"
-          onClick={startNewChat}
-          title="Start a new chat (Cmd+K)"
-          type="button"
-        >
-          <NewChatIcon />
-          <span>New Chat</span>
-        </button>
+          <div className="sidebar-section">
+            <div className="sidebar-section-header">
+              <p>Chats</p>
+              {chatList.length > 0 ? (
+                <span className="chat-count">{chatList.length}</span>
+              ) : null}
+            </div>
+            {chatList.length === 0 ? (
+              <span className="empty-history">No saved conversations</span>
+            ) : (
+              chatList.map((chat) => (
+                <div
+                  className={chat.id === chatId ? "chat-row active" : "chat-row"}
+                  key={chat.id}
+                  ref={openMenuChatId === chat.id ? sidebarMenuRef : null}
+                >
+                  {editingChatId === chat.id ? (
+                    <input
+                      aria-label={`Rename ${chat.title}`}
+                      className="chat-title-input"
+                      onBlur={() => {
+                        void commitSidebarRename(chat);
+                      }}
+                      onChange={(event) => setEditingTitle(event.target.value)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void commitSidebarRename(chat);
+                        }
 
-        <div className="sidebar-section">
-          <div className="sidebar-section-header">
-            <p>Chats</p>
-            {chatList.length > 0 ? (
-              <span className="chat-count">{chatList.length}</span>
-            ) : null}
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          cancelSidebarRename();
+                        }
+                      }}
+                      ref={renameInputRef}
+                      value={editingTitle}
+                    />
+                  ) : (
+                    <Link
+                      className={chat.id === chatId ? "chat-link active" : "chat-link"}
+                      href={`/chat/${chat.id}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        openChat(chat.id);
+                      }}
+                      title={chat.title}
+                    >
+                      <span>{chat.title}</span>
+                    </Link>
+                  )}
+                  <button
+                    aria-expanded={openMenuChatId === chat.id}
+                    aria-haspopup="menu"
+                    aria-label={`Open options for ${chat.title}`}
+                    className={
+                      openMenuChatId === chat.id
+                        ? "chat-menu-trigger is-visible"
+                        : "chat-menu-trigger"
+                    }
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setOpenMenuChatId((current) =>
+                        current === chat.id ? null : chat.id
+                      );
+                    }}
+                    title="Chat options"
+                    type="button"
+                  >
+                    <EllipsisIcon />
+                  </button>
+                  {openMenuChatId === chat.id ? (
+                    <div
+                      aria-label={`Options for ${chat.title}`}
+                      className="chat-menu"
+                      role="menu"
+                    >
+                      <button
+                        className="chat-menu-item"
+                        onClick={() => {
+                          beginSidebarRename(chat);
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        <PencilIcon />
+                        <span>Rename</span>
+                      </button>
+                      <button
+                        className="chat-menu-item danger"
+                        onClick={() => {
+                          promptSidebarDelete(chat);
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        <TrashIcon />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ))
+            )}
           </div>
-          {chatList.length === 0 ? (
-            <span className="empty-history">No saved conversations</span>
-          ) : (
-            chatList.map((chat) => (
-              <Link
-                className={chat.id === chatId ? "chat-link active" : "chat-link"}
-                href={`/chat/${chat.id}`}
-                key={chat.id}
-                onClick={(event) => {
-                  event.preventDefault();
-                  openChat(chat.id);
-                }}
-                title={chat.id}
-              >
-                <span>{chat.title}</span>
-              </Link>
-            ))
-          )}
         </div>
-
       </aside>
+
+      {chatPendingDelete ? (
+        <div
+          aria-label="Delete chat confirmation"
+          className="dialog-backdrop"
+          onClick={() => setChatPendingDelete(null)}
+          role="presentation"
+        >
+          <section
+            aria-describedby="delete-chat-description"
+            aria-labelledby="delete-chat-title"
+            className="dialog-card"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <p className="dialog-eyebrow">Delete chat</p>
+            <h2 id="delete-chat-title">Remove this conversation?</h2>
+            <p className="dialog-description" id="delete-chat-description">
+              <span>"{chatPendingDelete.title}"</span> will be removed from your sidebar history.
+            </p>
+            <div className="dialog-actions">
+              <button
+                className="dialog-button"
+                onClick={() => setChatPendingDelete(null)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="dialog-button danger"
+                onClick={() => {
+                  void confirmSidebarDelete();
+                }}
+                type="button"
+              >
+                Delete
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <section className="chat-panel" aria-label="AI chat">
         <header className="chat-header">
           <button
             aria-label="Toggle sidebar"
-            className="ghost-icon mobile-only"
-            title="Toggle sidebar"
+            className={isSidebarOpen ? "ghost-icon mobile-only" : "ghost-icon"}
+            onClick={toggleSidebar}
+            title="Toggle sidebar (Cmd+B)"
             type="button"
           >
             <PanelIcon />
-          </button>
-          <button className="visibility-button" type="button">
-            Private
           </button>
           <div className="header-spacer" />
           <button

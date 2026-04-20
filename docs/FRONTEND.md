@@ -16,7 +16,13 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Open <http://localhost:3000> after `pnpm dev`.
 - Confirm the empty state renders, prompt suggestions populate the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
+- Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
+- Confirm the sidebar show/hide transition animates smoothly instead of popping in or out.
 - Confirm a conversation URL under `/chat/:id` is only created when the first message or starter prompt is sent.
+- Confirm sending the first message or a starter prompt adds that chat to the sidebar immediately, without waiting for a page reload.
+- Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
+- Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
+- Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
 - With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning or tool activity is still running, then auto-collapses when that activity finishes while remaining manually expandable.
 - When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
