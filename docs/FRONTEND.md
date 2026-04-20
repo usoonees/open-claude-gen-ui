@@ -14,13 +14,14 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 ## Browser Verification
 
 - Open <http://localhost:3000> after `pnpm dev`.
-- Confirm the empty state renders, prompt suggestions populate the composer, and the new-chat icon clears local messages.
+- Confirm the empty state renders, prompt suggestions populate the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
+- Confirm a conversation URL under `/chat/:id` is only created when the first message or starter prompt is sent.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
-- With a real key configured, verify streaming assistant text appears without a full page reload.
+- With a real key configured, verify streaming assistant text appears without a full page reload and any completed `Thinking` block auto-collapses while remaining manually expandable.
 
 ## Component Boundaries
 
-- `components/chat-shell.tsx` owns local chat UI state and the AI SDK client transport.
+- `components/chat-shell.tsx` owns local chat UI state, draft-chat URL behavior, and the AI SDK client transport.
 - `app/api/chat/route.ts` owns request validation and streaming.
 - `lib/volcengine.ts` owns provider configuration and environment variable aliases.
 

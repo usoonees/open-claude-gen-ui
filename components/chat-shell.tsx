@@ -46,18 +46,49 @@ function MarkdownBlock({ children }: { children: string }) {
   );
 }
 
-function MessageContent({ message }: { message: UIMessage }) {
+function ReasoningBlock({
+  reasoning,
+  isStreaming,
+}: {
+  reasoning: string;
+  isStreaming: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(isStreaming);
+
+  useEffect(() => {
+    setIsOpen(isStreaming);
+  }, [isStreaming]);
+
+  return (
+    <details
+      className="reasoning-block"
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      open={isOpen}
+    >
+      <summary>Thinking</summary>
+      <MarkdownBlock>{reasoning}</MarkdownBlock>
+    </details>
+  );
+}
+
+function MessageContent({
+  message,
+  isReasoningStreaming,
+}: {
+  message: UIMessage;
+  isReasoningStreaming: boolean;
+}) {
   const reasoning = reasoningFromMessage(message);
   const text = textFromMessage(message);
 
   return (
     <>
-      {reasoning && (
-        <details className="reasoning-block" open>
-          <summary>Thinking</summary>
-          <MarkdownBlock>{reasoning}</MarkdownBlock>
-        </details>
-      )}
+      {reasoning ? (
+        <ReasoningBlock
+          isStreaming={isReasoningStreaming}
+          reasoning={reasoning}
+        />
+      ) : null}
       <MarkdownBlock>{text}</MarkdownBlock>
     </>
   );
@@ -125,7 +156,7 @@ function debugChat(event: string, detail: Record<string, unknown> = {}) {
 }
 
 export function ChatShell({ initialChatId }: { initialChatId?: string }) {
-  const [chatId, setChatId] = useState(initialChatId ?? createChatId);
+  const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [input, setInput] = useState("");
   const chatIdRef = useRef(chatId);
@@ -159,6 +190,19 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   const isBusy = status === "submitted" || status === "streaming";
   const trimmedInput = input.trim();
+  const streamingAssistantMessageId = useMemo(() => {
+    if (status !== "streaming") {
+      return null;
+    }
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index]?.role === "assistant") {
+        return messages[index]?.id ?? null;
+      }
+    }
+
+    return null;
+  }, [messages, status]);
 
   useEffect(() => {
     debugChat("render-state", {
@@ -197,13 +241,15 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }, []);
 
   useEffect(() => {
-    if (initialChatId && initialChatId !== chatIdRef.current) {
+    const nextChatId = initialChatId ?? null;
+
+    if (nextChatId !== chatIdRef.current) {
       debugChat("route-param-sync", {
         from: chatIdRef.current,
-        to: initialChatId,
+        to: nextChatId,
       });
-      setChatId(initialChatId);
-      chatIdRef.current = initialChatId;
+      setChatId(nextChatId);
+      chatIdRef.current = nextChatId;
     }
   }, [initialChatId]);
 
@@ -211,6 +257,13 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     let ignore = false;
 
     async function loadHistory() {
+      if (!chatId) {
+        lastLoadedChatIdRef.current = null;
+        setMessages([]);
+        debugChat("chat-load:skip-empty-id");
+        return;
+      }
+
       if (lastLoadedChatIdRef.current === chatId) {
         debugChat("chat-load:skip-same-id", { chatId });
         return;
@@ -267,8 +320,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     await loadChatList();
   }
 
-  function replaceUrl(nextId: string) {
-    const nextPath = `/chat/${nextId}`;
+  function replaceUrl(nextId?: string | null) {
+    const nextPath = nextId ? `/chat/${nextId}` : "/";
 
     if (window.location.pathname !== nextPath) {
       window.history.pushState({}, "", nextPath);
@@ -277,24 +330,15 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function startNewChat() {
-    const nextId = createChatId();
-    debugChat("new-chat:start", { from: chatIdRef.current, to: nextId });
+    debugChat("new-chat:start", { from: chatIdRef.current, to: null });
     stop();
-    setChatId(nextId);
-    chatIdRef.current = nextId;
-    lastLoadedChatIdRef.current = nextId;
+    setChatId(null);
+    chatIdRef.current = null;
+    lastLoadedChatIdRef.current = null;
     setMessages([]);
-    setChatList((current) => [
-      {
-        id: nextId,
-        title: "New chat",
-        updatedAt: new Date().toISOString(),
-      },
-      ...current,
-    ]);
     setInput("");
-    replaceUrl(nextId);
-    debugChat("new-chat:done", { chatId: nextId });
+    replaceUrl(null);
+    debugChat("new-chat:done", { chatId: null });
   }
 
   function openChat(nextId: string) {
@@ -310,6 +354,19 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     replaceUrl(nextId);
   }
 
+  function ensureActiveChatId() {
+    if (chatIdRef.current) {
+      return chatIdRef.current;
+    }
+
+    const nextId = createChatId();
+    setChatId(nextId);
+    chatIdRef.current = nextId;
+    replaceUrl(nextId);
+    debugChat("draft-chat:activate", { chatId: nextId });
+    return nextId;
+  }
+
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
 
@@ -317,10 +374,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       return;
     }
 
-    replaceUrl(chatIdRef.current);
+    const activeChatId = ensureActiveChatId();
 
     debugChat("send:start", {
-      chatId: chatIdRef.current,
+      chatId: activeChatId,
       length: trimmedInput.length,
     });
     await sendMessage({
@@ -339,10 +396,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       return;
     }
 
-    replaceUrl(chatIdRef.current);
+    const activeChatId = ensureActiveChatId();
 
     debugChat("starter-send:start", {
-      chatId: chatIdRef.current,
+      chatId: activeChatId,
       prompt,
     });
     await sendMessage({
@@ -389,7 +446,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         </button>
 
         <div className="sidebar-section">
-          <p>Chats</p>
+          <div className="sidebar-section-header">
+            <p>Chats</p>
+            {chatList.length > 0 ? (
+              <span className="chat-count">{chatList.length}</span>
+            ) : null}
+          </div>
           {chatList.length === 0 ? (
             <span className="empty-history">No saved conversations</span>
           ) : (
@@ -405,7 +467,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 title={chat.id}
               >
                 <span>{chat.title}</span>
-                <small>{chat.id}</small>
               </Link>
             ))
           )}
@@ -468,7 +529,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   <span className="message-role">
                     {message.role === "user" ? "You" : "Assistant"}
                   </span>
-                  <MessageContent message={message} />
+                  <MessageContent
+                    isReasoningStreaming={
+                      message.id === streamingAssistantMessageId
+                    }
+                    message={message}
+                  />
                 </article>
               ))}
               {status === "submitted" && (

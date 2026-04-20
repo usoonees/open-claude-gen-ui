@@ -9,6 +9,10 @@
 ### User Query
 
 > Build an AI chatbot using `https://github.com/vercel/chatbot` as the base template, use Volcengine ACK for LLM inference, and leave the API key empty first.
+>
+> Follow-up: for the sidebar, show the conversation title only and stop creating sidebar entries when `New Chat` is clicked before a message is sent.
+>
+> Follow-up: after removing the sidebar ID, tighten the sidebar styling so the list feels compact and polished again.
 
 ### Changes Overview
 
@@ -22,6 +26,9 @@
   - Added visible reasoning rendering, markdown rendering, and ignored filesystem chat persistence.
   - Added per-conversation IDs, URL routing under `/chat/:id`, and sidebar history loaded from filesystem chat files.
   - Smoothed New Chat transitions with client-side URL updates and added frontend debug logs for chat navigation, history loading, saving, and render state.
+  - Changed `New Chat` to return to `/` as a draft state, only allocating a real conversation ID on first send, and removed sidebar ID subtitles.
+  - Refined the sidebar density and visual hierarchy with a compact section header, chat count pill, tighter chat rows, and stronger hover and active states.
+  - Removed the idle sidebar row fill so conversation items stay visually quiet until hover or active state.
   - Updated architecture, frontend, quality, release, and setup documentation.
 
 ### Design Intent
