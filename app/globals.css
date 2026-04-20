@@ -431,6 +431,10 @@ svg {
   color: var(--foreground);
 }
 
+.message-copy-button.is-copied svg {
+  stroke-width: 2.4;
+}
+
 .message-user .message-copy-button {
   align-self: end;
 }

@@ -13,7 +13,7 @@
 ### Changes Overview
 
 - Area: chat message actions and hover affordances
-- Key actions: added hover-revealed clipboard actions for both user and assistant messages, refined the control to an icon-only affordance, moved the user copy icon outside the message bubble on the left, and kept assistant copy below the reply with a short copied confirmation state
+- Key actions: added hover-revealed clipboard actions for both user and assistant messages, refined the control to an icon-only affordance, moved the user copy icon outside the message bubble on the left, kept assistant copy below the reply, and switched the icon to a success checkmark after a successful copy
 
 ### Design Intent
 

@@ -375,6 +375,14 @@ function CopyIcon() {
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m5 12 5 5L20 7" />
+    </svg>
+  );
+}
+
 function PanelIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -840,7 +848,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                         }
                         type="button"
                       >
-                        <CopyIcon />
+                        {copiedMessageId === message.id ? <CheckIcon /> : <CopyIcon />}
                       </button>
                       <div className="message-body">
                         <span className="message-role">You</span>
@@ -867,7 +875,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                           }
                           type="button"
                         >
-                          <CopyIcon />
+                          {copiedMessageId === message.id ? <CheckIcon /> : <CopyIcon />}
                         </button>
                       </div>
                     </>
