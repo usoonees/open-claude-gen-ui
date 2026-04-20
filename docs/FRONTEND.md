@@ -18,8 +18,9 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm a conversation URL under `/chat/:id` is only created when the first message or starter prompt is sent.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
-- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block auto-collapses as soon as reasoning finishes, even if answer text continues streaming, while remaining manually expandable.
-- When the assistant uses tools, verify the UI shows a visible tool activity card while the tool is running and shows a compact completion summary when the tool result arrives.
+- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning or tool activity is still running, then auto-collapses when that activity finishes while remaining manually expandable.
+- When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
+- Hover or focus a user or assistant message and verify the inline `Copy` action appears and copies that message's rendered text.
 
 ## Component Boundaries
 
