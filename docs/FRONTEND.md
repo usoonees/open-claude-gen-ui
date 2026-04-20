@@ -15,9 +15,11 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 
 - Open <http://localhost:3000> after `pnpm dev`.
 - Confirm the empty state renders, prompt suggestions populate the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
+- Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm a conversation URL under `/chat/:id` is only created when the first message or starter prompt is sent.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
-- With a real key configured, verify streaming assistant text appears without a full page reload and any completed `Thinking` block auto-collapses while remaining manually expandable.
+- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block auto-collapses as soon as reasoning finishes, even if answer text continues streaming, while remaining manually expandable.
+- When the assistant uses tools, verify the UI shows a visible tool activity card while the tool is running and shows a compact completion summary when the tool result arrives.
 
 ## Component Boundaries
 

@@ -29,6 +29,8 @@
   - Changed `New Chat` to return to `/` as a draft state, only allocating a real conversation ID on first send, and removed sidebar ID subtitles.
   - Refined the sidebar density and visual hierarchy with a compact section header, chat count pill, tighter chat rows, and stronger hover and active states.
   - Removed the idle sidebar row fill so conversation items stay visually quiet until hover or active state.
+  - Tightened sidebar row spacing after review by reducing the list gap and idle row height.
+  - Fixed the sidebar list layout to keep chat rows packed at the top instead of stretching them across the full column height.
   - Updated architecture, frontend, quality, release, and setup documentation.
 
 ### Design Intent

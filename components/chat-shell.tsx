@@ -20,6 +20,36 @@ type ChatSummary = {
   updatedAt: string;
 };
 
+type ToolLikePart = {
+  type: string;
+  toolName?: string;
+  toolCallId: string;
+  state:
+    | "input-streaming"
+    | "input-available"
+    | "output-available"
+    | "output-error"
+    | "output-denied"
+    | "approval-requested"
+    | "approval-responded";
+  input?: unknown;
+  output?: unknown;
+  errorText?: string;
+  approval?: {
+    approved: boolean;
+  };
+};
+
+type ToolEvent = {
+  label: string;
+  tone: "running" | "done" | "error";
+  detail: string;
+  sources?: Array<{
+    url: string;
+    title: string;
+  }>;
+};
+
 function textFromMessage(message: UIMessage) {
   return message.parts
     .filter((part) => part.type === "text")
@@ -27,11 +57,146 @@ function textFromMessage(message: UIMessage) {
     .join("");
 }
 
+function copyTextFromMessage(message: UIMessage) {
+  const text = textFromMessage(message).trim();
+
+  if (text) {
+    return text;
+  }
+
+  return reasoningFromMessage(message).trim();
+}
+
 function reasoningFromMessage(message: UIMessage) {
   return message.parts
     .filter((part) => part.type === "reasoning")
     .map((part) => part.text)
     .join("");
+}
+
+function isReasoningStreaming(message: UIMessage) {
+  return message.parts.some(
+    (part) => part.type === "reasoning" && part.state === "streaming"
+  );
+}
+
+function formatToolName(partType: string, dynamicToolName?: string) {
+  const rawName =
+    partType === "dynamic-tool" ? dynamicToolName ?? "tool" : partType.slice(5);
+
+  return rawName
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isToolLikePart(
+  part: UIMessage["parts"][number]
+): part is UIMessage["parts"][number] & ToolLikePart {
+  return part.type === "dynamic-tool" || part.type.startsWith("tool-");
+}
+
+function isToolEvent(value: ToolEvent | null): value is ToolEvent {
+  return value !== null;
+}
+
+function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
+  if (!isToolLikePart(part)) {
+    return null;
+  }
+
+  const label = formatToolName(
+    part.type,
+    part.type === "dynamic-tool" ? part.toolName : undefined
+  );
+
+  switch (part.state) {
+    case "input-streaming":
+      return {
+        label,
+        tone: "running",
+        detail: "Preparing tool input...",
+      };
+    case "input-available": {
+      const input =
+        part.input && typeof part.input === "object" ? part.input : null;
+      const query =
+        input && "query" in input && typeof input.query === "string"
+          ? input.query
+          : null;
+
+      return {
+        label,
+        tone: "running",
+        detail: query ? `Working on "${query}"` : "Running tool...",
+      };
+    }
+    case "output-available": {
+      const output =
+        part.output && typeof part.output === "object" ? part.output : null;
+      const results =
+        output && "results" in output && Array.isArray(output.results)
+          ? output.results
+          : null;
+      const query =
+        output && "query" in output && typeof output.query === "string"
+          ? output.query
+          : null;
+
+      return {
+        label,
+        tone: "done",
+        detail:
+          query && results
+            ? `Finished "${query}" with ${results.length} source${results.length === 1 ? "" : "s"}`
+            : "Tool finished.",
+        sources:
+          results?.flatMap((result) =>
+            result &&
+            typeof result === "object" &&
+            "url" in result &&
+            typeof result.url === "string"
+              ? [
+                  {
+                    url: result.url,
+                    title:
+                      "title" in result && typeof result.title === "string"
+                        ? result.title
+                        : result.url,
+                  },
+                ]
+              : []
+          ) ?? [],
+      };
+    }
+    case "output-error":
+      return {
+        label,
+        tone: "error",
+        detail: part.errorText ?? "Tool failed.",
+      };
+    case "output-denied":
+      return {
+        label,
+        tone: "error",
+        detail: "Tool call denied.",
+      };
+    case "approval-requested":
+      return {
+        label,
+        tone: "running",
+        detail: "Waiting for approval.",
+      };
+    case "approval-responded":
+      return {
+        label,
+        tone: part.approval?.approved ? "done" : "error",
+        detail: part.approval?.approved ? "Approved." : "Denied.",
+      };
+    default:
+      return null;
+  }
 }
 
 function MarkdownBlock({ children }: { children: string }) {
@@ -71,21 +236,61 @@ function ReasoningBlock({
   );
 }
 
+function ToolActivity({ message }: { message: UIMessage }) {
+  const toolEvents = message.parts
+    .map((part) => summarizeToolPart(part))
+    .filter(isToolEvent);
+
+  if (toolEvents.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="tool-stack">
+      {toolEvents.map((event, index) => (
+        <section
+          className={`tool-card tool-card-${event.tone}`}
+          key={`${event.label}-${index}`}
+        >
+          <div className="tool-card-header">
+            <span className="tool-badge">{event.label}</span>
+            <span className="tool-status">{event.detail}</span>
+          </div>
+          {event.sources && event.sources.length > 0 ? (
+            <div className="tool-sources">
+              {event.sources.slice(0, 3).map((source) => (
+                <a
+                  className="tool-source-link"
+                  href={source.url}
+                  key={source.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {source.title}
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function MessageContent({
   message,
-  isReasoningStreaming,
 }: {
   message: UIMessage;
-  isReasoningStreaming: boolean;
 }) {
   const reasoning = reasoningFromMessage(message);
   const text = textFromMessage(message);
 
   return (
     <>
+      <ToolActivity message={message} />
       {reasoning ? (
         <ReasoningBlock
-          isStreaming={isReasoningStreaming}
+          isStreaming={isReasoningStreaming(message)}
           reasoning={reasoning}
         />
       ) : null}
@@ -114,6 +319,15 @@ function NewChatIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M9 9h10v10H9z" />
+      <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
     </svg>
   );
 }
@@ -151,9 +365,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [input, setInput] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const chatIdRef = useRef(chatId);
   const lastLoadedChatIdRef = useRef<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const copyResetTimerRef = useRef<number | null>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -182,19 +399,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   const isBusy = status === "submitted" || status === "streaming";
   const trimmedInput = input.trim();
-  const streamingAssistantMessageId = useMemo(() => {
-    if (status !== "streaming") {
-      return null;
-    }
-
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      if (messages[index]?.role === "assistant") {
-        return messages[index]?.id ?? null;
-      }
-    }
-
-    return null;
-  }, [messages, status]);
 
   useEffect(() => {
     debugChat("render-state", {
@@ -208,6 +412,14 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   useEffect(() => {
     chatIdRef.current = chatId;
   }, [chatId]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
 
   async function loadChatList() {
     const startedAt = performance.now();
@@ -293,6 +505,30 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     };
   }, [chatId, setMessages]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        event.repeat ||
+        !event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        event.key.toLowerCase() !== "k"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      startNewChat();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [startNewChat]);
+
   async function saveMessages(nextMessages: UIMessage[]) {
     const startedAt = performance.now();
     debugChat("chat-save:start", {
@@ -321,6 +557,20 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
   }
 
+  function focusComposer() {
+    requestAnimationFrame(() => {
+      const element = inputRef.current;
+
+      if (!element) {
+        return;
+      }
+
+      element.focus();
+      const cursorPosition = element.value.length;
+      element.setSelectionRange(cursorPosition, cursorPosition);
+    });
+  }
+
   function startNewChat() {
     debugChat("new-chat:start", { from: chatIdRef.current, to: null });
     stop();
@@ -330,6 +580,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setMessages([]);
     setInput("");
     replaceUrl(null);
+    focusComposer();
     debugChat("new-chat:done", { chatId: null });
   }
 
@@ -352,6 +603,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
 
     const nextId = createChatId();
+    // A brand-new chat has no persisted history yet. Mark it as locally loaded so
+    // the history effect does not immediately replace the optimistic first user
+    // message with an empty server response.
+    lastLoadedChatIdRef.current = nextId;
     setChatId(nextId);
     chatIdRef.current = nextId;
     replaceUrl(nextId);
@@ -359,25 +614,49 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     return nextId;
   }
 
+  async function copyMessage(message: UIMessage) {
+    const text = copyTextFromMessage(message);
+
+    if (!text) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(text);
+    setCopiedMessageId(message.id);
+
+    if (copyResetTimerRef.current !== null) {
+      window.clearTimeout(copyResetTimerRef.current);
+    }
+
+    copyResetTimerRef.current = window.setTimeout(() => {
+      setCopiedMessageId((currentId) =>
+        currentId === message.id ? null : currentId
+      );
+      copyResetTimerRef.current = null;
+    }, 1600);
+  }
+
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
 
-    if (!trimmedInput || isBusy) {
+    const messageText = trimmedInput;
+
+    if (!messageText || isBusy) {
       return;
     }
 
     const activeChatId = ensureActiveChatId();
+    setInput("");
 
     debugChat("send:start", {
       chatId: activeChatId,
-      length: trimmedInput.length,
+      length: messageText.length,
     });
     await sendMessage({
       role: "user",
-      parts: [{ type: "text", text: trimmedInput }],
+      parts: [{ type: "text", text: messageText }],
     });
 
-    setInput("");
     requestAnimationFrame(() => {
       endRef.current?.scrollIntoView({ behavior: "smooth" });
     });
@@ -422,6 +701,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         <button
           className="new-chat-button"
           onClick={startNewChat}
+          title="Start a new chat (Cmd+K)"
           type="button"
         >
           <NewChatIcon />
@@ -475,7 +755,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             aria-label="Start a new chat"
             className="ghost-icon"
             onClick={startNewChat}
-            title="Start a new chat"
+            title="Start a new chat (Cmd+K)"
             type="button"
           >
             <NewChatIcon />
@@ -495,15 +775,28 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   className={`message message-${message.role}`}
                   key={message.id}
                 >
-                  <span className="message-role">
-                    {message.role === "user" ? "You" : "Assistant"}
-                  </span>
-                  <MessageContent
-                    isReasoningStreaming={
-                      message.id === streamingAssistantMessageId
-                    }
-                    message={message}
-                  />
+                  <div className="message-meta">
+                    <span className="message-role">
+                      {message.role === "user" ? "You" : "Assistant"}
+                    </span>
+                    <button
+                      aria-label={`Copy ${
+                        message.role === "user" ? "user message" : "assistant response"
+                      }`}
+                      className="message-copy-button"
+                      onClick={() => {
+                        void copyMessage(message);
+                      }}
+                      title={
+                        copiedMessageId === message.id ? "Copied" : "Copy message"
+                      }
+                      type="button"
+                    >
+                      <CopyIcon />
+                      <span>{copiedMessageId === message.id ? "Copied" : "Copy"}</span>
+                    </button>
+                  </div>
+                  <MessageContent message={message} />
                 </article>
               ))}
               {status === "submitted" && (
@@ -541,6 +834,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             </label>
             <textarea
               id="chat-input"
+              ref={inputRef}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
