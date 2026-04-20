@@ -134,14 +134,6 @@ function PaperclipIcon() {
   );
 }
 
-function VercelIcon() {
-  return (
-    <svg aria-hidden="true" className="vercel-mark" viewBox="0 0 24 24">
-      <path d="M12 4 22 20H2L12 4Z" />
-    </svg>
-  );
-}
-
 function createChatId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -424,16 +416,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           >
             <PanelIcon />
           </button>
-          <a
-            aria-label="Vercel chatbot template"
-            className="brand-button"
-            href="https://vercel.com/templates/next.js/chatbot"
-            rel="noreferrer"
-            target="_blank"
-            title="Vercel chatbot template"
-          >
-            <VercelIcon />
-          </a>
+          <div className="header-spacer" />
         </div>
 
         <button
@@ -472,10 +455,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           )}
         </div>
 
-        <div className="sidebar-footer">
-          <span className="status-dot" />
-          <span>ACK/Ark endpoint ready</span>
-        </div>
       </aside>
 
       <section className="chat-panel" aria-label="AI chat">
@@ -492,16 +471,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             Private
           </button>
           <div className="header-spacer" />
-          <a
-            aria-label="Deploy with Vercel"
-            className="deploy-button"
-            href="https://vercel.com/templates/next.js/chatbot"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <VercelIcon />
-            <span>Deploy with Vercel</span>
-          </a>
           <button
             aria-label="Start a new chat"
             className="ghost-icon"

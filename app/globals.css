@@ -55,11 +55,6 @@ svg {
   width: 16px;
 }
 
-.vercel-mark {
-  fill: currentColor;
-  stroke: none;
-}
-
 .app-shell {
   display: flex;
   height: 100dvh;
@@ -89,7 +84,6 @@ svg {
   height: 32px;
 }
 
-.brand-button,
 .ghost-icon,
 .tool-button,
 .send-button {
@@ -100,7 +94,6 @@ svg {
   justify-content: center;
 }
 
-.brand-button,
 .ghost-icon,
 .tool-button {
   background: transparent;
@@ -111,7 +104,6 @@ svg {
   width: 32px;
 }
 
-.brand-button:hover,
 .ghost-icon:hover,
 .tool-button:hover {
   background: var(--sidebar-accent);
@@ -149,6 +141,7 @@ svg {
 
 .sidebar-section {
   display: grid;
+  flex: 1 1 auto;
   gap: 4px;
   margin-top: 6px;
   min-height: 0;
@@ -266,25 +259,6 @@ svg {
   padding: 10px 12px;
 }
 
-.sidebar-footer {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 10px;
-  display: flex;
-  gap: 8px;
-  margin-top: auto;
-  min-height: 34px;
-  padding: 0 10px;
-  font-size: 11px;
-}
-
-.status-dot {
-  background: #16a34a;
-  border-radius: 999px;
-  height: 7px;
-  width: 7px;
-}
-
 .chat-panel {
   background: var(--background);
   display: grid;
@@ -307,7 +281,6 @@ svg {
 }
 
 .visibility-button,
-.deploy-button,
 .model-pill {
   align-items: center;
   border-radius: 8px;
@@ -332,19 +305,6 @@ svg {
 
 .header-spacer {
   flex: 1;
-}
-
-.deploy-button {
-  background: var(--foreground);
-  border: 0;
-  color: white;
-  font-size: 14px;
-  padding: 0 14px;
-  text-decoration: none;
-}
-
-.deploy-button:hover {
-  opacity: 0.88;
 }
 
 .message-scroll {
@@ -684,15 +644,6 @@ svg {
 
   .mobile-only {
     display: inline-grid;
-  }
-
-  .deploy-button span {
-    display: none;
-  }
-
-  .deploy-button {
-    padding: 0;
-    width: 34px;
   }
 }
 

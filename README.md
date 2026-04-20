@@ -2,7 +2,7 @@
 
 ## Intro
 
-A Next.js AI chatbot scaffold based on the Vercel chatbot architecture and wired for Volcengine ACK/Ark inference through an OpenAI-compatible endpoint. The chat route now runs through a Vercel AI SDK tool-loop agent, which can call Tavily for live web search when the prompt needs fresh information.
+A Next.js AI chatbot scaffold wired for Volcengine ACK/Ark inference through an OpenAI-compatible endpoint. The chat route runs through an AI SDK tool-loop agent, which can call Tavily for live web search when the prompt needs fresh information.
 
 ## Quick Start
 
