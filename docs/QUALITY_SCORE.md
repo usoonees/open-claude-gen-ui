@@ -13,8 +13,8 @@ Track quality by product area and architectural layer so agents can prioritize t
 
 | Area | Score | Why | Next Step |
 | --- | --- | --- | --- |
-| Product surface | D | Not yet defined. | Define the first user journey and acceptance criteria. |
-| Architecture docs | C | Base scaffold exists but needs project-specific content. | Fill in `docs/ARCHITECTURE.md`. |
-| Testing | D | No stack-specific tests yet. | Add a minimal smoke path with one real command. |
-| Observability | D | No local stack or conventions yet. | Document logs, metrics, traces, and local access. |
-| Security | C | Defaults are documented, implementation is pending. | Add real auth, secret, and dependency rules. |
+| Product surface | C | A bootable chat UI now exists with streaming transport and clear empty/error states. | Add persisted chat history and a real configured model key for end-to-end testing. |
+| Architecture docs | B | Runtime topology, provider boundary, and deferred scope are documented. | Extend once persistence, auth, or deployment topology is added. |
+| Testing | C | `pnpm check` and `pnpm build` validate the first app surface. | Add browser automation for the chat happy path after credentials or a mock provider are available. |
+| Observability | D | No local logs, metrics, traces, or request inspection workflow beyond route errors. | Add structured request logging and documented runtime diagnostics. |
+| Security | C | API keys are server-only and blank in examples; no auth or persistence is present. | Add auth, rate limiting, and production secret handling before public deployment. |

@@ -16,6 +16,7 @@ temp/
 .env
 .env.local
 .env.*.local
+.data/
 
 # Dependency caches and common build output
 node_modules/
@@ -24,6 +25,7 @@ node_modules/
 .yarn/
 .turbo/
 .next/
+tsconfig.tsbuildinfo
 dist/
 build/
 coverage/
