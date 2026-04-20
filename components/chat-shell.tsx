@@ -50,6 +50,18 @@ type ToolEvent = {
   }>;
 };
 
+type ThinkingItem =
+  | {
+      kind: "reasoning";
+      key: string;
+      text: string;
+    }
+  | {
+      kind: "tool";
+      key: string;
+      event: ToolEvent;
+    };
+
 function textFromMessage(message: UIMessage) {
   return message.parts
     .filter((part) => part.type === "text")
@@ -74,9 +86,18 @@ function reasoningFromMessage(message: UIMessage) {
     .join("");
 }
 
-function isReasoningStreaming(message: UIMessage) {
+function isToolRunning(part: UIMessage["parts"][number]) {
+  return (
+    isToolLikePart(part) &&
+    (part.state === "input-streaming" ||
+      part.state === "input-available" ||
+      part.state === "approval-requested")
+  );
+}
+
+function isThinkingActive(message: UIMessage) {
   return message.parts.some(
-    (part) => part.type === "reasoning" && part.state === "streaming"
+    (part) => (part.type === "reasoning" && part.state === "streaming") || isToolRunning(part)
   );
 }
 
@@ -95,10 +116,6 @@ function isToolLikePart(
   part: UIMessage["parts"][number]
 ): part is UIMessage["parts"][number] & ToolLikePart {
   return part.type === "dynamic-tool" || part.type.startsWith("tool-");
-}
-
-function isToolEvent(value: ToolEvent | null): value is ToolEvent {
-  return value !== null;
 }
 
 function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
@@ -199,6 +216,41 @@ function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
   }
 }
 
+function thinkingItemsFromMessage(message: UIMessage): ThinkingItem[] {
+  return message.parts.flatMap<ThinkingItem>((part, index) => {
+    if (part.type === "reasoning") {
+      if (!part.text.trim()) {
+        return [];
+      }
+
+      return [
+        {
+          kind: "reasoning" as const,
+          key: `${part.type}-${index}`,
+          text: part.text,
+        },
+      ];
+    }
+
+    const toolEvent = summarizeToolPart(part);
+
+    if (!toolEvent) {
+      return [];
+    }
+
+    return [
+      {
+        kind: "tool" as const,
+        key:
+          isToolLikePart(part)
+            ? `${part.toolCallId}-${part.state}`
+            : `tool-${index}`,
+        event: toolEvent,
+      },
+    ];
+  });
+}
+
 function MarkdownBlock({ children }: { children: string }) {
   if (!children.trim()) {
     return null;
@@ -211,18 +263,48 @@ function MarkdownBlock({ children }: { children: string }) {
   );
 }
 
-function ReasoningBlock({
-  reasoning,
-  isStreaming,
+function ToolEventCard({ event }: { event: ToolEvent }) {
+  return (
+    <section className={`tool-card tool-card-${event.tone}`}>
+      <div className="tool-card-header">
+        <span className="tool-badge">{event.label}</span>
+        <span className="tool-status">{event.detail}</span>
+      </div>
+      {event.sources && event.sources.length > 0 ? (
+        <div className="tool-sources">
+          {event.sources.slice(0, 3).map((source) => (
+            <a
+              className="tool-source-link"
+              href={source.url}
+              key={source.url}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {source.title}
+            </a>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ThinkingBlock({
+  items,
+  isActive,
 }: {
-  reasoning: string;
-  isStreaming: boolean;
+  items: ThinkingItem[];
+  isActive: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(isStreaming);
+  const [isOpen, setIsOpen] = useState(isActive);
 
   useEffect(() => {
-    setIsOpen(isStreaming);
-  }, [isStreaming]);
+    setIsOpen(isActive);
+  }, [isActive]);
+
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     <details
@@ -231,49 +313,16 @@ function ReasoningBlock({
       open={isOpen}
     >
       <summary>Thinking</summary>
-      <MarkdownBlock>{reasoning}</MarkdownBlock>
+      <div className="thinking-stack">
+        {items.map((item) =>
+          item.kind === "reasoning" ? (
+            <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
+          ) : (
+            <ToolEventCard event={item.event} key={item.key} />
+          )
+        )}
+      </div>
     </details>
-  );
-}
-
-function ToolActivity({ message }: { message: UIMessage }) {
-  const toolEvents = message.parts
-    .map((part) => summarizeToolPart(part))
-    .filter(isToolEvent);
-
-  if (toolEvents.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="tool-stack">
-      {toolEvents.map((event, index) => (
-        <section
-          className={`tool-card tool-card-${event.tone}`}
-          key={`${event.label}-${index}`}
-        >
-          <div className="tool-card-header">
-            <span className="tool-badge">{event.label}</span>
-            <span className="tool-status">{event.detail}</span>
-          </div>
-          {event.sources && event.sources.length > 0 ? (
-            <div className="tool-sources">
-              {event.sources.slice(0, 3).map((source) => (
-                <a
-                  className="tool-source-link"
-                  href={source.url}
-                  key={source.url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {source.title}
-                </a>
-              ))}
-            </div>
-          ) : null}
-        </section>
-      ))}
-    </div>
   );
 }
 
@@ -282,18 +331,12 @@ function MessageContent({
 }: {
   message: UIMessage;
 }) {
-  const reasoning = reasoningFromMessage(message);
   const text = textFromMessage(message);
+  const thinkingItems = thinkingItemsFromMessage(message);
 
   return (
     <>
-      <ToolActivity message={message} />
-      {reasoning ? (
-        <ReasoningBlock
-          isStreaming={isReasoningStreaming(message)}
-          reasoning={reasoning}
-        />
-      ) : null}
+      <ThinkingBlock isActive={isThinkingActive(message)} items={thinkingItems} />
       <MarkdownBlock>{text}</MarkdownBlock>
     </>
   );
@@ -621,19 +664,26 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       return;
     }
 
-    await navigator.clipboard.writeText(text);
-    setCopiedMessageId(message.id);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(message.id);
 
-    if (copyResetTimerRef.current !== null) {
-      window.clearTimeout(copyResetTimerRef.current);
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+
+      copyResetTimerRef.current = window.setTimeout(() => {
+        setCopiedMessageId((currentId) =>
+          currentId === message.id ? null : currentId
+        );
+        copyResetTimerRef.current = null;
+      }, 1600);
+    } catch (error) {
+      debugChat("copy-message:error", {
+        messageId: message.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    copyResetTimerRef.current = window.setTimeout(() => {
-      setCopiedMessageId((currentId) =>
-        currentId === message.id ? null : currentId
-      );
-      copyResetTimerRef.current = null;
-    }, 1600);
   }
 
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
@@ -775,28 +825,53 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   className={`message message-${message.role}`}
                   key={message.id}
                 >
-                  <div className="message-meta">
-                    <span className="message-role">
-                      {message.role === "user" ? "You" : "Assistant"}
-                    </span>
-                    <button
-                      aria-label={`Copy ${
-                        message.role === "user" ? "user message" : "assistant response"
-                      }`}
-                      className="message-copy-button"
-                      onClick={() => {
-                        void copyMessage(message);
-                      }}
-                      title={
-                        copiedMessageId === message.id ? "Copied" : "Copy message"
-                      }
-                      type="button"
-                    >
-                      <CopyIcon />
-                      <span>{copiedMessageId === message.id ? "Copied" : "Copy"}</span>
-                    </button>
-                  </div>
-                  <MessageContent message={message} />
+                  {message.role === "user" ? (
+                    <div className="message-user-row">
+                      <button
+                        aria-label="Copy user message"
+                        className={`message-copy-button ${
+                          copiedMessageId === message.id ? "is-copied" : ""
+                        }`}
+                        onClick={() => {
+                          void copyMessage(message);
+                        }}
+                        title={
+                          copiedMessageId === message.id ? "Copied" : "Copy message"
+                        }
+                        type="button"
+                      >
+                        <CopyIcon />
+                      </button>
+                      <div className="message-body">
+                        <span className="message-role">You</span>
+                        <MessageContent message={message} />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="message-body">
+                        <span className="message-role">Assistant</span>
+                        <MessageContent message={message} />
+                      </div>
+                      <div className="message-actions">
+                        <button
+                          aria-label="Copy assistant response"
+                          className={`message-copy-button ${
+                            copiedMessageId === message.id ? "is-copied" : ""
+                          }`}
+                          onClick={() => {
+                            void copyMessage(message);
+                          }}
+                          title={
+                            copiedMessageId === message.id ? "Copied" : "Copy message"
+                          }
+                          type="button"
+                        >
+                          <CopyIcon />
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </article>
               ))}
               {status === "submitted" && (

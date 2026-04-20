@@ -352,23 +352,14 @@ svg {
   white-space: pre-wrap;
 }
 
-.message-meta {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-
 .message-user {
-  background: var(--muted);
-  border-radius: 16px;
   justify-self: end;
   max-width: min(660px, 82%);
-  padding: 10px 14px;
 }
 
 .message-assistant {
+  display: grid;
+  gap: 8px;
   justify-self: start;
   max-width: min(760px, 92%);
   padding: 2px 0;
@@ -382,27 +373,48 @@ svg {
   margin-bottom: 5px;
 }
 
-.message-meta .message-role {
-  margin-bottom: 0;
+.message-body {
+  display: grid;
+}
+
+.message-user-row {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.message-user .message-body {
+  background: var(--muted);
+  border-radius: 16px;
+  padding: 10px 14px;
+}
+
+.message-actions {
+  display: flex;
+  margin-top: 2px;
+}
+
+.message-assistant .message-actions {
+  justify-content: flex-start;
 }
 
 .message-copy-button {
   align-items: center;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
   color: var(--muted-foreground);
   display: inline-flex;
-  gap: 6px;
   height: 28px;
   opacity: 0;
-  padding: 0 10px;
+  justify-content: center;
+  padding: 0;
   pointer-events: none;
   transition:
     opacity 140ms ease,
-    color 140ms ease,
-    border-color 140ms ease,
-    background 140ms ease;
+    color 140ms ease;
+  width: 28px;
 }
 
 .message:hover .message-copy-button,
@@ -412,15 +424,15 @@ svg {
 }
 
 .message-copy-button:hover {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.14);
   color: var(--foreground);
 }
 
-.message-copy-button span {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
+.message-copy-button.is-copied {
+  color: var(--foreground);
+}
+
+.message-user .message-copy-button {
+  align-self: end;
 }
 
 .message p {
@@ -603,6 +615,11 @@ svg {
 .reasoning-block .markdown-body {
   font-size: 13px;
   line-height: 1.55;
+}
+
+.thinking-stack {
+  display: grid;
+  gap: 10px;
 }
 
 .pulse-text {
