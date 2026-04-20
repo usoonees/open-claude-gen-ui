@@ -1,10 +1,7 @@
-import {
-  convertToModelMessages,
-  type UIMessage,
-  streamText,
-} from "ai";
+import { createAgentUIStreamResponse, type UIMessage } from "ai";
 import { writeChat } from "@/lib/chat-store";
-import { getVolcengineChatModel, volcengineConfig } from "@/lib/volcengine";
+import { chatAgent } from "@/lib/chat-agent";
+import { volcengineConfig } from "@/lib/volcengine";
 
 export const maxDuration = 60;
 
@@ -39,17 +36,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const modelMessages = await convertToModelMessages(body.messages);
-
-  const result = streamText({
-    model: getVolcengineChatModel(),
-    system:
-      "You are a concise, practical AI assistant. Ask clarifying questions only when the request cannot be handled safely from the available context.",
-    messages: modelMessages,
-  });
-
-  return result.toUIMessageStreamResponse({
-    originalMessages: body.messages,
+  return createAgentUIStreamResponse({
+    agent: chatAgent,
+    uiMessages: body.messages,
     sendReasoning: true,
     onFinish: async ({ messages }) => {
       await writeChat(body.id as string, messages);

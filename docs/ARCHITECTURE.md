@@ -14,7 +14,9 @@ This file is the top-level map for the repository.
 
 - Browser users load `app/page.tsx`, which renders `components/chat-shell.tsx`.
 - The chat client uses Vercel AI SDK's `useChat` hook with `DefaultChatTransport` to POST conversation state to `/api/chat`.
-- `app/api/chat/route.ts` validates the request, converts UI messages to model messages, and streams text back with `streamText`.
+- `app/api/chat/route.ts` validates the request and delegates chat execution to a Vercel AI SDK `ToolLoopAgent` through `createAgentUIStreamResponse`.
+- `lib/chat-agent.ts` defines the agent instructions, step limit, and server-side tools available to the assistant.
+- `lib/tavily.ts` calls Tavily's search API so the agent can fetch current web information during a tool loop.
 - `lib/volcengine.ts` creates an OpenAI-compatible provider pointed at Volcengine ACK/Ark configuration.
 
 ## Configuration
@@ -22,6 +24,7 @@ This file is the top-level map for the repository.
 - `VOLCENGINE_ACK_API_KEY` is required at runtime for real inference and is intentionally blank in `.env.example`.
 - `VOLCENGINE_ACK_BASE_URL` defaults to the public Ark OpenAI-compatible base URL and can be replaced with an AI acceleration gateway BaseUrl.
 - `VOLCENGINE_ACK_MODEL` selects the model or endpoint ID.
+- `TAVILY_API_KEY` enables the agent's live web-search tool and is intentionally blank in `.env.example`.
 - `VOLCENGINE_ARK_*` aliases are accepted for teams using Ark naming directly.
 
 ## Boundary Rules
