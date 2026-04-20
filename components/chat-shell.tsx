@@ -454,6 +454,26 @@ function createOptimisticUserMessage(text: string): UIMessage {
   };
 }
 
+function messageScrollSignature(messages: UIMessage[]) {
+  return messages
+    .map((message) =>
+      message.parts
+        .map((part) => {
+          if (part.type === "text" || part.type === "reasoning") {
+            return `${part.type}:${part.text.length}`;
+          }
+
+          if (isToolLikePart(part)) {
+            return `${part.type}:${part.state}`;
+          }
+
+          return part.type;
+        })
+        .join(",")
+    )
+    .join(";");
+}
+
 export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
@@ -467,7 +487,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const chatIdRef = useRef(chatId);
   const lastLoadedChatIdRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messageScrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const shouldFollowStreamRef = useRef(true);
   const copyResetTimerRef = useRef<number | null>(null);
   const sidebarMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -493,13 +515,44 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     onFinish: () => {
       void loadChatList();
       requestAnimationFrame(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (shouldFollowStreamRef.current) {
+          scrollMessagesToBottom("smooth");
+        }
       });
     },
   });
 
   const isBusy = status === "submitted" || status === "streaming";
   const trimmedInput = input.trim();
+  const streamScrollSignature = messageScrollSignature(messages);
+
+  function isMessageScrollAtBottom() {
+    const element = messageScrollRef.current;
+
+    if (!element) {
+      return true;
+    }
+
+    return element.scrollHeight - element.scrollTop - element.clientHeight < 72;
+  }
+
+  function scrollMessagesToBottom(behavior: ScrollBehavior = "auto") {
+    const element = messageScrollRef.current;
+
+    if (element) {
+      element.scrollTo({
+        top: element.scrollHeight,
+        behavior,
+      });
+      return;
+    }
+
+    endRef.current?.scrollIntoView({ behavior });
+  }
+
+  function handleMessageScroll() {
+    shouldFollowStreamRef.current = isMessageScrollAtBottom();
+  }
 
   useEffect(() => {
     debugChat("render-state", {
@@ -509,6 +562,18 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       status,
     });
   }, [chatId, chatList.length, messages.length, status]);
+
+  useEffect(() => {
+    if (!isBusy || !shouldFollowStreamRef.current) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (shouldFollowStreamRef.current) {
+        scrollMessagesToBottom();
+      }
+    });
+  }, [isBusy, status, streamScrollSignature]);
 
   useEffect(() => {
     chatIdRef.current = chatId;
@@ -930,6 +995,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       chatId: activeChatId,
       length: messageText.length,
     });
+    shouldFollowStreamRef.current = true;
     void persistOptimisticUserTurn(activeChatId, messageText);
     await sendMessage({
       role: "user",
@@ -937,7 +1003,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     });
 
     requestAnimationFrame(() => {
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollMessagesToBottom("smooth");
     });
   }
 
@@ -959,7 +1025,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     });
 
     requestAnimationFrame(() => {
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollMessagesToBottom("smooth");
     });
   }
 
@@ -1170,7 +1236,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           </button>
         </header>
 
-        <div className="message-scroll">
+        <div
+          className="message-scroll"
+          onScroll={handleMessageScroll}
+          ref={messageScrollRef}
+        >
           {messages.length === 0 ? (
             <div className="empty-state">
               <h1>What can I help with?</h1>

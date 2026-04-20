@@ -25,6 +25,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
 - With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning or tool activity is still running, then auto-collapses when that activity finishes while remaining manually expandable.
+- While a real response is streaming, verify the message pane follows the newest assistant output until the user scrolls away, then resumes only after the user scrolls back near the bottom or sends another message.
 - When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
 - Hover or focus a user or assistant message and verify the inline `Copy` action appears and copies that message's rendered text.
 
