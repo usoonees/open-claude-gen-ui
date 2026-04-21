@@ -967,6 +967,11 @@ svg {
   gap: 10px;
 }
 
+.markdown-body + .widget-shell,
+.widget-shell + .markdown-body {
+  margin-top: 10px;
+}
+
 .markdown-body > * {
   margin: 0;
 }
