@@ -1857,6 +1857,7 @@ svg {
 .provider-option-list {
   display: grid;
   gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .provider-option {
@@ -1880,19 +1881,24 @@ svg {
   display: grid;
   gap: 4px;
   min-width: 0;
+  width: 100%;
 }
 
 .provider-option-title-row {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .provider-option-title {
   color: rgba(46, 44, 40, 0.96);
+  flex: 1 1 auto;
   font-size: 13px;
   font-weight: 600;
+  min-width: 0;
 }
 
 .provider-option-description,
@@ -1975,6 +1981,7 @@ svg {
 .model-group-list {
   display: grid;
   gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
   margin-top: 10px;
   max-height: 320px;
   overflow-y: auto;
@@ -1989,22 +1996,40 @@ svg {
 .model-group {
   display: grid;
   gap: 4px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
 .model-group-label {
-  align-items: center;
+  align-items: flex-start;
+  box-sizing: border-box;
   color: rgba(116, 111, 102, 0.94);
   display: flex;
+  flex-wrap: wrap;
   font-size: 12px;
   font-weight: 500;
+  gap: 6px 8px;
   justify-content: space-between;
   line-height: 1.4;
+  min-width: 0;
   padding: 0 4px;
+  width: 100%;
+}
+
+.model-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .model-group-badges {
   display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: 6px;
+  justify-content: flex-end;
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .model-group-badge {
@@ -2013,6 +2038,7 @@ svg {
   color: rgba(119, 112, 102, 0.9);
   font-size: 10px;
   font-weight: 600;
+  max-width: 100%;
   padding: 3px 7px;
 }
 
@@ -2024,6 +2050,7 @@ svg {
 .model-option-list {
   display: grid;
   gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .model-option {

@@ -2867,7 +2867,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                             return (
                               <section className="model-group" key={provider.id}>
                                 <div className="model-group-label manage-group-label">
-                                  <span>{provider.label}</span>
+                                  <span className="model-group-title">{provider.label}</span>
                                   <div className="manage-group-actions">
                                     {provider.configured && provider.canListModels ? (
                                       <button
@@ -2959,7 +2959,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                             groupedModelOptions.map(({ provider, models }) => (
                               <section className="model-group" key={provider.id}>
                                 <div className="model-group-label">
-                                  <span>{provider.label}</span>
+                                  <span className="model-group-title">{provider.label}</span>
                                   <div className="model-group-badges">
                                     {provider.id === activeModelSelection.providerId ? (
                                       <span className="model-group-badge is-current">Current</span>
