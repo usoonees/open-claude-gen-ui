@@ -28,7 +28,7 @@ const tavilySearchInputSchema = {
       type: "integer",
       minimum: 1,
       maximum: 8,
-      description: "How many search results to retrieve. Prefer 3 to 5.",
+      description: "How many search results to retrieve. Prefer 8 unless a narrower search is enough.",
     },
   },
   required: ["query"],

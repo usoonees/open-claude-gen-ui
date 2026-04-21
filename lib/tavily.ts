@@ -31,7 +31,7 @@ type TavilySearchResponse = {
 export async function searchTavily({
   query,
   topic = "general",
-  maxResults = 5,
+  maxResults = 8,
 }: TavilySearchArgs) {
   if (!tavilyConfig.apiKey) {
     throw new Error(
