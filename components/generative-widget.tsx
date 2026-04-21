@@ -10,7 +10,6 @@ type GenerativeWidgetProps = {
   title: string;
   widgetCode: string;
   loadingMessages: string[];
-  preferredHeight?: number | null;
   status: WidgetStatus;
   errorText?: string;
 };
@@ -18,7 +17,6 @@ type GenerativeWidgetProps = {
 export type DownloadableGenerativeWidget = {
   title: string;
   widgetCode: string;
-  preferredHeight?: number | null;
 };
 
 type ZipTextFile = {
@@ -156,18 +154,11 @@ function widgetCodeForHost(widgetCode: string) {
 
 function createWidgetDownloadHtml(
   title: string,
-  widgetCode: string,
-  preferredHeight?: number | null
+  widgetCode: string
 ) {
   if (/<html[\s>]/i.test(widgetCode)) {
     return widgetCode;
   }
-
-  const frameStyle = [
-    preferredHeight ? `min-height: ${preferredHeight}px;` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
 
   return `<!doctype html>
 <html lang="en">
@@ -178,7 +169,7 @@ function createWidgetDownloadHtml(
   <title>${escapeHtml(title.replace(/_/g, " "))}</title>
 </head>
 <body>
-<div class="widget-export-frame"${frameStyle ? ` style="${frameStyle}"` : ""}>
+<div class="widget-export-frame">
 ${widgetCodeForHost(widgetCode)}
 </div>
 </body>
@@ -324,7 +315,6 @@ function executeScripts(container: HTMLElement) {
 export function downloadGenerativeWidgetZip({
   title,
   widgetCode,
-  preferredHeight,
 }: DownloadableGenerativeWidget) {
   if (!widgetCode.trim()) {
     return;
@@ -338,11 +328,7 @@ export function downloadGenerativeWidgetZip({
     },
     {
       name: "final-widget.html",
-      content: createWidgetDownloadHtml(
-        title,
-        widgetCode,
-        preferredHeight
-      ),
+      content: createWidgetDownloadHtml(title, widgetCode),
     },
   ]);
   const url = URL.createObjectURL(blob);
@@ -360,7 +346,6 @@ export function GenerativeWidget({
   title,
   widgetCode,
   loadingMessages,
-  preferredHeight,
   status,
   errorText,
 }: GenerativeWidgetProps) {
@@ -376,6 +361,8 @@ export function GenerativeWidget({
 
     return loadingMessages[loadingMessageIndex % loadingMessages.length];
   }, [loadingMessageIndex, loadingMessages]);
+  const showLoadingStatus =
+    status === "streaming" && visibleLoadingMessage.length > 0;
 
   useEffect(() => {
     if (status !== "streaming" || loadingMessages.length <= 1) {
@@ -384,12 +371,16 @@ export function GenerativeWidget({
 
     const timer = window.setInterval(() => {
       setLoadingMessageIndex((currentIndex) => currentIndex + 1);
-    }, 1400);
+    }, 3600);
 
     return () => {
       window.clearInterval(timer);
     };
   }, [loadingMessages.length, status]);
+
+  useEffect(() => {
+    setLoadingMessageIndex(0);
+  }, [loadingMessages, status]);
 
   useEffect(() => {
     if (!hostRef.current || !hasRenderableMarkup) {
@@ -427,26 +418,44 @@ export function GenerativeWidget({
 
   return (
     <section aria-label={title.replace(/_/g, " ")} className="widget-shell">
-      <div
-        className={`widget-frame ${status === "error" ? "is-error" : ""}`}
-        style={{
-          minHeight: preferredHeight ? `${preferredHeight}px` : undefined,
-        }}
-      >
+      <div className={`widget-frame ${status === "error" ? "is-error" : ""}`}>
         {!hasRenderableMarkup ? (
           <div className="widget-placeholder">
             <div className="widget-loader-line" />
-            {visibleLoadingMessage ? <p>{visibleLoadingMessage}</p> : null}
+            {showLoadingStatus ? (
+              <div className="widget-loading-status">
+                <span aria-hidden="true" className="widget-loading-dot" />
+                <span className="widget-loading-text">
+                  {visibleLoadingMessage}
+                  <span aria-hidden="true" className="widget-loading-ellipsis">
+                    ...
+                  </span>
+                </span>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
         <div
-          className={hasRenderableMarkup ? "widget-host" : "widget-host is-hidden"}
-          ref={hostRef}
-        />
+          className={
+            hasRenderableMarkup
+              ? "widget-live-region"
+              : "widget-live-region is-hidden"
+          }
+        >
+          <div className="widget-host" ref={hostRef} />
+        </div>
 
-        {status === "streaming" && hasRenderableMarkup && visibleLoadingMessage ? (
-          <div className="widget-streaming-chip">{visibleLoadingMessage}</div>
+        {hasRenderableMarkup && showLoadingStatus ? (
+          <div className="widget-loading-status">
+            <span aria-hidden="true" className="widget-loading-dot" />
+            <span className="widget-loading-text">
+              {visibleLoadingMessage}
+              <span aria-hidden="true" className="widget-loading-ellipsis">
+                ...
+              </span>
+            </span>
+          </div>
         ) : null}
 
         {status === "error" && errorText ? (

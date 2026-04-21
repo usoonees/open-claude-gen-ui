@@ -5,6 +5,7 @@ import {
   downloadGenerativeWidgetZip,
   type DownloadableGenerativeWidget,
 } from "@/components/generative-widget";
+import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
@@ -74,10 +75,10 @@ type ThinkingItem =
     };
 
 type WidgetToolInput = {
+  iHaveSeenReadMe?: boolean;
   title?: string;
   widgetCode?: string;
   loadingMessages?: string[];
-  height?: number;
 };
 
 type RenderableMessageItem =
@@ -92,7 +93,6 @@ type RenderableMessageItem =
       title: string;
       widgetCode: string;
       loadingMessages: string[];
-      preferredHeight: number | null;
       status: "streaming" | "ready" | "error";
       errorText?: string;
     };
@@ -108,19 +108,7 @@ function asRecord(value: unknown) {
 }
 
 function widgetInputFromUnknown(input: unknown): WidgetToolInput {
-  const record = asRecord(input);
-
-  return {
-    title: typeof record?.title === "string" ? record.title : undefined,
-    widgetCode:
-      typeof record?.widgetCode === "string" ? record.widgetCode : undefined,
-    loadingMessages: Array.isArray(record?.loadingMessages)
-      ? record.loadingMessages.filter(
-          (value): value is string => typeof value === "string"
-        )
-      : undefined,
-    height: typeof record?.height === "number" ? record.height : undefined,
-  };
+  return normalizeShowWidgetToolInput(input);
 }
 
 function textFromMessage(message: ChatUIMessage) {
@@ -553,7 +541,6 @@ function renderableItemsFromMessage(message: ChatUIMessage): RenderableMessageIt
         title: input.title ?? "widget",
         widgetCode: input.widgetCode ?? "",
         loadingMessages: input.loadingMessages ?? [],
-        preferredHeight: input.height ?? null,
         status:
           part.state === "output-error"
             ? "error"
@@ -580,7 +567,6 @@ function downloadableWidgetFromMessage(
       downloadableWidget = {
         title: item.title,
         widgetCode: item.widgetCode,
-        preferredHeight: item.preferredHeight,
       };
     }
   }
@@ -605,7 +591,6 @@ function MessageContent({ message }: { message: ChatUIMessage }) {
             errorText={item.errorText}
             key={item.key}
             loadingMessages={item.loadingMessages}
-            preferredHeight={item.preferredHeight}
             status={item.status}
             title={item.title}
             widgetCode={item.widgetCode}
@@ -1684,7 +1669,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                         </div>
                         <div className="message-actions">
                           <button
-                            aria-label="Copy assistant response"
+                            aria-label={
+                              downloadableWidget
+                                ? "Copy widget HTML from assistant response"
+                                : "Copy assistant response"
+                            }
                             className={`message-action-button ${
                               copiedMessageId === message.id ? "is-copied" : ""
                             }`}
@@ -1694,7 +1683,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                             title={
                               copiedMessageId === message.id
                                 ? "Copied"
-                                : "Copy message"
+                                : downloadableWidget
+                                  ? "Copy widget HTML"
+                                  : "Copy message"
                             }
                             type="button"
                           >
@@ -1706,12 +1697,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                           </button>
                           {downloadableWidget ? (
                             <button
-                              aria-label="Download widget ZIP"
+                              aria-label="Download widget HTML files"
                               className="message-action-button"
                               onClick={() => {
                                 downloadGenerativeWidgetZip(downloadableWidget);
                               }}
-                              title="Download widget ZIP"
+                              title="Download widget HTML"
                               type="button"
                             >
                               <DownloadIcon />

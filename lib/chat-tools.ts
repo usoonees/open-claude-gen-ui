@@ -5,6 +5,7 @@ import {
   isGenerativeUITrustedModeEnabled,
   type GenerativeUIModule,
 } from "@/lib/generative-ui";
+import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import { searchTavily } from "@/lib/tavily";
 
 const tavilySearchDescription =
@@ -97,22 +98,15 @@ const showWidgetInputSchema = {
       type: "array",
       items: { type: "string" },
       description:
-        "Optional short progress labels to show while the widget is still streaming.",
+        "Short progress labels to show while the widget is still streaming. Required.",
     },
     widgetCode: {
       type: "string",
       description:
         "HTML or SVG fragment to render inline. No DOCTYPE, html, head, or body tags. Use valid CSS and the documented widget CSS variables for colors, fonts, borders, and radii.",
     },
-    height: {
-      type: "integer",
-      minimum: 180,
-      maximum: 1200,
-      description:
-        "Optional preferred minimum height hint for the widget container in pixels.",
-    },
   },
-  required: ["iHaveSeenReadMe", "title", "widgetCode"],
+  required: ["iHaveSeenReadMe", "title", "loadingMessages", "widgetCode"],
 } as const;
 
 export const showWidgetTool = tool({
@@ -120,21 +114,28 @@ export const showWidgetTool = tool({
   inputSchema: jsonSchema<{
     iHaveSeenReadMe: boolean;
     title: string;
-    loadingMessages?: string[];
+    loadingMessages: string[];
     widgetCode: string;
-    height?: number;
   }>(showWidgetInputSchema),
-  execute: async ({ iHaveSeenReadMe, title, height }) => {
+  execute: async (input) => {
+    const { iHaveSeenReadMe, title, loadingMessages, widgetCode } =
+      normalizeShowWidgetToolInput(input);
+
     if (!iHaveSeenReadMe) {
       throw new Error(
         "showWidget requires visualizeReadMe first. Call visualizeReadMe, then retry showWidget with iHaveSeenReadMe: true."
       );
     }
 
+    if (!title || !widgetCode || !loadingMessages?.length) {
+      throw new Error(
+        "showWidget requires title, loadingMessages, and widgetCode."
+      );
+    }
+
     return {
       rendered: true,
       title,
-      height: height ?? null,
     };
   },
 });

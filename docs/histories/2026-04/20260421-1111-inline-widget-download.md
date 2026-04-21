@@ -15,11 +15,11 @@
 ### Changes Overview
 
 - Area: Chat generative UI widget rendering and message actions.
-- Key actions: Removed the visible widget header/status row, changed the ZIP download action to a hover/focus message action beside copy, removed the widget frame border, radius, padding, and default host minimum height, and dropped the fallback `Building interactive view...` text.
+- Key actions: Removed the visible widget header/status row, changed the ZIP download action to a hover/focus message action beside copy, clarified the hover/focus button hints so they explicitly refer to widget HTML, removed the widget frame border, radius, padding, and default host minimum height, and dropped the fallback `Building interactive view...` text.
 
 ### Design Intent
 
-Generated widgets should read as part of the assistant response instead of a nested card. The download action remains available after rendering completes, but it now uses the same quiet per-message action pattern as copying so the widget itself stays visually clean while partial widget streams avoid redundant fallback text.
+Generated widgets should read as part of the assistant response instead of a nested card. The download action remains available after rendering completes, but it now uses the same quiet per-message action pattern as copying so the widget itself stays visually clean while partial widget streams avoid redundant fallback text. Explicit hover hints make it clear that both actions operate on the generated widget HTML rather than generic assistant text.
 
 ### Files Modified
 
