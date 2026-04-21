@@ -1,7 +1,13 @@
 "use client";
 
+import {
+  GenerativeWidget,
+  downloadGenerativeWidgetZip,
+  type DownloadableGenerativeWidget,
+} from "@/components/generative-widget";
+import type { ChatUIMessage } from "@/lib/chat-message";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -19,6 +25,8 @@ type ChatSummary = {
   title: string;
   updatedAt: string;
 };
+
+type MessagePart = ChatUIMessage["parts"][number];
 
 type ToolLikePart = {
   type: string;
@@ -62,14 +70,67 @@ type ThinkingItem =
       event: ToolEvent;
     };
 
-function textFromMessage(message: UIMessage) {
+type WidgetToolInput = {
+  title?: string;
+  widgetCode?: string;
+  loadingMessages?: string[];
+  width?: number;
+  height?: number;
+};
+
+type RenderableMessageItem =
+  | {
+      kind: "text";
+      key: string;
+      text: string;
+    }
+  | {
+      kind: "widget";
+      key: string;
+      title: string;
+      widgetCode: string;
+      loadingMessages: string[];
+      preferredWidth: number | null;
+      preferredHeight: number | null;
+      status: "streaming" | "ready" | "error";
+      errorText?: string;
+    };
+
+declare global {
+  interface Window {
+    sendPrompt?: (text: string) => void;
+  }
+}
+
+function asRecord(value: unknown) {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function widgetInputFromUnknown(input: unknown): WidgetToolInput {
+  const record = asRecord(input);
+
+  return {
+    title: typeof record?.title === "string" ? record.title : undefined,
+    widgetCode:
+      typeof record?.widgetCode === "string" ? record.widgetCode : undefined,
+    loadingMessages: Array.isArray(record?.loadingMessages)
+      ? record.loadingMessages.filter(
+          (value): value is string => typeof value === "string"
+        )
+      : undefined,
+    width: typeof record?.width === "number" ? record.width : undefined,
+    height: typeof record?.height === "number" ? record.height : undefined,
+  };
+}
+
+function textFromMessage(message: ChatUIMessage) {
   return message.parts
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
 }
 
-function copyTextFromMessage(message: UIMessage) {
+function copyTextFromMessage(message: ChatUIMessage) {
   const text = textFromMessage(message).trim();
 
   if (text) {
@@ -79,26 +140,19 @@ function copyTextFromMessage(message: UIMessage) {
   return reasoningFromMessage(message).trim();
 }
 
-function reasoningFromMessage(message: UIMessage) {
+function reasoningFromMessage(message: ChatUIMessage) {
   return message.parts
     .filter((part) => part.type === "reasoning")
     .map((part) => part.text)
     .join("");
 }
 
-function isToolRunning(part: UIMessage["parts"][number]) {
-  return (
-    isToolLikePart(part) &&
-    (part.state === "input-streaming" ||
-      part.state === "input-available" ||
-      part.state === "approval-requested")
-  );
+function isWidgetToolPart(part: MessagePart): part is Extract<MessagePart, { type: "tool-showWidget" }> {
+  return part.type === "tool-showWidget";
 }
 
-function isThinkingActive(message: UIMessage) {
-  return message.parts.some(
-    (part) => (part.type === "reasoning" && part.state === "streaming") || isToolRunning(part)
-  );
+function isSilentToolPart(part: MessagePart) {
+  return part.type === "tool-visualizeReadMe";
 }
 
 function formatToolName(partType: string, dynamicToolName?: string) {
@@ -113,13 +167,13 @@ function formatToolName(partType: string, dynamicToolName?: string) {
 }
 
 function isToolLikePart(
-  part: UIMessage["parts"][number]
-): part is UIMessage["parts"][number] & ToolLikePart {
+  part: MessagePart
+): part is MessagePart & ToolLikePart {
   return part.type === "dynamic-tool" || part.type.startsWith("tool-");
 }
 
-function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
-  if (!isToolLikePart(part)) {
+function summarizeToolPart(part: MessagePart): ToolEvent | null {
+  if (!isToolLikePart(part) || isSilentToolPart(part)) {
     return null;
   }
 
@@ -130,16 +184,33 @@ function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
 
   switch (part.state) {
     case "input-streaming":
+      if (isWidgetToolPart(part)) {
+        const input = widgetInputFromUnknown(part.input);
+        return {
+          label,
+          tone: "running",
+          detail: input.loadingMessages?.[0] ?? "Streaming widget...",
+        };
+      }
+
       return {
         label,
         tone: "running",
         detail: "Preparing tool input...",
       };
     case "input-available": {
-      const input =
-        part.input && typeof part.input === "object" ? part.input : null;
+      const input = asRecord(part.input);
+
+      if (isWidgetToolPart(part)) {
+        return {
+          label,
+          tone: "running",
+          detail: "Finalizing widget...",
+        };
+      }
+
       const query =
-        input && "query" in input && typeof input.query === "string"
+        input && typeof input.query === "string"
           ? input.query
           : null;
 
@@ -150,14 +221,25 @@ function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
       };
     }
     case "output-available": {
-      const output =
-        part.output && typeof part.output === "object" ? part.output : null;
+      const output = asRecord(part.output);
+
+      if (isWidgetToolPart(part)) {
+        return {
+          label,
+          tone: "done",
+          detail:
+            typeof output?.title === "string"
+              ? `Widget "${output.title.replace(/_/g, " ")}" ready.`
+              : "Widget ready.",
+        };
+      }
+
       const results =
-        output && "results" in output && Array.isArray(output.results)
+        output && Array.isArray(output.results)
           ? output.results
           : null;
       const query =
-        output && "query" in output && typeof output.query === "string"
+        output && typeof output.query === "string"
           ? output.query
           : null;
 
@@ -216,7 +298,7 @@ function summarizeToolPart(part: UIMessage["parts"][number]): ToolEvent | null {
   }
 }
 
-function thinkingItemsFromMessage(message: UIMessage): ThinkingItem[] {
+function thinkingItemsFromMessage(message: ChatUIMessage): ThinkingItem[] {
   return message.parts.flatMap<ThinkingItem>((part, index) => {
     if (part.type === "reasoning") {
       if (!part.text.trim()) {
@@ -291,16 +373,16 @@ function ToolEventCard({ event }: { event: ToolEvent }) {
 
 function ThinkingBlock({
   items,
-  isActive,
+  shouldOpen,
 }: {
   items: ThinkingItem[];
-  isActive: boolean;
+  shouldOpen: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(isActive);
+  const [isOpen, setIsOpen] = useState(shouldOpen);
 
   useEffect(() => {
-    setIsOpen(isActive);
-  }, [isActive]);
+    setIsOpen(shouldOpen);
+  }, [shouldOpen]);
 
   if (items.length === 0) {
     return null;
@@ -326,18 +408,97 @@ function ThinkingBlock({
   );
 }
 
-function MessageContent({
-  message,
-}: {
-  message: UIMessage;
-}) {
-  const text = textFromMessage(message);
+function renderableItemsFromMessage(message: ChatUIMessage): RenderableMessageItem[] {
+  return message.parts.flatMap<RenderableMessageItem>((part, index) => {
+    if (part.type === "text") {
+      if (!part.text.trim()) {
+        return [];
+      }
+
+      return [
+        {
+          kind: "text",
+          key: `${message.id}-text-${index}`,
+          text: part.text,
+        },
+      ];
+    }
+
+    if (!isWidgetToolPart(part)) {
+      return [];
+    }
+
+    const input = widgetInputFromUnknown(part.input);
+
+    return [
+      {
+        kind: "widget",
+        key: `${part.toolCallId}-${part.state}`,
+        title: input.title ?? "widget",
+        widgetCode: input.widgetCode ?? "",
+        loadingMessages: input.loadingMessages ?? [],
+        preferredWidth: input.width ?? null,
+        preferredHeight: input.height ?? null,
+        status:
+          part.state === "output-error"
+            ? "error"
+            : part.state === "input-streaming"
+              ? "streaming"
+              : "ready",
+        errorText: part.state === "output-error" ? part.errorText : undefined,
+      },
+    ];
+  });
+}
+
+function downloadableWidgetFromMessage(
+  message: ChatUIMessage
+): DownloadableGenerativeWidget | null {
+  let downloadableWidget: DownloadableGenerativeWidget | null = null;
+
+  for (const item of renderableItemsFromMessage(message)) {
+    if (
+      item.kind === "widget" &&
+      item.status === "ready" &&
+      item.widgetCode.trim()
+    ) {
+      downloadableWidget = {
+        title: item.title,
+        widgetCode: item.widgetCode,
+        preferredWidth: item.preferredWidth,
+        preferredHeight: item.preferredHeight,
+      };
+    }
+  }
+
+  return downloadableWidget;
+}
+
+function MessageContent({ message }: { message: ChatUIMessage }) {
   const thinkingItems = thinkingItemsFromMessage(message);
+  const renderableItems = renderableItemsFromMessage(message);
+  const hasVisibleOutput = renderableItems.length > 0;
+  const shouldOpenThinking = !hasVisibleOutput;
 
   return (
     <>
-      <ThinkingBlock isActive={isThinkingActive(message)} items={thinkingItems} />
-      <MarkdownBlock>{text}</MarkdownBlock>
+      <ThinkingBlock items={thinkingItems} shouldOpen={shouldOpenThinking} />
+      {renderableItems.map((item) =>
+        item.kind === "text" ? (
+          <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
+        ) : (
+          <GenerativeWidget
+            errorText={item.errorText}
+            key={item.key}
+            loadingMessages={item.loadingMessages}
+            preferredHeight={item.preferredHeight}
+            preferredWidth={item.preferredWidth}
+            status={item.status}
+            title={item.title}
+            widgetCode={item.widgetCode}
+          />
+        )
+      )}
     </>
   );
 }
@@ -371,6 +532,16 @@ function CopyIcon() {
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <path d="M9 9h10v10H9z" />
       <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
     </svg>
   );
 }
@@ -446,7 +617,7 @@ function titleFromUserText(text: string) {
   return normalized.length > 48 ? `${normalized.slice(0, 45)}...` : normalized;
 }
 
-function createOptimisticUserMessage(text: string): UIMessage {
+function createOptimisticUserMessage(text: string): ChatUIMessage {
   return {
     id: `local-${createChatId()}`,
     role: "user",
@@ -454,13 +625,28 @@ function createOptimisticUserMessage(text: string): UIMessage {
   };
 }
 
-function messageScrollSignature(messages: UIMessage[]) {
+function messageScrollSignature(messages: ChatUIMessage[]) {
   return messages
     .map((message) =>
       message.parts
         .map((part) => {
           if (part.type === "text" || part.type === "reasoning") {
             return `${part.type}:${part.text.length}`;
+          }
+
+          if (isWidgetToolPart(part)) {
+            const input = widgetInputFromUnknown(part.input);
+            const output = asRecord(part.output);
+            const outputWidgetCode =
+              typeof output?.widgetCode === "string" ? output.widgetCode : "";
+
+            return [
+              part.type,
+              part.state,
+              input.widgetCode?.length ?? 0,
+              outputWidgetCode.length,
+              part.errorText?.length ?? 0,
+            ].join(":");
           }
 
           if (isToolLikePart(part)) {
@@ -510,7 +696,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     []
   );
 
-  const { error, messages, sendMessage, setMessages, status, stop } = useChat({
+  const { error, messages, sendMessage, setMessages, status, stop } = useChat<ChatUIMessage>({
     transport,
     onFinish: () => {
       void loadChatList();
@@ -644,6 +830,16 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     };
   }, [chatPendingDelete]);
 
+  useEffect(() => {
+    window.sendPrompt = (text: string) => {
+      void submitUserText(text, "widget");
+    };
+
+    return () => {
+      delete window.sendPrompt;
+    };
+  });
+
   async function loadChatList() {
     const startedAt = performance.now();
     debugChat("history-list:start", { activeChatId: chatIdRef.current });
@@ -707,7 +903,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         return;
       }
 
-      const chat = (await response.json()) as { messages?: UIMessage[] };
+      const chat = (await response.json()) as { messages?: ChatUIMessage[] };
       const nextMessages = Array.isArray(chat.messages) ? chat.messages : [];
 
       if (!ignore) {
@@ -755,7 +951,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     };
   }, [startNewChat]);
 
-  async function saveMessages(nextChatId: string, nextMessages: UIMessage[]) {
+  async function saveMessages(nextChatId: string, nextMessages: ChatUIMessage[]) {
     const startedAt = performance.now();
     debugChat("chat-save:start", {
       chatId: nextChatId,
@@ -886,7 +1082,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     return nextId;
   }
 
-  async function copyMessage(message: UIMessage) {
+  async function copyMessage(message: ChatUIMessage) {
     const text = copyTextFromMessage(message);
 
     if (!text) {
@@ -979,21 +1175,26 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     await loadChatList();
   }
 
-  async function submitMessage(event?: FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
-
-    const messageText = trimmedInput;
+  async function submitUserText(
+    text: string,
+    source: "composer" | "starter" | "widget"
+  ) {
+    const messageText = text.trim();
 
     if (!messageText || isBusy) {
       return;
     }
 
     const activeChatId = ensureActiveChatId();
-    setInput("");
 
-    debugChat("send:start", {
+    if (source === "composer") {
+      setInput("");
+    }
+
+    debugChat(`${source}-send:start`, {
       chatId: activeChatId,
       length: messageText.length,
+      prompt: source === "composer" ? undefined : messageText,
     });
     shouldFollowStreamRef.current = true;
     void persistOptimisticUserTurn(activeChatId, messageText);
@@ -1007,26 +1208,13 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     });
   }
 
+  async function submitMessage(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    await submitUserText(trimmedInput, "composer");
+  }
+
   async function sendStarter(prompt: string) {
-    if (isBusy) {
-      return;
-    }
-
-    const activeChatId = ensureActiveChatId();
-
-    debugChat("starter-send:start", {
-      chatId: activeChatId,
-      prompt,
-    });
-    void persistOptimisticUserTurn(activeChatId, prompt);
-    await sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: prompt }],
-    });
-
-    requestAnimationFrame(() => {
-      scrollMessagesToBottom("smooth");
-    });
+    await submitUserText(prompt, "starter");
   }
 
   return (
@@ -1248,43 +1436,22 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             </div>
           ) : (
             <div className="message-list">
-              {messages.map((message) => (
-                <article
-                  className={`message message-${message.role}`}
-                  key={message.id}
-                >
-                  {message.role === "user" ? (
-                    <div className="message-user-row">
-                      <button
-                        aria-label="Copy user message"
-                        className={`message-copy-button ${
-                          copiedMessageId === message.id ? "is-copied" : ""
-                        }`}
-                        onClick={() => {
-                          void copyMessage(message);
-                        }}
-                        title={
-                          copiedMessageId === message.id ? "Copied" : "Copy message"
-                        }
-                        type="button"
-                      >
-                        {copiedMessageId === message.id ? <CheckIcon /> : <CopyIcon />}
-                      </button>
-                      <div className="message-body">
-                        <span className="message-role">You</span>
-                        <MessageContent message={message} />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="message-body">
-                        <span className="message-role">Assistant</span>
-                        <MessageContent message={message} />
-                      </div>
-                      <div className="message-actions">
+              {messages.map((message) => {
+                const downloadableWidget =
+                  message.role === "assistant"
+                    ? downloadableWidgetFromMessage(message)
+                    : null;
+
+                return (
+                  <article
+                    className={`message message-${message.role}`}
+                    key={message.id}
+                  >
+                    {message.role === "user" ? (
+                      <div className="message-user-row">
                         <button
-                          aria-label="Copy assistant response"
-                          className={`message-copy-button ${
+                          aria-label="Copy user message"
+                          className={`message-action-button ${
                             copiedMessageId === message.id ? "is-copied" : ""
                           }`}
                           onClick={() => {
@@ -1297,11 +1464,58 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                         >
                           {copiedMessageId === message.id ? <CheckIcon /> : <CopyIcon />}
                         </button>
+                        <div className="message-body">
+                          <span className="message-role">You</span>
+                          <MessageContent message={message} />
+                        </div>
                       </div>
-                    </>
-                  )}
-                </article>
-              ))}
+                    ) : (
+                      <>
+                        <div className="message-body">
+                          <span className="message-role">Assistant</span>
+                          <MessageContent message={message} />
+                        </div>
+                        <div className="message-actions">
+                          <button
+                            aria-label="Copy assistant response"
+                            className={`message-action-button ${
+                              copiedMessageId === message.id ? "is-copied" : ""
+                            }`}
+                            onClick={() => {
+                              void copyMessage(message);
+                            }}
+                            title={
+                              copiedMessageId === message.id
+                                ? "Copied"
+                                : "Copy message"
+                            }
+                            type="button"
+                          >
+                            {copiedMessageId === message.id ? (
+                              <CheckIcon />
+                            ) : (
+                              <CopyIcon />
+                            )}
+                          </button>
+                          {downloadableWidget ? (
+                            <button
+                              aria-label="Download widget ZIP"
+                              className="message-action-button"
+                              onClick={() => {
+                                downloadGenerativeWidgetZip(downloadableWidget);
+                              }}
+                              title="Download widget ZIP"
+                              type="button"
+                            >
+                              <DownloadIcon />
+                            </button>
+                          ) : null}
+                        </div>
+                      </>
+                    )}
+                  </article>
+                );
+              })}
               {status === "submitted" && (
                 <article className="message message-assistant">
                   <span className="message-role">Assistant</span>

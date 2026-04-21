@@ -14,6 +14,35 @@
   --shadow-composer: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-composer-focus:
     0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f5;
+  --color-background-tertiary: #fafafa;
+  --color-background-info: #e6f1fb;
+  --color-background-danger: #fcebeb;
+  --color-background-success: #eaf3de;
+  --color-background-warning: #faeeda;
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-tertiary: #737373;
+  --color-text-info: #0c447c;
+  --color-text-danger: #791f1f;
+  --color-text-success: #27500a;
+  --color-text-warning: #633806;
+  --color-border-primary: rgba(15, 23, 42, 0.4);
+  --color-border-secondary: rgba(15, 23, 42, 0.3);
+  --color-border-tertiary: rgba(15, 23, 42, 0.15);
+  --color-border-info: #185fa5;
+  --color-border-danger: #a32d2d;
+  --color-border-success: #3b6d11;
+  --color-border-warning: #854f0b;
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
 }
 
 * {
@@ -494,6 +523,122 @@ svg {
   background: #1d1d1d;
 }
 
+.widget-shell {
+  display: block;
+  margin-top: 6px;
+  position: relative;
+  width: 100%;
+}
+
+.widget-frame {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+.widget-frame.is-error {
+  color: #b42318;
+}
+
+.widget-placeholder {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.widget-placeholder p {
+  color: #666666;
+  font-size: 13px;
+  margin: 0;
+}
+
+.widget-loader-line {
+  animation: widgetPulse 1.3s ease-in-out infinite;
+  background: linear-gradient(90deg, #f0f0f0 0%, #ffffff 50%, #f0f0f0 100%);
+  border-radius: 999px;
+  height: 10px;
+  width: min(220px, 60%);
+}
+
+.widget-host {
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  min-height: 0;
+  position: relative;
+  white-space: normal;
+}
+
+.widget-host > * {
+  max-width: 100%;
+}
+
+.widget-host svg {
+  fill: initial;
+  height: auto;
+  max-width: 100%;
+  stroke: initial;
+  stroke-linecap: initial;
+  stroke-linejoin: initial;
+  stroke-width: initial;
+  width: auto;
+}
+
+.widget-host.is-hidden {
+  display: none;
+}
+
+.widget-streaming-chip {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  bottom: 12px;
+  color: #5f5f5f;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  position: absolute;
+  right: 12px;
+}
+
+.widget-error-text {
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+
+@keyframes widgetPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleX(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes widgetFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .chat-panel {
   background: var(--background);
   display: grid;
@@ -584,6 +729,7 @@ svg {
   justify-self: start;
   max-width: min(760px, 92%);
   padding: 2px 0;
+  width: min(760px, 92%);
 }
 
 .message-role {
@@ -596,6 +742,8 @@ svg {
 
 .message-body {
   display: grid;
+  min-width: 0;
+  width: 100%;
 }
 
 .message-user-row {
@@ -613,6 +761,7 @@ svg {
 
 .message-actions {
   display: flex;
+  gap: 2px;
   margin-top: 2px;
 }
 
@@ -620,7 +769,7 @@ svg {
   justify-content: flex-start;
 }
 
-.message-copy-button {
+.message-action-button {
   align-items: center;
   background: transparent;
   border: 0;
@@ -638,25 +787,25 @@ svg {
   width: 28px;
 }
 
-.message:hover .message-copy-button,
-.message:focus-within .message-copy-button {
+.message:hover .message-action-button,
+.message:focus-within .message-action-button {
   opacity: 1;
   pointer-events: auto;
 }
 
-.message-copy-button:hover {
+.message-action-button:hover {
   color: var(--foreground);
 }
 
-.message-copy-button.is-copied {
+.message-action-button.is-copied {
   color: var(--foreground);
 }
 
-.message-copy-button.is-copied svg {
+.message-action-button.is-copied svg {
   stroke-width: 2.4;
 }
 
-.message-user .message-copy-button {
+.message-user .message-action-button {
   align-self: end;
 }
 
@@ -823,6 +972,7 @@ svg {
   color: var(--muted-foreground);
   margin-bottom: 12px;
   padding: 10px 12px;
+  width: 100%;
 }
 
 .reasoning-block summary {
@@ -1022,6 +1172,7 @@ svg {
   .message-user,
   .message-assistant {
     max-width: 100%;
+    width: 100%;
   }
 
   .composer-wrap {

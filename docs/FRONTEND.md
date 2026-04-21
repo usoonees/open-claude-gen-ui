@@ -8,6 +8,7 @@ The repository now includes a single Next.js chat surface.
 - Run local dev server: `pnpm dev`
 - Type-check: `pnpm check`
 - Production build: `pnpm build`
+- Trusted-mode widgets: set `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true` in `.env.local`
 
 Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does not match `packageManager`.
 
@@ -23,8 +24,15 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
+- With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=false`, confirm the chat still behaves as a text/tool-only assistant with no widget output.
+- With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, ask for a strongly visual explanation and confirm the assistant streams an inline widget card while the `showWidget` tool input is still arriving.
+- Confirm trusted-mode widgets resolve the documented `--color-*`, `--font-*`, and `--border-radius-*` design tokens in the live chat view, not only in downloaded HTML.
+- Confirm the final widget becomes interactive only after the tool input completes, rather than during partial HTML streaming.
+- Confirm a generated widget can call `sendPrompt(...)` and create a new user turn in the same chat.
+- When an assistant response contains a completed gen-ui widget, hover or focus the message and confirm the download action appears beside `Copy`; download a widget ZIP and confirm `final-widget.html` preserves the same preferred width and minimum height as the inline chat widget.
+- Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `trace` object with `systemPrompt`, `tools`, and `capturedAt`.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
-- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning or tool activity is still running, then auto-collapses when that activity finishes while remaining manually expandable.
+- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then auto-collapses once visible assistant output exists while remaining manually expandable.
 - While a real response is streaming, verify the message pane follows the newest assistant output until the user scrolls away, then resumes only after the user scrolls back near the bottom or sends another message.
 - When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
 - Hover or focus a user or assistant message and verify the inline `Copy` action appears and copies that message's rendered text.
@@ -32,6 +40,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 ## Component Boundaries
 
 - `components/chat-shell.tsx` owns local chat UI state, draft-chat URL behavior, and the AI SDK client transport.
+- `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
 - `lib/volcengine.ts` owns provider configuration and environment variable aliases.
 
@@ -40,6 +49,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Global CSS tokens live in `app/globals.css`.
 - Components use stable dimensions for icon buttons, composer controls, and message containers to avoid layout shifts.
 - Cards are limited to repeated prompt and message items; page-level layout remains a full-screen app surface.
+- Trusted-mode widget HTML renders in the same document. The host exposes the documented widget design tokens and resets global SVG defaults inside `.widget-host`, while generated widget styling should stay scoped and visually polite.
 
 ## Testing Strategy
 

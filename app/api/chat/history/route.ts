@@ -1,9 +1,11 @@
-import type { UIMessage } from "ai";
 import { deleteChat, listChats, readChat, renameChat, writeChat } from "@/lib/chat-store";
+import { chatSystemPrompt } from "@/lib/chat-agent";
+import type { ChatUIMessage } from "@/lib/chat-message";
+import { getChatToolTraceList } from "@/lib/chat-tools";
 
 type SaveRequest = {
   id?: string;
-  messages?: UIMessage[];
+  messages?: ChatUIMessage[];
 };
 
 type RenameRequest = {
@@ -14,6 +16,14 @@ type RenameRequest = {
 function getIdFromRequest(request: Request) {
   const url = new URL(request.url);
   return url.searchParams.get("id")?.trim() || "";
+}
+
+function buildChatTrace() {
+  return {
+    systemPrompt: chatSystemPrompt,
+    tools: getChatToolTraceList(),
+    capturedAt: new Date().toISOString(),
+  };
 }
 
 export async function GET(request: Request) {
@@ -45,7 +55,11 @@ export async function PUT(request: Request) {
     return new Response("Request body must include an id.", { status: 400 });
   }
 
-  return Response.json(await writeChat(body.id, body.messages));
+  return Response.json(
+    await writeChat(body.id, body.messages, {
+      trace: buildChatTrace(),
+    })
+  );
 }
 
 export async function PATCH(request: Request) {

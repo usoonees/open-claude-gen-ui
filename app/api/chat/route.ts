@@ -1,15 +1,25 @@
-import { createAgentUIStreamResponse, type UIMessage } from "ai";
 import { writeChat } from "@/lib/chat-store";
-import { chatAgent } from "@/lib/chat-agent";
+import { chatAgent, chatSystemPrompt } from "@/lib/chat-agent";
+import type { ChatUIMessage } from "@/lib/chat-message";
+import { getChatToolTraceList } from "@/lib/chat-tools";
 import { langsmithClient } from "@/lib/langsmith-ai";
 import { volcengineConfig } from "@/lib/volcengine";
+import { createAgentUIStreamResponse } from "ai";
 import { after } from "next/server";
 
 export const maxDuration = 60;
 
+function buildChatTrace() {
+  return {
+    systemPrompt: chatSystemPrompt,
+    tools: getChatToolTraceList(),
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 type ChatRequest = {
   id?: string;
-  messages?: UIMessage[];
+  messages?: ChatUIMessage[];
 };
 
 export async function POST(request: Request) {
@@ -49,7 +59,9 @@ export async function POST(request: Request) {
     uiMessages: body.messages,
     sendReasoning: true,
     onFinish: async ({ messages }) => {
-      await writeChat(body.id as string, messages);
+      await writeChat(body.id as string, messages, {
+        trace: buildChatTrace(),
+      });
     },
   });
 }

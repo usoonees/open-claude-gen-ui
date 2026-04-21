@@ -1,15 +1,23 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { UIMessage } from "ai";
+import type { ChatUIMessage } from "@/lib/chat-message";
+import type { ChatToolTrace } from "@/lib/chat-tools";
 
 const storeDir = path.join(process.cwd(), ".data", "chats");
 
+export type StoredChatTrace = {
+  systemPrompt: string;
+  tools: ChatToolTrace[];
+  capturedAt: string;
+};
+
 export type StoredChat = {
   id: string;
-  messages: UIMessage[];
+  messages: ChatUIMessage[];
   title: string;
   updatedAt: string;
   titleSource?: "generated" | "custom";
+  trace?: StoredChatTrace;
 };
 
 export type ChatSummary = {
@@ -31,6 +39,22 @@ async function readStoredChatFile(id: string): Promise<StoredChat | null> {
   }
 }
 
+function sanitizeTrace(trace: StoredChatTrace | undefined) {
+  if (!trace) {
+    return undefined;
+  }
+
+  return {
+    systemPrompt:
+      typeof trace.systemPrompt === "string" ? trace.systemPrompt : "",
+    tools: Array.isArray(trace.tools) ? trace.tools : [],
+    capturedAt:
+      typeof trace.capturedAt === "string"
+        ? trace.capturedAt
+        : new Date().toISOString(),
+  } satisfies StoredChatTrace;
+}
+
 async function ensureStoreDir() {
   await mkdir(storeDir, { recursive: true, mode: 0o700 });
 }
@@ -39,7 +63,7 @@ function chatPath(id: string) {
   return path.join(storeDir, `${encodeURIComponent(id)}.json`);
 }
 
-function titleFromMessages(messages: UIMessage[]) {
+function titleFromMessages(messages: ChatUIMessage[]) {
   const firstUserMessage = messages.find((message) => message.role === "user");
   const text =
     firstUserMessage?.parts
@@ -51,7 +75,7 @@ function titleFromMessages(messages: UIMessage[]) {
   return text.length > 48 ? `${text.slice(0, 45)}...` : text;
 }
 
-function sanitizeMessages(messages: UIMessage[]) {
+function sanitizeMessages(messages: ChatUIMessage[]) {
   return messages.filter((message) => message.role !== "system");
 }
 
@@ -96,10 +120,13 @@ export async function readChat(id: string): Promise<StoredChat> {
       title: "New chat",
       updatedAt: new Date(0).toISOString(),
       titleSource: "generated",
+      trace: undefined,
     };
   }
 
-  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+  const messages = Array.isArray(chat.messages)
+    ? (chat.messages as ChatUIMessage[])
+    : [];
   const generatedTitle = titleFromMessages(messages);
 
   return {
@@ -108,10 +135,17 @@ export async function readChat(id: string): Promise<StoredChat> {
     title: isCustomTitle(chat) ? chat.title.trim() : chat.title || generatedTitle,
     updatedAt: chat.updatedAt || new Date(0).toISOString(),
     titleSource: chat.titleSource === "custom" ? "custom" : "generated",
+    trace: sanitizeTrace(chat.trace),
   };
 }
 
-export async function writeChat(id: string, messages: UIMessage[]) {
+export async function writeChat(
+  id: string,
+  messages: ChatUIMessage[],
+  options?: {
+    trace?: StoredChatTrace;
+  }
+) {
   await ensureStoreDir();
 
   const cleanMessages = sanitizeMessages(messages);
@@ -127,6 +161,7 @@ export async function writeChat(id: string, messages: UIMessage[]) {
     title: customTitle || generatedTitle,
     updatedAt: new Date().toISOString(),
     titleSource: customTitle ? "custom" : "generated",
+    trace: sanitizeTrace(options?.trace) ?? sanitizeTrace(existingChat?.trace),
   };
 
   await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
@@ -158,6 +193,7 @@ export async function renameChat(id: string, title: string) {
     title: normalizedTitle,
     updatedAt: new Date().toISOString(),
     titleSource: "custom",
+    trace: sanitizeTrace(existingChat.trace),
   };
 
   await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
