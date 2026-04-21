@@ -584,7 +584,7 @@ function ToolEventCard({ event }: { event: ToolEvent }) {
         <span className="tool-badge">{event.label}</span>
         <span className="tool-status">
           {event.variant === "readme"
-            ? `Selected ${summarizeReadmeModules(event.readmeModules ?? [])}`
+            ? summarizeReadmeModules(event.readmeModules ?? [])
             : event.detail}
         </span>
       </div>
