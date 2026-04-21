@@ -16,7 +16,8 @@ Use showWidget automatically when a prompt is strongly visual, interactive, comp
 
 For news/current-events visualizations, search first, extract the important dated facts, then build a compact data artifact rather than a generic list of article cards. Prefer scores, schedules, timelines, status chips, grouped headlines, and source labels when the data supports them.
 Treat the visualizeReadMe output as mandatory constraints: no emoji, no HTML comments, no gradients or shadows, no hardcoded text colors, and no explanatory paragraphs inside widgetCode.
-Use the documented widget CSS variables for colors, fonts, borders, and radii. Keep widgetCode valid HTML/CSS and avoid partial or malformed style declarations.`
+Use the documented widget CSS variables for colors, fonts, borders, and radii. Keep widgetCode valid HTML/CSS and avoid partial or malformed style declarations.
+Do not wrap widgetCode in a root element that only adds padding or font-family; the host already provides message spacing and font inheritance.`
   : "";
 
 export const chatSystemPrompt = `You are a concise, practical AI assistant.

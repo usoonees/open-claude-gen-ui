@@ -104,13 +104,6 @@ const showWidgetInputSchema = {
       description:
         "HTML or SVG fragment to render inline. No DOCTYPE, html, head, or body tags. Use valid CSS and the documented widget CSS variables for colors, fonts, borders, and radii.",
     },
-    width: {
-      type: "integer",
-      minimum: 240,
-      maximum: 1280,
-      description:
-        "Optional preferred width hint for the widget container in pixels.",
-    },
     height: {
       type: "integer",
       minimum: 180,
@@ -129,10 +122,9 @@ export const showWidgetTool = tool({
     title: string;
     loadingMessages?: string[];
     widgetCode: string;
-    width?: number;
     height?: number;
   }>(showWidgetInputSchema),
-  execute: async ({ iHaveSeenReadMe, title, width, height }) => {
+  execute: async ({ iHaveSeenReadMe, title, height }) => {
     if (!iHaveSeenReadMe) {
       throw new Error(
         "showWidget requires visualizeReadMe first. Call visualizeReadMe, then retry showWidget with iHaveSeenReadMe: true."
@@ -142,7 +134,6 @@ export const showWidgetTool = tool({
     return {
       rendered: true,
       title,
-      width: width ?? null,
       height: height ?? null,
     };
   },

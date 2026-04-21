@@ -74,7 +74,6 @@ type WidgetToolInput = {
   title?: string;
   widgetCode?: string;
   loadingMessages?: string[];
-  width?: number;
   height?: number;
 };
 
@@ -90,7 +89,6 @@ type RenderableMessageItem =
       title: string;
       widgetCode: string;
       loadingMessages: string[];
-      preferredWidth: number | null;
       preferredHeight: number | null;
       status: "streaming" | "ready" | "error";
       errorText?: string;
@@ -118,7 +116,6 @@ function widgetInputFromUnknown(input: unknown): WidgetToolInput {
           (value): value is string => typeof value === "string"
         )
       : undefined,
-    width: typeof record?.width === "number" ? record.width : undefined,
     height: typeof record?.height === "number" ? record.height : undefined,
   };
 }
@@ -437,7 +434,6 @@ function renderableItemsFromMessage(message: ChatUIMessage): RenderableMessageIt
         title: input.title ?? "widget",
         widgetCode: input.widgetCode ?? "",
         loadingMessages: input.loadingMessages ?? [],
-        preferredWidth: input.width ?? null,
         preferredHeight: input.height ?? null,
         status:
           part.state === "output-error"
@@ -465,7 +461,6 @@ function downloadableWidgetFromMessage(
       downloadableWidget = {
         title: item.title,
         widgetCode: item.widgetCode,
-        preferredWidth: item.preferredWidth,
         preferredHeight: item.preferredHeight,
       };
     }
@@ -492,7 +487,6 @@ function MessageContent({ message }: { message: ChatUIMessage }) {
             key={item.key}
             loadingMessages={item.loadingMessages}
             preferredHeight={item.preferredHeight}
-            preferredWidth={item.preferredWidth}
             status={item.status}
             title={item.title}
             widgetCode={item.widgetCode}

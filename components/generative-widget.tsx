@@ -10,7 +10,6 @@ type GenerativeWidgetProps = {
   title: string;
   widgetCode: string;
   loadingMessages: string[];
-  preferredWidth?: number | null;
   preferredHeight?: number | null;
   status: WidgetStatus;
   errorText?: string;
@@ -19,7 +18,6 @@ type GenerativeWidgetProps = {
 export type DownloadableGenerativeWidget = {
   title: string;
   widgetCode: string;
-  preferredWidth?: number | null;
   preferredHeight?: number | null;
 };
 
@@ -108,10 +106,57 @@ function filenameBaseFromWidgetTitle(title: string) {
   return normalized || "widget";
 }
 
+function stripOuterWidgetChrome(container: HTMLElement) {
+  const visualChildren = Array.from(container.children).filter(
+    (child) => child.tagName !== "STYLE" && child.tagName !== "SCRIPT"
+  );
+
+  if (visualChildren.length !== 1) {
+    return;
+  }
+
+  const root = visualChildren[0];
+
+  if (!(root instanceof HTMLElement)) {
+    return;
+  }
+
+  const fontFamily = root.style.getPropertyValue("font-family").trim();
+
+  if (!fontFamily.includes("var(--font-sans)")) {
+    return;
+  }
+
+  root.style.removeProperty("font-family");
+  root.style.removeProperty("padding");
+  root.style.removeProperty("padding-block");
+  root.style.removeProperty("padding-block-start");
+  root.style.removeProperty("padding-block-end");
+  root.style.removeProperty("padding-inline");
+  root.style.removeProperty("padding-inline-start");
+  root.style.removeProperty("padding-inline-end");
+  root.style.removeProperty("padding-top");
+  root.style.removeProperty("padding-right");
+  root.style.removeProperty("padding-bottom");
+  root.style.removeProperty("padding-left");
+
+  if (!root.getAttribute("style")?.trim()) {
+    root.removeAttribute("style");
+  }
+}
+
+function widgetCodeForHost(widgetCode: string) {
+  const container = document.createElement("div");
+
+  container.innerHTML = widgetCode;
+  stripOuterWidgetChrome(container);
+
+  return container.innerHTML;
+}
+
 function createWidgetDownloadHtml(
   title: string,
   widgetCode: string,
-  preferredWidth?: number | null,
   preferredHeight?: number | null
 ) {
   if (/<html[\s>]/i.test(widgetCode)) {
@@ -119,7 +164,6 @@ function createWidgetDownloadHtml(
   }
 
   const frameStyle = [
-    preferredWidth ? `max-width: ${preferredWidth}px;` : "",
     preferredHeight ? `min-height: ${preferredHeight}px;` : "",
   ]
     .filter(Boolean)
@@ -135,7 +179,7 @@ function createWidgetDownloadHtml(
 </head>
 <body>
 <div class="widget-export-frame"${frameStyle ? ` style="${frameStyle}"` : ""}>
-${widgetCode}
+${widgetCodeForHost(widgetCode)}
 </div>
 </body>
 </html>
@@ -280,7 +324,6 @@ function executeScripts(container: HTMLElement) {
 export function downloadGenerativeWidgetZip({
   title,
   widgetCode,
-  preferredWidth,
   preferredHeight,
 }: DownloadableGenerativeWidget) {
   if (!widgetCode.trim()) {
@@ -298,7 +341,6 @@ export function downloadGenerativeWidgetZip({
       content: createWidgetDownloadHtml(
         title,
         widgetCode,
-        preferredWidth,
         preferredHeight
       ),
     },
@@ -318,7 +360,6 @@ export function GenerativeWidget({
   title,
   widgetCode,
   loadingMessages,
-  preferredWidth,
   preferredHeight,
   status,
   errorText,
@@ -358,6 +399,7 @@ export function GenerativeWidget({
     const source = hostRef.current;
     const target = source.cloneNode(false) as HTMLDivElement;
     target.innerHTML = widgetCode;
+    stripOuterWidgetChrome(target);
 
     morphdom(source, target, {
       childrenOnly: true,
@@ -388,7 +430,6 @@ export function GenerativeWidget({
       <div
         className={`widget-frame ${status === "error" ? "is-error" : ""}`}
         style={{
-          maxWidth: preferredWidth ? `${preferredWidth}px` : undefined,
           minHeight: preferredHeight ? `${preferredHeight}px` : undefined,
         }}
       >
