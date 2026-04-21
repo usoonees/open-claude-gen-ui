@@ -403,8 +403,12 @@ export function GenerativeWidget({
   }, [loadingMessages.length, status]);
 
   useEffect(() => {
-    setLoadingMessageIndex(0);
-  }, [loadingMessages, status]);
+    // Only reset if loadingMessages changes its reference deeply or goes empty
+    // Using a ref to track the previous messages length helps avoid resetting on every new chunk appended
+    if (loadingMessages.length === 0) {
+      setLoadingMessageIndex(0);
+    }
+  }, [loadingMessages.length]);
 
   useEffect(() => {
     if (!hostRef.current || !hasRenderableMarkup) {
