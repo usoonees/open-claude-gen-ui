@@ -108,6 +108,10 @@ type RenderableMessageItem =
       errorText?: string;
     };
 
+type ModelVisibilityPreferencesPayload = {
+  hiddenModelKeys?: unknown;
+};
+
 declare global {
   interface Window {
     sendPrompt?: (text: string) => void;
@@ -1086,6 +1090,43 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setDraftModelSelection(nextSelection);
   }
 
+  async function loadModelVisibilityPreferences() {
+    let localHiddenModelKeys: string[] = [];
+
+    try {
+      localHiddenModelKeys = normalizeHiddenModelKeys(
+        JSON.parse(
+          window.localStorage.getItem(MODEL_VISIBILITY_STORAGE_KEY) ?? "[]"
+        )
+      );
+    } catch {
+      localHiddenModelKeys = [];
+    }
+
+    try {
+      const response = await fetch("/api/chat/preferences");
+
+      if (!response.ok) {
+        throw new Error(`Unable to load preferences: `);
+      }
+
+      const data = (await response.json()) as ModelVisibilityPreferencesPayload;
+      return normalizeHiddenModelKeys(data.hiddenModelKeys).length > 0
+        ? normalizeHiddenModelKeys(data.hiddenModelKeys)
+        : localHiddenModelKeys;
+    } catch {
+      return localHiddenModelKeys;
+    }
+  }
+
+  async function saveModelVisibilityPreferences(nextHiddenModelKeys: string[]) {
+    await fetch("/api/chat/preferences", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ hiddenModelKeys: nextHiddenModelKeys }),
+    });
+  }
+
   function cacheChatModelSelection(chatKey: string, selection: ChatModelSelection) {
     const normalizedSelection = normalizeLocalModelSelection(selection);
     chatModelSelectionsRef.current.set(chatKey, normalizedSelection);
@@ -1365,24 +1406,37 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }, [draftModelSelection]);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(MODEL_VISIBILITY_STORAGE_KEY);
+    let ignore = false;
 
-      if (!stored) {
+    async function hydrateModelVisibilityPreferences() {
+      const nextHiddenModelKeys = await loadModelVisibilityPreferences();
+
+      if (ignore) {
         return;
       }
 
-      setHiddenModelKeys(normalizeHiddenModelKeys(JSON.parse(stored)));
-    } catch {
-      setHiddenModelKeys([]);
+      hasHydratedModelVisibilityRef.current = true;
+      setHiddenModelKeys(nextHiddenModelKeys);
     }
+
+    void hydrateModelVisibilityPreferences();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   useEffect(() => {
+    if (!hasHydratedModelVisibilityRef.current) {
+      return;
+    }
+
     window.localStorage.setItem(
       MODEL_VISIBILITY_STORAGE_KEY,
       JSON.stringify(hiddenModelKeys)
     );
+
+    void saveModelVisibilityPreferences(hiddenModelKeys);
   }, [hiddenModelKeys]);
 
   useEffect(() => {

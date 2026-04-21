@@ -27,7 +27,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm the model selector search filters the custom popup list only, without showing a separate browser autocomplete panel.
 - Confirm the default `Choose model` view only lists visible models for connected providers, still allows a typed custom model id for the current provider, and closes after selection.
 - Confirm the picker `Connect Provider` action opens a separate provider list, lets users switch to another provider, and shows the required `.env.local` key for providers that are not configured yet.
-- Confirm the picker `Manage Models` action opens a separate model-management view where per-model and per-provider visibility toggles change which entries appear back in `Choose model`, and that `Sync` still refreshes a provider's model list when supported.
+- Confirm the picker `Manage Models` action opens a separate model-management view where per-model and per-provider visibility toggles change which entries appear back in `Choose model`, that `Sync` still refreshes a provider's model list when supported, and that those visibility choices survive a full page reload.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
@@ -45,6 +45,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm a generated widget can call `openLink(...)`, and that widget `<a href>` links also open in a new browser tab without navigating the chat surface away.
 - When an assistant response contains a completed gen-ui widget, confirm the widget fills the assistant message content width instead of applying a model-supplied width cap or root wrapper padding; while that assistant turn is still streaming, confirm no copy or download actions are shown; after the turn finishes, hover or focus the message and confirm the action hints read `Copy widget HTML` and `Download widget HTML`; download a widget ZIP and confirm `final-widget.html` does not depend on any model-supplied height hint.
 - If a `showWidget` render finishes before final assistant text starts, confirm the `Thinking` block stays collapsed while the live post-widget reasoning markdown also streams below the widget in a muted italic style, a dot-only loading indicator stays visible below that in-flight content until the assistant turn finishes, and the reasoning preview disappears as soon as final assistant text begins rendering.
+- Inspect `.data/preferences/chat-model-picker.json` after hiding or showing models and confirm it contains the latest `hiddenModelKeys` list.
 - Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `modelSelection` object, plus a `trace` object with `systemPrompt`, `tools`, `capturedAt`, and `modelSelection`.
 - With no key configured for the currently selected provider, sending a message should surface the explicit provider-specific missing-key error from `/api/chat`.
 - With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then smoothly auto-collapses once visible assistant output exists while remaining manually expandable.
@@ -61,6 +62,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
 - `app/api/chat/providers/route.ts` and `app/api/chat/models/route.ts` own provider metadata and server-side model-list discovery.
+- `app/api/chat/preferences/route.ts` owns persisted model-picker visibility preferences.
 - `app/api/starter-prompts/route.ts` owns empty-state starter prompt recommendations, backed by `lib/starter-prompts.ts`.
 - `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
 - `lib/chat-models.ts` owns multi-provider registration, default selections, and provider-specific model-list fetchers.
