@@ -1,4 +1,7 @@
-import type { ChatProviderId } from "@/lib/chat-model-config";
+import {
+  CHAT_PROVIDER_IDS,
+  type ChatProviderId,
+} from "@/lib/chat-model-config";
 import { fetchChatProviderModels, getChatProviderOption } from "@/lib/chat-models";
 
 function getProviderId(request: Request) {
@@ -13,7 +16,7 @@ export async function GET(request: Request) {
     return new Response("Query must include a providerId.", { status: 400 });
   }
 
-  if (!["volcengine", "openai", "anthropic", "google"].includes(providerId)) {
+  if (!CHAT_PROVIDER_IDS.includes(providerId as ChatProviderId)) {
     return new Response("Unknown providerId.", { status: 400 });
   }
 

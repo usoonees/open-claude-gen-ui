@@ -1,6 +1,7 @@
 export const CHAT_PROVIDER_IDS = [
   "volcengine",
   "openai",
+  "openrouter",
   "anthropic",
   "google",
 ] as const;

@@ -25,6 +25,7 @@ This file is the top-level map for the repository.
 - `lib/generative-ui/` contains the trusted-mode flag, widget script allowlist, and vendored widget guideline source.
 - `lib/chat-store.ts` persists each conversation as a trace record that includes the UI messages, the current sidebar title state (`pending` placeholder or ready), the selected provider/model, and the resolved system prompt and enabled tool manifest captured at save time.
 - `lib/langsmith-ai.ts` wraps the AI SDK with LangSmith tracing so the agent loop, child LLM calls, tool calls, and tool results can be inspected when tracing is enabled.
+- `lib/openrouter.ts` owns the OpenRouter OpenAI-compatible provider instance and defaults.
 - `lib/tavily.ts` calls Tavily's search API so the agent can fetch current web information during a tool loop.
 - `lib/volcengine.ts` owns the Volcengine OpenAI-compatible provider instance and env aliases.
 
@@ -34,6 +35,7 @@ This file is the top-level map for the repository.
 - `VOLCENGINE_ACK_BASE_URL` defaults to the public Ark OpenAI-compatible base URL and can be replaced with an AI acceleration gateway BaseUrl.
 - `VOLCENGINE_ACK_MODEL` selects the model or endpoint ID.
 - `OPENAI_API_KEY` and `OPENAI_MODEL` enable OpenAI in the provider selector.
+- `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, and `OPENROUTER_MODEL` enable OpenRouter in the provider selector.
 - `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` enable Anthropic in the provider selector.
 - `GOOGLE_GENERATIVE_AI_API_KEY` and `GOOGLE_MODEL` enable Gemini in the provider selector.
 - `TAVILY_API_KEY` enables the agent's live web-search tool and is intentionally blank in `.env.example`.

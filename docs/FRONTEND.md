@@ -64,6 +64,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `app/api/starter-prompts/route.ts` owns empty-state starter prompt recommendations, backed by `lib/starter-prompts.ts`.
 - `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
 - `lib/chat-models.ts` owns multi-provider registration, default selections, and provider-specific model-list fetchers.
+- `lib/openrouter.ts` owns OpenRouter-specific provider configuration.
 - `lib/volcengine.ts` owns Volcengine-specific provider configuration and environment variable aliases.
 
 ## Styling

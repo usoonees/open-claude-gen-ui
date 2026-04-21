@@ -9,9 +9,11 @@ import {
   type ChatProviderId,
   type ChatProviderOption,
 } from "@/lib/chat-model-config";
+import { getOpenRouterProvider, openrouterConfig } from "@/lib/openrouter";
 import { getVolcengineProvider, volcengineConfig } from "@/lib/volcengine";
 
 const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
+const DEFAULT_OPENROUTER_MODEL = "openai/gpt-5-mini";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5";
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -49,6 +51,16 @@ const providerCatalog = {
       "gpt-4.1-mini",
     ],
   },
+  openrouter: {
+    id: "openrouter",
+    label: "OpenRouter",
+    description: "OpenAI-compatible routed access to models from many providers",
+    apiKeyEnv: "OPENROUTER_API_KEY",
+    configured: Boolean(openrouterConfig.apiKey),
+    canListModels: true,
+    defaultModelId: openrouterConfig.model || DEFAULT_OPENROUTER_MODEL,
+    suggestedModels: [openrouterConfig.model || DEFAULT_OPENROUTER_MODEL],
+  },
   anthropic: {
     id: "anthropic",
     label: "Anthropic",
@@ -82,6 +94,7 @@ const providerCatalog = {
 const chatProviderRegistry = createProviderRegistry({
   volcengine: getVolcengineProvider(),
   openai,
+  openrouter: getOpenRouterProvider(),
   anthropic,
   google,
 });
@@ -234,6 +247,8 @@ export function getMissingProviderKeyMessage(selection: ChatModelSelection) {
       return "VOLCENGINE_ACK_API_KEY is empty. Add your Volcengine API key to .env.local before chatting.";
     case "openai":
       return "OPENAI_API_KEY is empty. Add your OpenAI API key to .env.local before chatting.";
+    case "openrouter":
+      return "OPENROUTER_API_KEY is empty. Add your OpenRouter API key to .env.local before chatting.";
     case "anthropic":
       return "ANTHROPIC_API_KEY is empty. Add your Anthropic API key to .env.local before chatting.";
     case "google":
@@ -277,6 +292,18 @@ export async function fetchChatProviderModels(providerId: ChatProviderId) {
       }
 
       return fetchOpenAICompatibleModels("https://api.openai.com/v1", apiKey);
+    }
+    case "openrouter": {
+      if (!openrouterConfig.apiKey) {
+        throw new Error(
+          "OPENROUTER_API_KEY is empty. Add your OpenRouter API key to .env.local before loading models."
+        );
+      }
+
+      return fetchOpenAICompatibleModels(
+        openrouterConfig.baseURL,
+        openrouterConfig.apiKey
+      );
     }
     case "anthropic": {
       const apiKey = readEnv("ANTHROPIC_API_KEY");
