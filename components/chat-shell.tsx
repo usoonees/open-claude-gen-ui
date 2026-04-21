@@ -15,10 +15,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const starterPrompts = [
-  "What are the advantages of using Next.js?",
-  "Write code to demonstrate dijkstra's algorithm",
-  "Help me write an essay about silicon valley",
-  "What is the weather in San Francisco?",
+  "Create an interactive map of how a transformer processes tokens",
+  "Compare React, Vue, and Svelte in a visual decision matrix",
+  "Show the latest AI model launches as a compact timeline",
+  "Design a mortgage payoff calculator with sliders and charts",
 ];
 
 type ChatSummary = {
@@ -131,6 +131,27 @@ function copyTextFromMessage(message: ChatUIMessage) {
 
 function reasoningFromMessage(message: ChatUIMessage) {
   return message.parts
+    .filter((part) => part.type === "reasoning")
+    .map((part) => part.text)
+    .join("");
+}
+
+function postWidgetReasoningFromMessage(message: ChatUIMessage) {
+  let lastWidgetIndex = -1;
+
+  for (let index = message.parts.length - 1; index >= 0; index -= 1) {
+    if (isWidgetToolPart(message.parts[index])) {
+      lastWidgetIndex = index;
+      break;
+    }
+  }
+
+  if (lastWidgetIndex < 0) {
+    return "";
+  }
+
+  return message.parts
+    .slice(lastWidgetIndex + 1)
     .filter((part) => part.type === "reasoning")
     .map((part) => part.text)
     .join("");
@@ -652,6 +673,23 @@ function AssistantStreamingIndicator() {
   );
 }
 
+function AssistantWidgetReasoningPreview({
+  reasoningText,
+}: {
+  reasoningText: string;
+}) {
+  return (
+    <div
+      aria-live="polite"
+      aria-label="Assistant reasoning in progress"
+      className="message-widget-reasoning-preview"
+      role="status"
+    >
+      <MarkdownBlock>{reasoningText}</MarkdownBlock>
+    </div>
+  );
+}
+
 function MessageContent({
   message,
   isStreaming = false,
@@ -662,8 +700,13 @@ function MessageContent({
   const thinkingItems = thinkingItemsFromMessage(message);
   const renderableItems = renderableItemsFromMessage(message);
   const hasVisibleOutput = renderableItems.length > 0;
+  const hasWidgetOutput = renderableItems.some((item) => item.kind === "widget");
+  const hasTextOutput = renderableItems.some((item) => item.kind === "text");
+  const postWidgetReasoning = postWidgetReasoningFromMessage(message).trim();
   const shouldOpenThinking = !hasVisibleOutput;
   const showStreamingIndicator = isStreaming && !hasVisibleOutput;
+  const showWidgetReasoningPreview =
+    isStreaming && hasWidgetOutput && !hasTextOutput && postWidgetReasoning.length > 0;
 
   return (
     <>
@@ -1858,14 +1901,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             />
             <div className="composer-footer">
               <div className="tool-row">
-                <button
-                  aria-label="Attach file"
-                  className="tool-button"
-                  title="Attach file"
-                  type="button"
-                >
-                  <PaperclipIcon />
-                </button>
                 <button className="model-pill" type="button">
                   Doubao Seed
                 </button>

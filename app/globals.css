@@ -1255,6 +1255,30 @@ svg {
   animation-delay: 0.3s;
 }
 
+.message-widget-reasoning-preview {
+  color: rgba(107, 114, 128, 0.88);
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.45;
+  margin: 8px 0 0 2px;
+}
+
+.message-widget-reasoning-preview .markdown-body {
+  color: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  line-height: inherit;
+}
+
+.message-widget-reasoning-preview .markdown-body > *:first-child {
+  margin-top: 0;
+}
+
+.message-widget-reasoning-preview .markdown-body > *:last-child {
+  margin-bottom: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reasoning-chevron,
   .thinking-panel,

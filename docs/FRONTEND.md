@@ -15,7 +15,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 ## Browser Verification
 
 - Open <http://localhost:3000> after `pnpm dev`.
-- Confirm the empty state renders, prompt suggestions populate the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
+- Confirm the empty state renders, diverse gen-ui-oriented prompt suggestions populate the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
 - Confirm the sidebar show/hide transition animates smoothly instead of popping in or out.
@@ -32,6 +32,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm the final widget becomes interactive only after the tool input completes, rather than during partial HTML streaming.
 - Confirm a generated widget can call `sendPrompt(...)` and create a new user turn in the same chat.
 - When an assistant response contains a completed gen-ui widget, confirm the widget fills the assistant message content width instead of applying a model-supplied width cap or root wrapper padding; while that assistant turn is still streaming, confirm no copy or download actions are shown; after the turn finishes, hover or focus the message and confirm the action hints read `Copy widget HTML` and `Download widget HTML`; download a widget ZIP and confirm `final-widget.html` does not depend on any model-supplied height hint.
+- If a `showWidget` render finishes before final assistant text starts, confirm the `Thinking` block stays collapsed while the live post-widget reasoning markdown also streams below the widget in a muted italic style, then disappears as soon as final assistant text begins rendering.
 - Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `trace` object with `systemPrompt`, `tools`, and `capturedAt`.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
 - With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then smoothly auto-collapses once visible assistant output exists while remaining manually expandable.
