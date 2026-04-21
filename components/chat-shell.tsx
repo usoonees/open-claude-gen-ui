@@ -1658,115 +1658,117 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 <span className="chat-count">{chatList.length}</span>
               ) : null}
             </div>
-            {chatList.length === 0 ? (
-              <span className="empty-history">No saved conversations</span>
-            ) : (
-              chatList.map((chat) => (
-                <div
-                  className={chat.id === chatId ? "chat-row active" : "chat-row"}
-                  key={chat.id}
-                  ref={openMenuChatId === chat.id ? sidebarMenuRef : null}
-                >
-                  {editingChatId === chat.id ? (
-                    <input
-                      aria-label={`Rename ${chat.title}`}
-                      className="chat-title-input"
-                      onBlur={() => {
-                        void commitSidebarRename(chat);
-                      }}
-                      onChange={(event) => setEditingTitle(event.target.value)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
+            <div className="sidebar-history-list">
+              {chatList.length === 0 ? (
+                <span className="empty-history">No saved conversations</span>
+              ) : (
+                chatList.map((chat) => (
+                  <div
+                    className={chat.id === chatId ? "chat-row active" : "chat-row"}
+                    key={chat.id}
+                    ref={openMenuChatId === chat.id ? sidebarMenuRef : null}
+                  >
+                    {editingChatId === chat.id ? (
+                      <input
+                        aria-label={`Rename ${chat.title}`}
+                        className="chat-title-input"
+                        onBlur={() => {
                           void commitSidebarRename(chat);
-                        }
+                        }}
+                        onChange={(event) => setEditingTitle(event.target.value)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void commitSidebarRename(chat);
+                          }
 
-                        if (event.key === "Escape") {
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            cancelSidebarRename();
+                          }
+                        }}
+                        ref={renameInputRef}
+                        value={editingTitle}
+                      />
+                    ) : (
+                      <Link
+                        className={chat.id === chatId ? "chat-link active" : "chat-link"}
+                        href={`/chat/${chat.id}`}
+                        onClick={(event) => {
                           event.preventDefault();
-                          cancelSidebarRename();
-                        }
-                      }}
-                      ref={renameInputRef}
-                      value={editingTitle}
-                    />
-                  ) : (
-                    <Link
-                      className={chat.id === chatId ? "chat-link active" : "chat-link"}
-                      href={`/chat/${chat.id}`}
+                          openChat(chat.id);
+                        }}
+                        title={chat.title}
+                      >
+                        <span
+                          className={
+                            animatedTitleChatIds.includes(chat.id)
+                              ? "chat-link-title is-refreshing"
+                              : "chat-link-title"
+                          }
+                        >
+                          {chat.title}
+                        </span>
+                      </Link>
+                    )}
+                    <button
+                      aria-expanded={openMenuChatId === chat.id}
+                      aria-haspopup="menu"
+                      aria-label={`Open options for ${chat.title}`}
+                      className={
+                        openMenuChatId === chat.id
+                          ? "chat-menu-trigger is-visible"
+                          : "chat-menu-trigger"
+                      }
                       onClick={(event) => {
                         event.preventDefault();
-                        openChat(chat.id);
+                        event.stopPropagation();
+                        setOpenMenuChatId((current) =>
+                          current === chat.id ? null : chat.id
+                        );
                       }}
-                      title={chat.title}
+                      title="Chat options"
+                      type="button"
                     >
-                      <span
-                        className={
-                          animatedTitleChatIds.includes(chat.id)
-                            ? "chat-link-title is-refreshing"
-                            : "chat-link-title"
-                        }
+                      <EllipsisIcon />
+                    </button>
+                    {openMenuChatId === chat.id ? (
+                      <div
+                        aria-label={`Options for ${chat.title}`}
+                        className="chat-menu"
+                        role="menu"
                       >
-                        {chat.title}
-                      </span>
-                    </Link>
-                  )}
-                  <button
-                    aria-expanded={openMenuChatId === chat.id}
-                    aria-haspopup="menu"
-                    aria-label={`Open options for ${chat.title}`}
-                    className={
-                      openMenuChatId === chat.id
-                        ? "chat-menu-trigger is-visible"
-                        : "chat-menu-trigger"
-                    }
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setOpenMenuChatId((current) =>
-                        current === chat.id ? null : chat.id
-                      );
-                    }}
-                    title="Chat options"
-                    type="button"
-                  >
-                    <EllipsisIcon />
-                  </button>
-                  {openMenuChatId === chat.id ? (
-                    <div
-                      aria-label={`Options for ${chat.title}`}
-                      className="chat-menu"
-                      role="menu"
-                    >
-                      <button
-                        className="chat-menu-item"
-                        onClick={() => {
-                          beginSidebarRename(chat);
-                        }}
-                        role="menuitem"
-                        type="button"
-                      >
-                        <PencilIcon />
-                        <span>Rename</span>
-                      </button>
-                      <button
-                        className="chat-menu-item danger"
-                        onClick={() => {
-                          promptSidebarDelete(chat);
-                        }}
-                        role="menuitem"
-                        type="button"
-                      >
-                        <TrashIcon />
-                        <span>Remove</span>
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ))
-            )}
+                        <button
+                          className="chat-menu-item"
+                          onClick={() => {
+                            beginSidebarRename(chat);
+                          }}
+                          role="menuitem"
+                          type="button"
+                        >
+                          <PencilIcon />
+                          <span>Rename</span>
+                        </button>
+                        <button
+                          className="chat-menu-item danger"
+                          onClick={() => {
+                            promptSidebarDelete(chat);
+                          }}
+                          role="menuitem"
+                          type="button"
+                        >
+                          <TrashIcon />
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </aside>

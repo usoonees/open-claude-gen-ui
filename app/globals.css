@@ -103,6 +103,7 @@ svg {
   flex: 0 0 272px;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
   overflow: hidden;
   padding: 12px 10px 10px;
   transition:
@@ -118,6 +119,7 @@ svg {
   flex: 1 1 auto;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
   min-width: 252px;
   opacity: 1;
   transform: translateX(0);
@@ -177,15 +179,18 @@ svg {
   align-items: center;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
     0 2px 6px rgba(0, 0, 0, 0.05);
   color: #262626;
   display: flex;
   gap: 9px;
-  height: 36px;
-  padding: 0 11px;
+  flex: 0 0 44px;
+  height: 44px;
+  line-height: 1;
+  min-height: 44px;
+  padding: 0 15px;
   text-align: left;
   transition:
     background 140ms ease,
@@ -203,14 +208,12 @@ svg {
 }
 
 .sidebar-section {
-  align-content: start;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
-  gap: 1px;
   margin-top: 6px;
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 0;
 }
 
 .sidebar-section-header {
@@ -228,6 +231,66 @@ svg {
   letter-spacing: 0.08em;
   margin: 0;
   text-transform: uppercase;
+}
+
+.sidebar-history-list {
+  --sidebar-scrollbar-surface: rgba(244, 244, 245, 0.94);
+  --sidebar-scrollbar-thumb: transparent;
+  --sidebar-scrollbar-track: transparent;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: -10px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 10px;
+  scrollbar-color: var(--sidebar-scrollbar-thumb) var(--sidebar-scrollbar-track);
+  scrollbar-width: none;
+}
+
+.sidebar-history-list:hover,
+.sidebar-history-list:focus-within {
+  --sidebar-scrollbar-thumb: rgba(82, 82, 82, 0.3);
+  --sidebar-scrollbar-track: var(--sidebar-scrollbar-surface);
+  scrollbar-width: thin;
+}
+
+.sidebar-history-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-history-list::-webkit-scrollbar-track {
+  background: var(--sidebar-scrollbar-track);
+  border-radius: 999px;
+}
+
+.sidebar-history-list::-webkit-scrollbar-thumb {
+  background: var(--sidebar-scrollbar-thumb);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.sidebar-history-list:hover::-webkit-scrollbar-thumb,
+.sidebar-history-list:focus-within::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(115, 115, 115, 0.42),
+    rgba(82, 82, 82, 0.28)
+  );
+  border: 2px solid var(--sidebar-scrollbar-surface);
+  background-clip: padding-box;
+}
+
+.sidebar-history-list:hover::-webkit-scrollbar-track,
+.sidebar-history-list:focus-within::-webkit-scrollbar-track {
+  background: linear-gradient(
+    180deg,
+    rgba(246, 246, 247, 0.96),
+    rgba(239, 239, 241, 0.92)
+  );
 }
 
 .chat-count {
@@ -253,9 +316,9 @@ svg {
 .chat-row {
   align-items: center;
   border-radius: 10px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: block;
   min-height: 34px;
+  width: 100%;
 }
 
 .chat-row::before {
@@ -281,10 +344,11 @@ svg {
   display: block;
   min-height: 34px;
   overflow: hidden;
-  padding: 7px 40px 7px 12px;
+  padding: 7px 12px;
   text-align: left;
   text-decoration: none;
   transition:
+    padding-right 140ms ease,
     transform 140ms ease;
 }
 
@@ -320,6 +384,7 @@ svg {
 
 .chat-row:hover .chat-link,
 .chat-row:focus-within .chat-link {
+  padding-right: 44px;
   transform: translateX(1px);
 }
 
@@ -381,13 +446,17 @@ svg {
   display: inline-grid;
   height: 28px;
   justify-content: center;
-  margin-right: 6px;
   opacity: 0;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   transition:
     background 140ms ease,
     color 140ms ease,
     opacity 140ms ease;
   width: 28px;
+  z-index: 1;
 }
 
 .chat-row:hover .chat-menu-trigger,
