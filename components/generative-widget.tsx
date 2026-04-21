@@ -80,6 +80,250 @@ body {
 }
 `;
 
+const WIDGET_SHADOW_STYLES = `
+:host {
+  color: var(--color-text-primary);
+  display: block;
+  font-family: var(--font-sans);
+  min-height: 0;
+  position: relative;
+  white-space: normal;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[data-widget-mount] {
+  color: inherit;
+  font-family: inherit;
+  min-height: 0;
+  position: relative;
+  white-space: normal;
+}
+
+[data-widget-mount] > * {
+  max-width: 100%;
+}
+
+[data-widget-mount] svg {
+  --p: var(--color-text-primary);
+  --s: var(--color-text-secondary);
+  --t: var(--color-text-tertiary);
+  --bg2: var(--color-background-secondary);
+  --b: var(--color-border-tertiary);
+  fill: initial;
+  height: auto;
+  max-width: 100%;
+  stroke: initial;
+  stroke-linecap: initial;
+  stroke-linejoin: initial;
+  stroke-width: initial;
+  width: auto;
+}
+
+[data-widget-mount] svg .t,
+[data-widget-mount] svg .th {
+  fill: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+[data-widget-mount] svg .th {
+  font-weight: 500;
+}
+
+[data-widget-mount] svg .ts {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+[data-widget-mount] svg .box {
+  fill: var(--color-background-secondary);
+  stroke: var(--color-border-tertiary);
+}
+
+[data-widget-mount] svg .arr {
+  fill: none;
+  stroke: var(--color-border-primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5px;
+}
+
+[data-widget-mount] svg .leader {
+  fill: none;
+  stroke: var(--color-border-tertiary);
+  stroke-dasharray: 4 4;
+  stroke-width: 0.5px;
+}
+
+[data-widget-mount] svg .node {
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+[data-widget-mount] svg .node:hover {
+  opacity: 0.82;
+}
+
+[data-widget-mount] svg .c-purple {
+  --ramp-fill: #eeedfe;
+  --ramp-stroke: #534ab7;
+  --ramp-title: #3c3489;
+  --ramp-subtitle: #534ab7;
+}
+
+[data-widget-mount] svg .c-teal {
+  --ramp-fill: #e1f5ee;
+  --ramp-stroke: #0f6e56;
+  --ramp-title: #085041;
+  --ramp-subtitle: #0f6e56;
+}
+
+[data-widget-mount] svg .c-coral {
+  --ramp-fill: #faece7;
+  --ramp-stroke: #993c1d;
+  --ramp-title: #712b13;
+  --ramp-subtitle: #993c1d;
+}
+
+[data-widget-mount] svg .c-pink {
+  --ramp-fill: #fbeaf0;
+  --ramp-stroke: #993556;
+  --ramp-title: #72243e;
+  --ramp-subtitle: #993556;
+}
+
+[data-widget-mount] svg .c-gray {
+  --ramp-fill: #f1efe8;
+  --ramp-stroke: #5f5e5a;
+  --ramp-title: #444441;
+  --ramp-subtitle: #5f5e5a;
+}
+
+[data-widget-mount] svg .c-blue {
+  --ramp-fill: #e6f1fb;
+  --ramp-stroke: #185fa5;
+  --ramp-title: #0c447c;
+  --ramp-subtitle: #185fa5;
+}
+
+[data-widget-mount] svg .c-green {
+  --ramp-fill: #eaf3de;
+  --ramp-stroke: #3b6d11;
+  --ramp-title: #27500a;
+  --ramp-subtitle: #3b6d11;
+}
+
+[data-widget-mount] svg .c-amber {
+  --ramp-fill: #faeeda;
+  --ramp-stroke: #854f0b;
+  --ramp-title: #633806;
+  --ramp-subtitle: #854f0b;
+}
+
+[data-widget-mount] svg .c-red {
+  --ramp-fill: #fcebeb;
+  --ramp-stroke: #a32d2d;
+  --ramp-title: #791f1f;
+  --ramp-subtitle: #a32d2d;
+}
+
+[data-widget-mount] svg rect.c-purple,
+[data-widget-mount] svg circle.c-purple,
+[data-widget-mount] svg ellipse.c-purple,
+[data-widget-mount] svg rect.c-teal,
+[data-widget-mount] svg circle.c-teal,
+[data-widget-mount] svg ellipse.c-teal,
+[data-widget-mount] svg rect.c-coral,
+[data-widget-mount] svg circle.c-coral,
+[data-widget-mount] svg ellipse.c-coral,
+[data-widget-mount] svg rect.c-pink,
+[data-widget-mount] svg circle.c-pink,
+[data-widget-mount] svg ellipse.c-pink,
+[data-widget-mount] svg rect.c-gray,
+[data-widget-mount] svg circle.c-gray,
+[data-widget-mount] svg ellipse.c-gray,
+[data-widget-mount] svg rect.c-blue,
+[data-widget-mount] svg circle.c-blue,
+[data-widget-mount] svg ellipse.c-blue,
+[data-widget-mount] svg rect.c-green,
+[data-widget-mount] svg circle.c-green,
+[data-widget-mount] svg ellipse.c-green,
+[data-widget-mount] svg rect.c-amber,
+[data-widget-mount] svg circle.c-amber,
+[data-widget-mount] svg ellipse.c-amber,
+[data-widget-mount] svg rect.c-red,
+[data-widget-mount] svg circle.c-red,
+[data-widget-mount] svg ellipse.c-red,
+[data-widget-mount] svg .c-purple > rect,
+[data-widget-mount] svg .c-purple > circle,
+[data-widget-mount] svg .c-purple > ellipse,
+[data-widget-mount] svg .c-teal > rect,
+[data-widget-mount] svg .c-teal > circle,
+[data-widget-mount] svg .c-teal > ellipse,
+[data-widget-mount] svg .c-coral > rect,
+[data-widget-mount] svg .c-coral > circle,
+[data-widget-mount] svg .c-coral > ellipse,
+[data-widget-mount] svg .c-pink > rect,
+[data-widget-mount] svg .c-pink > circle,
+[data-widget-mount] svg .c-pink > ellipse,
+[data-widget-mount] svg .c-gray > rect,
+[data-widget-mount] svg .c-gray > circle,
+[data-widget-mount] svg .c-gray > ellipse,
+[data-widget-mount] svg .c-blue > rect,
+[data-widget-mount] svg .c-blue > circle,
+[data-widget-mount] svg .c-blue > ellipse,
+[data-widget-mount] svg .c-green > rect,
+[data-widget-mount] svg .c-green > circle,
+[data-widget-mount] svg .c-green > ellipse,
+[data-widget-mount] svg .c-amber > rect,
+[data-widget-mount] svg .c-amber > circle,
+[data-widget-mount] svg .c-amber > ellipse,
+[data-widget-mount] svg .c-red > rect,
+[data-widget-mount] svg .c-red > circle,
+[data-widget-mount] svg .c-red > ellipse {
+  fill: var(--ramp-fill);
+  stroke: var(--ramp-stroke);
+}
+
+[data-widget-mount] svg .c-purple > .t,
+[data-widget-mount] svg .c-purple > .th,
+[data-widget-mount] svg .c-teal > .t,
+[data-widget-mount] svg .c-teal > .th,
+[data-widget-mount] svg .c-coral > .t,
+[data-widget-mount] svg .c-coral > .th,
+[data-widget-mount] svg .c-pink > .t,
+[data-widget-mount] svg .c-pink > .th,
+[data-widget-mount] svg .c-gray > .t,
+[data-widget-mount] svg .c-gray > .th,
+[data-widget-mount] svg .c-blue > .t,
+[data-widget-mount] svg .c-blue > .th,
+[data-widget-mount] svg .c-green > .t,
+[data-widget-mount] svg .c-green > .th,
+[data-widget-mount] svg .c-amber > .t,
+[data-widget-mount] svg .c-amber > .th,
+[data-widget-mount] svg .c-red > .t,
+[data-widget-mount] svg .c-red > .th {
+  fill: var(--ramp-title);
+}
+
+[data-widget-mount] svg .c-purple > .ts,
+[data-widget-mount] svg .c-teal > .ts,
+[data-widget-mount] svg .c-coral > .ts,
+[data-widget-mount] svg .c-pink > .ts,
+[data-widget-mount] svg .c-gray > .ts,
+[data-widget-mount] svg .c-blue > .ts,
+[data-widget-mount] svg .c-green > .ts,
+[data-widget-mount] svg .c-amber > .ts,
+[data-widget-mount] svg .c-red > .ts {
+  fill: var(--ramp-subtitle);
+}
+`;
+
 const ZIP_CRC32_TABLE = Array.from({ length: 256 }, (_, index) => {
   let value = index;
 
@@ -97,6 +341,13 @@ const CLASSIC_SCRIPT_TYPES = new Set([
   "text/ecmascript",
   "text/javascript",
 ]);
+
+const WIDGET_FUNCTION_REGISTRY = new WeakMap<Node, Record<string, unknown>>();
+const WIDGET_EVENT_HANDLER_REGISTRY = new WeakMap<
+  Element,
+  Map<string, { listener: EventListener; source: string }>
+>();
+const WIDGET_EVENT_ATTRIBUTE_PREFIX = "data-widget-event-";
 
 function escapeHtml(value: string) {
   return value
@@ -313,30 +564,427 @@ function isInlineClassicScript(script: HTMLScriptElement) {
   );
 }
 
-function scopeInlineClassicScript(textContent: string | null) {
-  return `{\n${textContent ?? ""}\n}`;
+function escapeWidgetIdentifier(value: string) {
+  return value.replace(/[^a-zA-Z0-9_$]/g, "\\$&");
+}
+
+function normalizeWidgetSelector(selector: string) {
+  return selector.replace(
+    /\[\s*on([a-z][a-z0-9_-]*)/gi,
+    (_, eventName: string) =>
+      `[${WIDGET_EVENT_ATTRIBUTE_PREFIX}${eventName.toLowerCase()}`
+  );
+}
+
+function prepareWidgetScriptsForMount(container: HTMLElement) {
+  for (const script of container.querySelectorAll("script")) {
+    const src = script.getAttribute("src");
+
+    if (src) {
+      script.dataset.widgetSrc = src;
+      script.removeAttribute("src");
+    }
+
+    const onload = script.getAttribute("onload");
+
+    if (onload) {
+      script.dataset.widgetOnload = onload;
+      script.removeAttribute("onload");
+    }
+
+    if (!src && isInlineClassicScript(script)) {
+      const type = script.getAttribute("type");
+
+      script.dataset.widgetInlineClassic = "true";
+
+      if (type !== null) {
+        script.dataset.widgetOriginalType = type;
+      }
+
+      script.setAttribute("type", "text/plain");
+    }
+  }
+}
+
+function prepareWidgetInlineEventHandlersForMount(container: HTMLElement) {
+  const elements = [container, ...Array.from(container.querySelectorAll("*"))];
+
+  for (const element of elements) {
+    if (element instanceof HTMLScriptElement) {
+      continue;
+    }
+
+    for (const { name, value } of Array.from(element.attributes)) {
+      if (!name.startsWith("on")) {
+        continue;
+      }
+
+      const eventName = name.slice(2).toLowerCase();
+
+      if (!eventName || !value.trim()) {
+        element.removeAttribute(name);
+        continue;
+      }
+
+      element.setAttribute(`${WIDGET_EVENT_ATTRIBUTE_PREFIX}${eventName}`, value);
+      element.removeAttribute(name);
+    }
+  }
+}
+
+function widgetFunctionNamesFromScript(textContent: string | null) {
+  if (!textContent) {
+    return [];
+  }
+
+  const namedFunctionMatches = textContent.matchAll(
+    /function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g
+  );
+  const variableFunctionMatches = textContent.matchAll(
+    /\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][A-Za-z0-9_$]*\s*=>)/g
+  );
+
+  return [
+    ...new Set([
+      ...Array.from(namedFunctionMatches, (match) => match[1]),
+      ...Array.from(variableFunctionMatches, (match) => match[1]),
+    ]),
+  ];
+}
+
+function getWidgetScriptScope(currentNode: Node | null) {
+  const ownerDocument = currentNode?.ownerDocument ?? document;
+  const widgetRoot = currentNode?.getRootNode?.() ?? ownerDocument;
+  const parentNodeRoot =
+    widgetRoot &&
+    "querySelector" in widgetRoot &&
+    "querySelectorAll" in widgetRoot &&
+    typeof widgetRoot.querySelector === "function" &&
+    typeof widgetRoot.querySelectorAll === "function"
+      ? (widgetRoot as ParentNode)
+      : null;
+  const widgetFns =
+    WIDGET_FUNCTION_REGISTRY.get(widgetRoot) ??
+    (() => {
+      const nextRegistry: Record<string, unknown> = {};
+      WIDGET_FUNCTION_REGISTRY.set(widgetRoot, nextRegistry);
+      return nextRegistry;
+    })();
+  const widgetDocument =
+    parentNodeRoot
+      ? {
+          querySelector: (selector: string) =>
+            parentNodeRoot.querySelector(normalizeWidgetSelector(selector)),
+          querySelectorAll: (selector: string) =>
+            parentNodeRoot.querySelectorAll(normalizeWidgetSelector(selector)),
+          getElementById: (id: string) =>
+            typeof (widgetRoot as ShadowRoot).getElementById === "function"
+              ? (widgetRoot as ShadowRoot).getElementById(id)
+              : parentNodeRoot.querySelector(`#${CSS.escape(id)}`),
+          addEventListener: (...args: Parameters<Document["addEventListener"]>) =>
+            ownerDocument.addEventListener(...args),
+          removeEventListener: (
+            ...args: Parameters<Document["removeEventListener"]>
+          ) => ownerDocument.removeEventListener(...args),
+          createElement: (...args: Parameters<Document["createElement"]>) =>
+            ownerDocument.createElement(...args),
+          createElementNS: (...args: Parameters<Document["createElementNS"]>) =>
+            ownerDocument.createElementNS(...args),
+          body: ownerDocument.body,
+          documentElement: ownerDocument.documentElement,
+          currentScript:
+            currentNode instanceof HTMLScriptElement ? currentNode : null,
+          defaultView: ownerDocument.defaultView,
+        }
+      : ownerDocument;
+
+  return {
+    ownerDocument,
+    widgetDocument,
+    widgetFns,
+    widgetRoot,
+    widgetWindow: ownerDocument.defaultView ?? window,
+  };
+}
+
+function widgetFunctionRegistrationBlock(functionNames: string[]) {
+  return functionNames.length > 0
+    ? `
+  for (const __widgetName of [${functionNames
+    .map((name) => `"${escapeWidgetIdentifier(name)}"`)
+    .join(", ")}]) {
+    let __widgetValue;
+
+    try {
+      __widgetValue = eval(__widgetName);
+    } catch {
+      __widgetValue = undefined;
+    }
+
+    if (typeof __widgetValue === "function") {
+      widgetFns[__widgetName] = __widgetValue;
+    }
+  }`
+    : "";
+}
+
+function runScopedInlineClassicScript(
+  currentScript: HTMLScriptElement,
+  textContent: string | null,
+  functionNames: string[]
+) {
+  const { widgetDocument, widgetFns, widgetRoot, widgetWindow } =
+    getWidgetScriptScope(currentScript);
+  const executor = new Function(
+    "document",
+    "window",
+    "widgetFns",
+    "widgetRoot",
+    `${textContent ?? ""}
+${widgetFunctionRegistrationBlock(functionNames)}`
+  );
+
+  executor(widgetDocument, widgetWindow, widgetFns, widgetRoot);
+}
+
+function runScopedWidgetCallback(
+  currentNode: Node | null,
+  callbackSource: string
+) {
+  const { widgetDocument, widgetFns, widgetRoot, widgetWindow } =
+    getWidgetScriptScope(currentNode);
+  const executor = new Function(
+    "document",
+    "window",
+    "widgetFns",
+    "widgetRoot",
+    `with (widgetFns) { ${callbackSource} }`
+  );
+
+  executor(widgetDocument, widgetWindow, widgetFns, widgetRoot);
+}
+
+function runScopedWidgetInlineEventHandler(
+  currentNode: Element,
+  handlerSource: string,
+  event: Event
+) {
+  const { widgetDocument, widgetFns, widgetRoot, widgetWindow } =
+    getWidgetScriptScope(currentNode);
+  const executor = new Function(
+    "document",
+    "window",
+    "widgetFns",
+    "widgetRoot",
+    "event",
+    "element",
+    `with (widgetFns) { return (function(event) { ${handlerSource} }).call(element, event); }`
+  );
+  const eventWindow = widgetWindow as typeof window & { event?: Event };
+  const hadEvent = "event" in eventWindow;
+  const previousEvent = eventWindow.event;
+
+  eventWindow.event = event;
+
+  try {
+    return executor(
+      widgetDocument,
+      widgetWindow,
+      widgetFns,
+      widgetRoot,
+      event,
+      currentNode
+    );
+  } finally {
+    if (hadEvent) {
+      eventWindow.event = previousEvent;
+    } else {
+      Reflect.deleteProperty(eventWindow as { event?: Event }, "event");
+    }
+  }
+}
+
+function bindScopedInlineEventHandlers(container: HTMLElement) {
+  const elements = [container, ...Array.from(container.querySelectorAll("*"))];
+
+  for (const element of elements) {
+    if (element instanceof HTMLScriptElement) {
+      continue;
+    }
+
+    const existingHandlers =
+      WIDGET_EVENT_HANDLER_REGISTRY.get(element) ??
+      (() => {
+        const nextHandlers = new Map<
+          string,
+          { listener: EventListener; source: string }
+        >();
+        WIDGET_EVENT_HANDLER_REGISTRY.set(element, nextHandlers);
+        return nextHandlers;
+      })();
+    const nextEventNames = new Set<string>();
+
+    for (const { name, value } of Array.from(element.attributes)) {
+      if (!name.startsWith(WIDGET_EVENT_ATTRIBUTE_PREFIX)) {
+        continue;
+      }
+
+      const eventName = name.slice(WIDGET_EVENT_ATTRIBUTE_PREFIX.length);
+
+      if (!eventName || !value.trim()) {
+        continue;
+      }
+
+      nextEventNames.add(eventName);
+
+      const existingHandler = existingHandlers.get(eventName);
+
+      if (existingHandler?.source === value) {
+        continue;
+      }
+
+      if (existingHandler) {
+        element.removeEventListener(eventName, existingHandler.listener);
+      }
+
+      const listener: EventListener = (event) => {
+        const result = runScopedWidgetInlineEventHandler(element, value, event);
+
+        if (result === false) {
+          event.preventDefault();
+        }
+      };
+
+      element.addEventListener(eventName, listener);
+      existingHandlers.set(eventName, { listener, source: value });
+    }
+
+    for (const [eventName, handler] of existingHandlers) {
+      if (nextEventNames.has(eventName)) {
+        continue;
+      }
+
+      element.removeEventListener(eventName, handler.listener);
+      existingHandlers.delete(eventName);
+    }
+  }
+}
+
+function getOrCreateShadowMount(host: HTMLDivElement) {
+  const shadowRoot = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+
+  let baseStyle = shadowRoot.querySelector<HTMLStyleElement>(
+    "style[data-widget-shadow-base]"
+  );
+
+  if (!baseStyle) {
+    baseStyle = document.createElement("style");
+    baseStyle.dataset.widgetShadowBase = "true";
+    baseStyle.textContent = WIDGET_SHADOW_STYLES;
+    shadowRoot.append(baseStyle);
+  }
+
+  let mount = shadowRoot.querySelector<HTMLDivElement>("[data-widget-mount]");
+
+  if (!mount) {
+    mount = document.createElement("div");
+    mount.setAttribute("data-widget-mount", "");
+    shadowRoot.append(mount);
+  }
+
+  return mount;
 }
 
 function executeScripts(container: HTMLElement) {
+  const widgetRoot = container.getRootNode();
+  const externalCallbacks: Array<{
+    callbackSource: string;
+    script: HTMLScriptElement;
+  }> = [];
+  let externalCallbacksReady = false;
+
+  WIDGET_FUNCTION_REGISTRY.set(widgetRoot, {});
+  (
+    globalThis as typeof globalThis & {
+      __openVisualLayoutWidgetFns?: WeakMap<Node, Record<string, unknown>>;
+    }
+  ).__openVisualLayoutWidgetFns = WIDGET_FUNCTION_REGISTRY;
+
   for (const script of container.querySelectorAll("script")) {
-    if (script.src && !isAllowedWidgetScriptUrl(script.src)) {
+    const externalSrc = script.dataset.widgetSrc ?? script.getAttribute("src");
+    const isPreparedInlineClassic = script.dataset.widgetInlineClassic === "true";
+
+    if (externalSrc && !isAllowedWidgetScriptUrl(externalSrc)) {
       script.remove();
       continue;
     }
 
     const nextScript = document.createElement("script");
+    const externalLoadHandler =
+      script.dataset.widgetOnload ?? script.getAttribute("onload");
 
     for (const { name, value } of Array.from(script.attributes)) {
+      if (
+        name === "src" ||
+        name === "onload" ||
+        name === "data-widget-src" ||
+        name === "data-widget-onload" ||
+        name === "data-widget-inline-classic" ||
+        name === "data-widget-original-type"
+      ) {
+        continue;
+      }
+
       nextScript.setAttribute(name, value);
     }
 
-    if (!script.src) {
-      nextScript.textContent = isInlineClassicScript(script)
-        ? scopeInlineClassicScript(script.textContent)
-        : script.textContent;
+    if (!externalSrc) {
+      nextScript.textContent = script.textContent;
+
+      if (isPreparedInlineClassic) {
+        nextScript.type = "text/plain";
+      }
+    } else {
+      nextScript.src = externalSrc;
+      nextScript.async = false;
+    }
+
+    if (externalSrc && externalLoadHandler?.trim()) {
+      const callbackSource = externalLoadHandler;
+
+      nextScript.addEventListener("load", () => {
+        nextScript.dataset.widgetLoaded = "true";
+
+        if (externalCallbacksReady && nextScript.dataset.widgetCallbackRan !== "true") {
+          nextScript.dataset.widgetCallbackRan = "true";
+          runScopedWidgetCallback(nextScript, callbackSource);
+        }
+      });
+
+      externalCallbacks.push({ callbackSource, script: nextScript });
     }
 
     script.replaceWith(nextScript);
+
+    if (!externalSrc && isPreparedInlineClassic) {
+      runScopedInlineClassicScript(
+        nextScript,
+        script.textContent,
+        widgetFunctionNamesFromScript(script.textContent)
+      );
+    }
+  }
+
+  externalCallbacksReady = true;
+
+  for (const { callbackSource, script } of externalCallbacks) {
+    if (
+      script.dataset.widgetLoaded === "true" &&
+      script.dataset.widgetCallbackRan !== "true"
+    ) {
+      script.dataset.widgetCallbackRan = "true";
+      runScopedWidgetCallback(script, callbackSource);
+    }
   }
 }
 
@@ -397,16 +1045,21 @@ export function GenerativeWidget({
       return;
     }
 
-    const host = hostRef.current;
+    const mount = getOrCreateShadowMount(hostRef.current);
+    const root = mount.getRootNode();
 
-    function handleHostClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return;
-      }
+    if (!(root instanceof ShadowRoot)) {
+      return;
+    }
 
-      const anchor = event.target.closest("a[href]");
+    function handleHostClick(event: Event) {
+      const path = event.composedPath();
+      const anchor = path.find(
+        (node): node is HTMLAnchorElement =>
+          node instanceof HTMLAnchorElement && mount.contains(node)
+      );
 
-      if (!(anchor instanceof HTMLAnchorElement) || !host.contains(anchor)) {
+      if (!anchor) {
         return;
       }
 
@@ -414,10 +1067,10 @@ export function GenerativeWidget({
       openTrustedWidgetLink(anchor.href);
     }
 
-    host.addEventListener("click", handleHostClick);
+    root.addEventListener("click", handleHostClick);
 
     return () => {
-      host.removeEventListener("click", handleHostClick);
+      root.removeEventListener("click", handleHostClick);
     };
   }, []);
 
@@ -444,14 +1097,27 @@ export function GenerativeWidget({
   }, [loadingMessages.length]);
 
   useEffect(() => {
-    if (!hostRef.current || !hasRenderableMarkup) {
+    if (!hostRef.current) {
       return;
     }
 
-    const source = hostRef.current;
+    const source = getOrCreateShadowMount(hostRef.current);
+
+    if (!hasRenderableMarkup) {
+      source.replaceChildren();
+      lastExecutedMarkupRef.current = null;
+      return;
+    }
+
+    if (status === "ready" && lastExecutedMarkupRef.current === widgetCode) {
+      return;
+    }
+
     const target = source.cloneNode(false) as HTMLDivElement;
     target.innerHTML = widgetCode;
     stripOuterWidgetChrome(target);
+    prepareWidgetScriptsForMount(target);
+    prepareWidgetInlineEventHandlersForMount(target);
 
     morphdom(source, target, {
       childrenOnly: true,
@@ -487,6 +1153,7 @@ export function GenerativeWidget({
 
     if (status === "ready" && lastExecutedMarkupRef.current !== widgetCode) {
       executeScripts(source);
+      bindScopedInlineEventHandlers(source);
       lastExecutedMarkupRef.current = widgetCode;
     }
   }, [hasRenderableMarkup, status, widgetCode]);
