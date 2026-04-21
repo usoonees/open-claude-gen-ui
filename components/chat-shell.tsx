@@ -16,7 +16,18 @@ import type { ChatUIMessage } from "@/lib/chat-message";
 import { Chat as ReactChat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Link from "next/link";
-import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  Children,
+  FormEvent,
+  isValidElement,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -572,8 +583,67 @@ function MarkdownBlock({ children }: { children: string }) {
 
   return (
     <div className="markdown-body">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+      <ReactMarkdown
+        components={{
+          li: MarkdownListItem,
+        }}
+        remarkPlugins={[remarkGfm]}
+      >
+        {children}
+      </ReactMarkdown>
     </div>
+  );
+}
+
+function MarkdownListItem({
+  children,
+  node: _node,
+  ...props
+}: ComponentPropsWithoutRef<"li"> & { node?: unknown }) {
+  const childArray = Children.toArray(children).filter(
+    (child) => !(typeof child === "string" && !child.trim())
+  );
+  const firstNestedListIndex = childArray.findIndex(
+    (child) => isValidElement(child) && (child.type === "ul" || child.type === "ol")
+  );
+
+  if (firstNestedListIndex < 0) {
+    const [firstChild, ...restChildren] = childArray;
+
+    if (!isValidElement(firstChild) || firstChild.type !== "p") {
+      return <li {...props}>{children}</li>;
+    }
+
+    const firstParagraphChildren = (
+      firstChild.props as { children?: ReactNode }
+    ).children;
+
+    return (
+      <li {...props}>
+        <span className="markdown-list-item-content">{firstParagraphChildren}</span>
+        {restChildren}
+      </li>
+    );
+  }
+
+  const leadingChildren = childArray.slice(0, firstNestedListIndex);
+  const trailingChildren = childArray.slice(firstNestedListIndex);
+  const contentChildren =
+    leadingChildren.length === 1 &&
+    isValidElement(leadingChildren[0]) &&
+    leadingChildren[0].type === "p"
+      ? (leadingChildren[0].props as { children?: ReactNode }).children
+      : leadingChildren;
+
+  if (leadingChildren.length === 0) {
+    return <li {...props}>{children}</li>;
+  }
+
+  return (
+    <li {...props}>
+      <span className="markdown-list-item-content">{contentChildren}</span>
+      {trailingChildren}
+    </li>
   );
 }
 
