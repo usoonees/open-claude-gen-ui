@@ -772,16 +772,23 @@ function MessageContent({
   const hasVisibleOutput = renderableItems.length > 0;
   const hasWidgetOutput = renderableItems.some((item) => item.kind === "widget");
   const hasTextOutput = renderableItems.some((item) => item.kind === "text");
+  const hasStreamingWidgetLoading =
+    isStreaming &&
+    renderableItems.some(
+      (item) =>
+        item.kind === "widget" &&
+        item.status === "streaming" &&
+        item.loadingMessages.length > 0
+    );
   const postWidgetReasoning = postWidgetReasoningFromMessage(message).trim();
   const shouldOpenThinking = !hasVisibleOutput;
-  const showStreamingIndicator = isStreaming && !hasVisibleOutput;
+  const showStreamingIndicator = isStreaming && !hasStreamingWidgetLoading;
   const showWidgetReasoningPreview =
     isStreaming && hasWidgetOutput && !hasTextOutput && postWidgetReasoning.length > 0;
 
   return (
     <>
       <ThinkingBlock items={thinkingItems} shouldOpen={shouldOpenThinking} />
-      {showStreamingIndicator ? <AssistantStreamingIndicator /> : null}
       {renderableItems.map((item) =>
         item.kind === "text" ? (
           <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
@@ -799,6 +806,7 @@ function MessageContent({
       {showWidgetReasoningPreview ? (
         <AssistantWidgetReasoningPreview reasoningText={postWidgetReasoning} />
       ) : null}
+      {showStreamingIndicator ? <AssistantStreamingIndicator /> : null}
     </>
   );
 }
