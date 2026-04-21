@@ -605,6 +605,11 @@ svg {
 }
 
 .widget-host svg {
+  --p: var(--color-text-primary);
+  --s: var(--color-text-secondary);
+  --t: var(--color-text-tertiary);
+  --bg2: var(--color-background-secondary);
+  --b: var(--color-border-tertiary);
   fill: initial;
   height: auto;
   max-width: 100%;
@@ -613,6 +618,207 @@ svg {
   stroke-linejoin: initial;
   stroke-width: initial;
   width: auto;
+}
+
+.widget-host svg .t,
+.widget-host svg .th {
+  fill: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.widget-host svg .th {
+  font-weight: 500;
+}
+
+.widget-host svg .ts {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.widget-host svg .box {
+  fill: var(--color-background-secondary);
+  stroke: var(--color-border-tertiary);
+}
+
+.widget-host svg .arr {
+  fill: none;
+  stroke: var(--color-border-primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5px;
+}
+
+.widget-host svg .leader {
+  fill: none;
+  stroke: var(--color-border-tertiary);
+  stroke-dasharray: 4 4;
+  stroke-width: 0.5px;
+}
+
+.widget-host svg .node {
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.widget-host svg .node:hover {
+  opacity: 0.82;
+}
+
+.widget-host svg .c-purple {
+  --ramp-fill: #eeedfe;
+  --ramp-stroke: #534ab7;
+  --ramp-title: #3c3489;
+  --ramp-subtitle: #534ab7;
+}
+
+.widget-host svg .c-teal {
+  --ramp-fill: #e1f5ee;
+  --ramp-stroke: #0f6e56;
+  --ramp-title: #085041;
+  --ramp-subtitle: #0f6e56;
+}
+
+.widget-host svg .c-coral {
+  --ramp-fill: #faece7;
+  --ramp-stroke: #993c1d;
+  --ramp-title: #712b13;
+  --ramp-subtitle: #993c1d;
+}
+
+.widget-host svg .c-pink {
+  --ramp-fill: #fbeaf0;
+  --ramp-stroke: #993556;
+  --ramp-title: #72243e;
+  --ramp-subtitle: #993556;
+}
+
+.widget-host svg .c-gray {
+  --ramp-fill: #f1efe8;
+  --ramp-stroke: #5f5e5a;
+  --ramp-title: #444441;
+  --ramp-subtitle: #5f5e5a;
+}
+
+.widget-host svg .c-blue {
+  --ramp-fill: #e6f1fb;
+  --ramp-stroke: #185fa5;
+  --ramp-title: #0c447c;
+  --ramp-subtitle: #185fa5;
+}
+
+.widget-host svg .c-green {
+  --ramp-fill: #eaf3de;
+  --ramp-stroke: #3b6d11;
+  --ramp-title: #27500a;
+  --ramp-subtitle: #3b6d11;
+}
+
+.widget-host svg .c-amber {
+  --ramp-fill: #faeeda;
+  --ramp-stroke: #854f0b;
+  --ramp-title: #633806;
+  --ramp-subtitle: #854f0b;
+}
+
+.widget-host svg .c-red {
+  --ramp-fill: #fcebeb;
+  --ramp-stroke: #a32d2d;
+  --ramp-title: #791f1f;
+  --ramp-subtitle: #a32d2d;
+}
+
+.widget-host svg rect.c-purple,
+.widget-host svg circle.c-purple,
+.widget-host svg ellipse.c-purple,
+.widget-host svg rect.c-teal,
+.widget-host svg circle.c-teal,
+.widget-host svg ellipse.c-teal,
+.widget-host svg rect.c-coral,
+.widget-host svg circle.c-coral,
+.widget-host svg ellipse.c-coral,
+.widget-host svg rect.c-pink,
+.widget-host svg circle.c-pink,
+.widget-host svg ellipse.c-pink,
+.widget-host svg rect.c-gray,
+.widget-host svg circle.c-gray,
+.widget-host svg ellipse.c-gray,
+.widget-host svg rect.c-blue,
+.widget-host svg circle.c-blue,
+.widget-host svg ellipse.c-blue,
+.widget-host svg rect.c-green,
+.widget-host svg circle.c-green,
+.widget-host svg ellipse.c-green,
+.widget-host svg rect.c-amber,
+.widget-host svg circle.c-amber,
+.widget-host svg ellipse.c-amber,
+.widget-host svg rect.c-red,
+.widget-host svg circle.c-red,
+.widget-host svg ellipse.c-red,
+.widget-host svg .c-purple > rect,
+.widget-host svg .c-purple > circle,
+.widget-host svg .c-purple > ellipse,
+.widget-host svg .c-teal > rect,
+.widget-host svg .c-teal > circle,
+.widget-host svg .c-teal > ellipse,
+.widget-host svg .c-coral > rect,
+.widget-host svg .c-coral > circle,
+.widget-host svg .c-coral > ellipse,
+.widget-host svg .c-pink > rect,
+.widget-host svg .c-pink > circle,
+.widget-host svg .c-pink > ellipse,
+.widget-host svg .c-gray > rect,
+.widget-host svg .c-gray > circle,
+.widget-host svg .c-gray > ellipse,
+.widget-host svg .c-blue > rect,
+.widget-host svg .c-blue > circle,
+.widget-host svg .c-blue > ellipse,
+.widget-host svg .c-green > rect,
+.widget-host svg .c-green > circle,
+.widget-host svg .c-green > ellipse,
+.widget-host svg .c-amber > rect,
+.widget-host svg .c-amber > circle,
+.widget-host svg .c-amber > ellipse,
+.widget-host svg .c-red > rect,
+.widget-host svg .c-red > circle,
+.widget-host svg .c-red > ellipse {
+  fill: var(--ramp-fill);
+  stroke: var(--ramp-stroke);
+}
+
+.widget-host svg .c-purple > .t,
+.widget-host svg .c-purple > .th,
+.widget-host svg .c-teal > .t,
+.widget-host svg .c-teal > .th,
+.widget-host svg .c-coral > .t,
+.widget-host svg .c-coral > .th,
+.widget-host svg .c-pink > .t,
+.widget-host svg .c-pink > .th,
+.widget-host svg .c-gray > .t,
+.widget-host svg .c-gray > .th,
+.widget-host svg .c-blue > .t,
+.widget-host svg .c-blue > .th,
+.widget-host svg .c-green > .t,
+.widget-host svg .c-green > .th,
+.widget-host svg .c-amber > .t,
+.widget-host svg .c-amber > .th,
+.widget-host svg .c-red > .t,
+.widget-host svg .c-red > .th {
+  fill: var(--ramp-title);
+}
+
+.widget-host svg .c-purple > .ts,
+.widget-host svg .c-teal > .ts,
+.widget-host svg .c-coral > .ts,
+.widget-host svg .c-pink > .ts,
+.widget-host svg .c-gray > .ts,
+.widget-host svg .c-blue > .ts,
+.widget-host svg .c-green > .ts,
+.widget-host svg .c-amber > .ts,
+.widget-host svg .c-red > .ts {
+  fill: var(--ramp-subtitle);
 }
 
 .widget-live-region.is-hidden {

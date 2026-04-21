@@ -7,7 +7,7 @@ import {
 } from "@/components/generative-widget";
 import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import type { ChatUIMessage } from "@/lib/chat-message";
-import { useChat } from "@ai-sdk/react";
+import { Chat as ReactChat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Link from "next/link";
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -27,6 +27,8 @@ type ChatSummary = {
   titleState?: "pending" | "ready";
   updatedAt: string;
 };
+
+type ChatController = ReactChat<ChatUIMessage>;
 
 type MessagePart = ChatUIMessage["parts"][number];
 
@@ -903,6 +905,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const chatIdRef = useRef(chatId);
   const lastLoadedChatIdRef = useRef<string | null>(null);
+  const chatControllersRef = useRef<Map<string, ChatController>>(new Map());
+  const draftChatRef = useRef<ChatController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -920,7 +924,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         prepareSendMessagesRequest(request) {
           return {
             body: {
-              id: chatIdRef.current,
+              id: request.id,
               messages: request.messages,
               trigger: request.trigger,
             },
@@ -930,16 +934,48 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     []
   );
 
-  const { error, messages, sendMessage, setMessages, status, stop } = useChat<ChatUIMessage>({
-    transport,
-    onFinish: () => {
-      void loadChatList();
-      requestAnimationFrame(() => {
-        if (shouldFollowStreamRef.current) {
-          scrollMessagesToBottom("smooth");
+  function createChatController(id: string, initialMessages: ChatUIMessage[] = []) {
+    return new ReactChat<ChatUIMessage>({
+      id,
+      messages: initialMessages,
+      transport,
+      onFinish: () => {
+        void loadChatList();
+        if (id !== chatIdRef.current) {
+          return;
         }
-      });
-    },
+
+        requestAnimationFrame(() => {
+          if (shouldFollowStreamRef.current) {
+            scrollMessagesToBottom("smooth");
+          }
+        });
+      },
+    });
+  }
+
+  function getChatController(id: string, initialMessages?: ChatUIMessage[]) {
+    const existingController = chatControllersRef.current.get(id);
+
+    if (existingController) {
+      return existingController;
+    }
+
+    const nextController = createChatController(id, initialMessages);
+    chatControllersRef.current.set(id, nextController);
+    return nextController;
+  }
+
+  if (!draftChatRef.current) {
+    draftChatRef.current = createChatController("draft-chat");
+  }
+
+  const activeChat = chatId
+    ? getChatController(chatId)
+    : draftChatRef.current;
+
+  const { error, messages, setMessages, status, stop } = useChat<ChatUIMessage>({
+    chat: activeChat,
   });
 
   const isBusy = status === "submitted" || status === "streaming";
@@ -1200,6 +1236,22 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         return;
       }
 
+      const existingController = chatControllersRef.current.get(chatId);
+
+      if (
+        existingController &&
+        (existingController.messages.length > 0 ||
+          existingController.status !== "ready")
+      ) {
+        lastLoadedChatIdRef.current = chatId;
+        debugChat("chat-load:skip-local-controller", {
+          chatId,
+          messageCount: existingController.messages.length,
+          status: existingController.status,
+        });
+        return;
+      }
+
       const startedAt = performance.now();
       debugChat("chat-load:start", { chatId });
       const response = await fetch(
@@ -1284,10 +1336,14 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     });
   }
 
-  async function persistOptimisticUserTurn(chatIdToSave: string, text: string) {
+  async function persistOptimisticUserTurn(
+    chatIdToSave: string,
+    text: string,
+    baseMessages: ChatUIMessage[]
+  ) {
     try {
       await saveMessages(chatIdToSave, [
-        ...messages,
+        ...baseMessages,
         createOptimisticUserMessage(text),
       ]);
     } catch (error) {
@@ -1343,7 +1399,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   function startNewChat() {
     debugChat("new-chat:start", { from: chatIdRef.current, to: null });
-    stop();
     setOpenMenuChatId(null);
     setEditingChatId(null);
     setEditingTitle("");
@@ -1351,7 +1406,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setChatId(null);
     chatIdRef.current = null;
     lastLoadedChatIdRef.current = null;
-    setMessages([]);
+    draftChatRef.current!.messages = [];
     setInput("");
     replaceUrl(null);
     focusComposer();
@@ -1369,7 +1424,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
 
     debugChat("open-chat:start", { from: chatIdRef.current, to: nextId });
-    stop();
     setOpenMenuChatId(null);
     setEditingChatId(null);
     setEditingTitle("");
@@ -1471,6 +1525,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
     const chat = chatPendingDelete;
     setChatPendingDelete(null);
+    const chatController = chatControllersRef.current.get(chat.id);
+    void chatController?.stop();
+    chatControllersRef.current.delete(chat.id);
 
     const response = await fetch(
       `/api/chat/history?id=${encodeURIComponent(chat.id)}`,
@@ -1511,8 +1568,13 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       prompt: source === "composer" ? undefined : messageText,
     });
     shouldFollowStreamRef.current = true;
-    void persistOptimisticUserTurn(activeChatId, messageText);
-    await sendMessage({
+    const activeChatController = getChatController(activeChatId);
+    void persistOptimisticUserTurn(
+      activeChatId,
+      messageText,
+      activeChatController.messages
+    );
+    await activeChatController.sendMessage({
       role: "user",
       parts: [{ type: "text", text: messageText }],
     });
@@ -1790,7 +1852,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                           {copiedMessageId === message.id ? <CheckIcon /> : <CopyIcon />}
                         </button>
                         <div className="message-body">
-                          <span className="message-role">You</span>
                           <MessageContent message={message} />
                         </div>
                       </div>

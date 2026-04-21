@@ -56,7 +56,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Global CSS tokens live in `app/globals.css`.
 - Components use stable dimensions for icon buttons, composer controls, and message containers to avoid layout shifts.
 - Cards are limited to repeated prompt and message items; page-level layout remains a full-screen app surface.
-- Trusted-mode widget HTML renders in the same document. The host exposes the documented widget design tokens and resets global SVG defaults inside `.widget-host`, while generated widget styling should stay scoped and visually polite.
+- Trusted-mode widget HTML renders in the same document. The host exposes the documented widget design tokens, SVG helper classes (`t`, `ts`, `th`, `box`, `arr`, `leader`, `node`, and `c-*` ramps), and resets global SVG defaults inside `.widget-host`, while generated widget styling should stay scoped and visually polite.
 
 ## Testing Strategy
 

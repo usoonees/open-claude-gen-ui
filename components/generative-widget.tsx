@@ -86,6 +86,14 @@ const ZIP_CRC32_TABLE = Array.from({ length: 256 }, (_, index) => {
   return value >>> 0;
 });
 
+const CLASSIC_SCRIPT_TYPES = new Set([
+  "",
+  "application/ecmascript",
+  "application/javascript",
+  "text/ecmascript",
+  "text/javascript",
+]);
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -291,6 +299,20 @@ function createWidgetZipBlob(files: ZipTextFile[]) {
   );
 }
 
+function isInlineClassicScript(script: HTMLScriptElement) {
+  if (script.src) {
+    return false;
+  }
+
+  return CLASSIC_SCRIPT_TYPES.has(
+    (script.getAttribute("type") ?? "").trim().toLowerCase()
+  );
+}
+
+function scopeInlineClassicScript(textContent: string | null) {
+  return `{\n${textContent ?? ""}\n}`;
+}
+
 function executeScripts(container: HTMLElement) {
   for (const script of container.querySelectorAll("script")) {
     if (script.src && !isAllowedWidgetScriptUrl(script.src)) {
@@ -305,7 +327,9 @@ function executeScripts(container: HTMLElement) {
     }
 
     if (!script.src) {
-      nextScript.textContent = script.textContent;
+      nextScript.textContent = isInlineClassicScript(script)
+        ? scopeInlineClassicScript(script.textContent)
+        : script.textContent;
     }
 
     script.replaceWith(nextScript);
