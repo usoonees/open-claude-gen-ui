@@ -20,7 +20,8 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
 - Confirm the sidebar show/hide transition animates smoothly instead of popping in or out.
 - Confirm a conversation URL under `/chat/:id` is only created when the first message or starter prompt is sent.
-- Confirm sending the first message or a starter prompt adds that chat to the sidebar immediately, without waiting for a page reload.
+- Confirm sending the first message or a starter prompt adds that chat to the sidebar immediately, without waiting for a page reload, and that the sidebar first shows the raw first prompt.
+- With inference available, confirm that same sidebar row later swaps to a short AI-generated title with a visible transition instead of changing abruptly.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
@@ -43,6 +44,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `components/chat-shell.tsx` owns local chat UI state, draft-chat URL behavior, and the AI SDK client transport.
 - `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
+- `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
 - `lib/volcengine.ts` owns provider configuration and environment variable aliases.
 
 ## Styling

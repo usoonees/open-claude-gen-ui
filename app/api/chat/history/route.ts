@@ -1,7 +1,15 @@
-import { deleteChat, listChats, readChat, renameChat, writeChat } from "@/lib/chat-store";
+import {
+  deleteChat,
+  listChats,
+  readChat,
+  renameChat,
+  resolvePendingGeneratedTitle,
+  writeChat,
+} from "@/lib/chat-store";
 import { chatSystemPrompt } from "@/lib/chat-agent";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import { getChatToolTraceList } from "@/lib/chat-tools";
+import { after } from "next/server";
 
 type SaveRequest = {
   id?: string;
@@ -55,11 +63,18 @@ export async function PUT(request: Request) {
     return new Response("Request body must include an id.", { status: 400 });
   }
 
-  return Response.json(
-    await writeChat(body.id, body.messages, {
-      trace: buildChatTrace(),
-    })
-  );
+  const chat = await writeChat(body.id, body.messages, {
+    trace: buildChatTrace(),
+    deferGeneratedTitle: true,
+  });
+
+  if (chat.titleState === "pending") {
+    after(async () => {
+      await resolvePendingGeneratedTitle(body.id as string);
+    });
+  }
+
+  return Response.json(chat);
 }
 
 export async function PATCH(request: Request) {

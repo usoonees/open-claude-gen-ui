@@ -1,6 +1,11 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ChatUIMessage } from "@/lib/chat-message";
+import {
+  canGenerateChatTitle,
+  fallbackTitleFromMessages,
+  generateChatTitle,
+} from "@/lib/chat-title";
 import type { ChatToolTrace } from "@/lib/chat-tools";
 
 const storeDir = path.join(process.cwd(), ".data", "chats");
@@ -17,12 +22,14 @@ export type StoredChat = {
   title: string;
   updatedAt: string;
   titleSource?: "generated" | "custom";
+  titleState?: "pending" | "ready";
   trace?: StoredChatTrace;
 };
 
 export type ChatSummary = {
   id: string;
   title: string;
+  titleState?: "pending" | "ready";
   updatedAt: string;
 };
 
@@ -63,20 +70,35 @@ function chatPath(id: string) {
   return path.join(storeDir, `${encodeURIComponent(id)}.json`);
 }
 
-function titleFromMessages(messages: ChatUIMessage[]) {
-  const firstUserMessage = messages.find((message) => message.role === "user");
-  const text =
-    firstUserMessage?.parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join(" ")
-      .trim() || "New chat";
-
-  return text.length > 48 ? `${text.slice(0, 45)}...` : text;
-}
-
 function sanitizeMessages(messages: ChatUIMessage[]) {
   return messages.filter((message) => message.role !== "system");
+}
+
+function isLegacyGeneratedTitle(
+  chat: Partial<StoredChat> | null | undefined,
+  messages: ChatUIMessage[]
+) {
+  return (
+    chat?.titleSource !== "custom" &&
+    typeof chat?.title === "string" &&
+    chat.title.trim() === fallbackTitleFromMessages(messages)
+  );
+}
+
+function hasResolvedGeneratedTitle(
+  chat: Partial<StoredChat> | null | undefined,
+  messages: ChatUIMessage[],
+  requireReadyState = true
+) {
+  if (chat?.titleSource !== "generated" || typeof chat.title !== "string") {
+    return false;
+  }
+
+  if (requireReadyState && chat.titleState === "pending") {
+    return false;
+  }
+
+  return Boolean(chat.title.trim() && !isLegacyGeneratedTitle(chat, messages));
 }
 
 export async function listChats(): Promise<ChatSummary[]> {
@@ -86,16 +108,17 @@ export async function listChats(): Promise<ChatSummary[]> {
   const chats = await Promise.all(
     entries
       .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-      .map(async (entry) => {
+      .map(async (entry): Promise<ChatSummary | null> => {
         try {
           const file = await readFile(path.join(storeDir, entry.name), "utf8");
           const chat = JSON.parse(file) as StoredChat;
 
           return {
             id: chat.id,
-            title: chat.title || titleFromMessages(chat.messages || []),
+            title: chat.title || fallbackTitleFromMessages(chat.messages || []),
+            titleState: chat.titleState === "pending" ? "pending" : "ready",
             updatedAt: chat.updatedAt || new Date(0).toISOString(),
-          };
+          } satisfies ChatSummary;
         } catch {
           return null;
         }
@@ -120,6 +143,7 @@ export async function readChat(id: string): Promise<StoredChat> {
       title: "New chat",
       updatedAt: new Date(0).toISOString(),
       titleSource: "generated",
+      titleState: "ready",
       trace: undefined,
     };
   }
@@ -127,14 +151,15 @@ export async function readChat(id: string): Promise<StoredChat> {
   const messages = Array.isArray(chat.messages)
     ? (chat.messages as ChatUIMessage[])
     : [];
-  const generatedTitle = titleFromMessages(messages);
+  const fallbackTitle = fallbackTitleFromMessages(messages);
 
   return {
     id: chat.id || id,
     messages,
-    title: isCustomTitle(chat) ? chat.title.trim() : chat.title || generatedTitle,
+    title: isCustomTitle(chat) ? chat.title.trim() : chat.title || fallbackTitle,
     updatedAt: chat.updatedAt || new Date(0).toISOString(),
     titleSource: chat.titleSource === "custom" ? "custom" : "generated",
+    titleState: chat.titleState === "pending" ? "pending" : "ready",
     trace: sanitizeTrace(chat.trace),
   };
 }
@@ -144,24 +169,95 @@ export async function writeChat(
   messages: ChatUIMessage[],
   options?: {
     trace?: StoredChatTrace;
+    deferGeneratedTitle?: boolean;
   }
 ) {
   await ensureStoreDir();
 
   const cleanMessages = sanitizeMessages(messages);
   const existingChat = await readStoredChatFile(id);
-  const generatedTitle = titleFromMessages(cleanMessages);
+  const fallbackTitle = fallbackTitleFromMessages(cleanMessages);
   const customTitle =
     existingChat?.titleSource === "custom" && typeof existingChat.title === "string"
       ? existingChat.title.trim()
       : null;
+  const existingResolvedGeneratedTitle = hasResolvedGeneratedTitle(
+    existingChat,
+    cleanMessages
+  )
+    ? existingChat?.title.trim() || ""
+    : "";
+  const shouldKeepPendingGeneratedTitle =
+    existingChat?.titleState === "pending" &&
+    !customTitle &&
+    !existingResolvedGeneratedTitle;
+  const shouldDeferGeneratedTitle =
+    !customTitle &&
+    !existingResolvedGeneratedTitle &&
+    (shouldKeepPendingGeneratedTitle ||
+      (options?.deferGeneratedTitle === true && canGenerateChatTitle(cleanMessages)));
+  const title = customTitle || existingResolvedGeneratedTitle || fallbackTitle;
   const chat: StoredChat = {
     id,
     messages: cleanMessages,
-    title: customTitle || generatedTitle,
+    title,
     updatedAt: new Date().toISOString(),
     titleSource: customTitle ? "custom" : "generated",
+    titleState: customTitle ? "ready" : shouldDeferGeneratedTitle ? "pending" : "ready",
     trace: sanitizeTrace(options?.trace) ?? sanitizeTrace(existingChat?.trace),
+  };
+
+  await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
+    mode: 0o600,
+  });
+
+  return chat;
+}
+
+export async function resolvePendingGeneratedTitle(id: string) {
+  await ensureStoreDir();
+
+  const existingChat = await readStoredChatFile(id);
+
+  if (!existingChat) {
+    return null;
+  }
+
+  if (isCustomTitle(existingChat)) {
+    return existingChat;
+  }
+
+  const messages = Array.isArray(existingChat.messages)
+    ? (existingChat.messages as ChatUIMessage[])
+    : [];
+
+  if (hasResolvedGeneratedTitle(existingChat, messages)) {
+    return existingChat;
+  }
+
+  const fallbackTitle = fallbackTitleFromMessages(messages);
+  const generatedTitle = await generateChatTitle(messages);
+  const latestChat = await readStoredChatFile(id);
+
+  if (!latestChat) {
+    return null;
+  }
+
+  if (isCustomTitle(latestChat)) {
+    return latestChat;
+  }
+
+  const latestMessages = Array.isArray(latestChat.messages)
+    ? (latestChat.messages as ChatUIMessage[])
+    : messages;
+  const chat: StoredChat = {
+    id: latestChat.id || id,
+    messages: latestMessages,
+    title: generatedTitle || fallbackTitleFromMessages(latestMessages) || fallbackTitle,
+    updatedAt: latestChat.updatedAt || new Date().toISOString(),
+    titleSource: "generated",
+    titleState: "ready",
+    trace: sanitizeTrace(latestChat.trace),
   };
 
   await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
@@ -193,6 +289,7 @@ export async function renameChat(id: string, title: string) {
     title: normalizedTitle,
     updatedAt: new Date().toISOString(),
     titleSource: "custom",
+    titleState: "ready",
     trace: sanitizeTrace(existingChat.trace),
   };
 

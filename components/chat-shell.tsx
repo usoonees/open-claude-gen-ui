@@ -23,6 +23,7 @@ const starterPrompts = [
 type ChatSummary = {
   id: string;
   title: string;
+  titleState?: "pending" | "ready";
   updatedAt: string;
 };
 
@@ -798,8 +799,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const endRef = useRef<HTMLDivElement>(null);
   const shouldFollowStreamRef = useRef(true);
   const copyResetTimerRef = useRef<number | null>(null);
+  const titleAnimationTimersRef = useRef<Map<string, number>>(new Map());
+  const knownChatTitlesRef = useRef<Map<string, string>>(new Map());
   const sidebarMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const [animatedTitleChatIds, setAnimatedTitleChatIds] = useState<string[]>([]);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -891,6 +895,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       if (copyResetTimerRef.current !== null) {
         window.clearTimeout(copyResetTimerRef.current);
       }
+
+      titleAnimationTimersRef.current.forEach((timer) => {
+        window.clearTimeout(timer);
+      });
+      titleAnimationTimersRef.current.clear();
     };
   }, []);
 
@@ -961,6 +970,53 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     };
   });
 
+  function animateChatTitle(chatId: string) {
+    const existingTimer = titleAnimationTimersRef.current.get(chatId);
+
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer);
+    }
+
+    setAnimatedTitleChatIds((current) => [
+      ...current.filter((currentId) => currentId !== chatId),
+      chatId,
+    ]);
+
+    const timer = window.setTimeout(() => {
+      setAnimatedTitleChatIds((current) =>
+        current.filter((currentId) => currentId !== chatId)
+      );
+      titleAnimationTimersRef.current.delete(chatId);
+    }, 520);
+
+    titleAnimationTimersRef.current.set(chatId, timer);
+  }
+
+  function mergeChatList(nextChats: ChatSummary[]) {
+    const previousTitles = knownChatTitlesRef.current;
+    const nextTitleMap = new Map<string, string>();
+
+    nextChats.forEach((chat) => {
+      nextTitleMap.set(chat.id, chat.title);
+
+      const previousTitle = previousTitles.get(chat.id);
+
+      if (previousTitle && previousTitle !== chat.title) {
+        animateChatTitle(chat.id);
+      }
+    });
+
+    knownChatTitlesRef.current = nextTitleMap;
+    setChatList(nextChats);
+  }
+
+  function upsertChatSummary(chat: ChatSummary) {
+    mergeChatList([
+      chat,
+      ...chatList.filter((currentChat) => currentChat.id !== chat.id),
+    ]);
+  }
+
   async function loadChatList() {
     const startedAt = performance.now();
     debugChat("history-list:start", { activeChatId: chatIdRef.current });
@@ -973,7 +1029,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
     const data = (await response.json()) as { chats?: ChatSummary[] };
     const nextChats = Array.isArray(data.chats) ? data.chats : [];
-    setChatList(nextChats);
+    mergeChatList(nextChats);
     debugChat("history-list:done", {
       count: nextChats.length,
       durationMs: Math.round(performance.now() - startedAt),
@@ -983,6 +1039,22 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   useEffect(() => {
     loadChatList();
   }, []);
+
+  useEffect(() => {
+    const hasPendingTitle = chatList.some((chat) => chat.titleState === "pending");
+
+    if (!hasPendingTitle) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadChatList();
+    }, 1400);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [chatList]);
 
   useEffect(() => {
     const nextChatId = initialChatId ?? null;
@@ -1078,17 +1150,23 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       chatId: nextChatId,
       messageCount: nextMessages.length,
     });
-    await fetch("/api/chat/history", {
+    const response = await fetch("/api/chat/history", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id: nextChatId, messages: nextMessages }),
     });
 
+    if (!response.ok) {
+      throw new Error(`Unable to save chat ${nextChatId}: ${response.status}`);
+    }
+
+    const savedChat = (await response.json()) as ChatSummary;
+    upsertChatSummary(savedChat);
+
     debugChat("chat-save:done", {
       chatId: nextChatId,
       durationMs: Math.round(performance.now() - startedAt),
     });
-    await loadChatList();
   }
 
   async function persistOptimisticUserTurn(chatIdToSave: string, text: string) {
@@ -1419,7 +1497,15 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                       }}
                       title={chat.title}
                     >
-                      <span>{chat.title}</span>
+                      <span
+                        className={
+                          animatedTitleChatIds.includes(chat.id)
+                            ? "chat-link-title is-refreshing"
+                            : "chat-link-title"
+                        }
+                      >
+                        {chat.title}
+                      </span>
                     </Link>
                   )}
                   <button
