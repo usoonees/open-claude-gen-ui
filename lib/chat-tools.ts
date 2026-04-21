@@ -46,7 +46,7 @@ export const tavilySearchTool = tool({
 });
 
 const visualizeReadMeDescription =
-  "Load the generative UI design guidelines before the first visual widget. Call silently before showWidget.";
+  "Load the generative UI design guidelines before the first visual widget. This should be an explicit visible tool call, and it must happen before any showWidget call.";
 
 const visualizeReadMeInputSchema = {
   type: "object",
@@ -78,7 +78,7 @@ export const visualizeReadMeTool = tool({
 });
 
 const showWidgetDescription =
-  "Render compact, valid HTML or SVG as an inline generative UI widget inside the chat. Call visualizeReadMe before the first showWidget call, follow its constraints exactly, and keep prose/explanation outside widgetCode.";
+  "Render compact, valid HTML or SVG as an inline generative UI widget inside the chat. Call visualizeReadMe first, never in the same assistant message or tool step as showWidget, follow its constraints exactly, and keep prose/explanation outside widgetCode.";
 
 const showWidgetInputSchema = {
   type: "object",
@@ -87,7 +87,7 @@ const showWidgetInputSchema = {
     iHaveSeenReadMe: {
       type: "boolean",
       description:
-        "Set to true only after you already called visualizeReadMe in this conversation.",
+        "Set to true only after visualizeReadMe has already been called and completed earlier in this conversation.",
     },
     title: {
       type: "string",

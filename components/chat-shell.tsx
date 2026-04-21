@@ -56,6 +56,7 @@ type ToolEvent = {
   detail: string;
   variant?: "default" | "readme";
   inputPreview?: string;
+  readmeModules?: string[];
   sources?: Array<{
     url: string;
     title: string;
@@ -186,6 +187,39 @@ function createToolInputPreview(input: unknown, maxLength = 420) {
   return `${preview.slice(0, maxLength - 1)}...`;
 }
 
+function readmeModulesFromUnknown(input: unknown) {
+  const record = asRecord(input);
+  const modules = record?.modules;
+
+  if (!Array.isArray(modules)) {
+    return [];
+  }
+
+  return modules.filter((module): module is string => typeof module === "string");
+}
+
+function formatReadmeModule(module: string) {
+  return module
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function summarizeReadmeSelection(modules: string[], pendingLabel = "Selecting modules") {
+  if (modules.length === 0) {
+    return pendingLabel;
+  }
+
+  return `${modules.length} module${modules.length === 1 ? "" : "s"} selected`;
+}
+
+function summarizeReadmeModules(modules: string[]) {
+  if (modules.length === 0) {
+    return "Waiting for module selection";
+  }
+
+  return modules.map((module) => formatReadmeModule(module)).join(", ");
+}
+
 function summarizeToolPart(part: MessagePart): ToolEvent | null {
   if (!isToolLikePart(part)) {
     return null;
@@ -197,9 +231,9 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
         part.type,
         part.type === "dynamic-tool" ? part.toolName : undefined
       );
-  const readmeInputPreview = isVisualizeReadMeToolPart(part)
-    ? createToolInputPreview(part.input)
-    : null;
+  const readmeModules = isVisualizeReadMeToolPart(part)
+    ? readmeModulesFromUnknown(part.input)
+    : [];
 
   if (isVisualizeReadMeToolPart(part)) {
     switch (part.state) {
@@ -207,25 +241,25 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
         return {
           label,
           tone: "running",
-          detail: "Selecting visual guideline modules...",
+          detail: summarizeReadmeSelection(readmeModules),
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       case "input-available":
         return {
           label,
           tone: "running",
-          detail: "Loading visual guideline modules...",
+          detail: summarizeReadmeSelection(readmeModules, "Selection ready"),
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       case "output-available":
         return {
           label,
           tone: "done",
-          detail: "Guidelines loaded; output hidden.",
+          detail: summarizeReadmeSelection(readmeModules, "Selection ready"),
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       case "output-error":
         return {
@@ -233,7 +267,7 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
           tone: "error",
           detail: part.errorText ?? "Guideline load failed.",
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       case "output-denied":
         return {
@@ -241,23 +275,28 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
           tone: "error",
           detail: "Guideline tool call denied.",
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       case "approval-requested":
         return {
           label,
           tone: "running",
-          detail: "Waiting for guideline tool approval.",
+          detail: summarizeReadmeSelection(
+            readmeModules,
+            "Waiting for selection approval"
+          ),
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       case "approval-responded":
         return {
           label,
           tone: part.approval?.approved ? "done" : "error",
-          detail: part.approval?.approved ? "Approved." : "Denied.",
+          detail: part.approval?.approved
+            ? summarizeReadmeSelection(readmeModules, "Selection approved")
+            : "Selection denied.",
           variant: "readme",
-          inputPreview: readmeInputPreview ?? undefined,
+          readmeModules,
         };
       default:
         return null;
@@ -434,7 +473,11 @@ function ToolEventCard({ event }: { event: ToolEvent }) {
     >
       <div className="tool-card-header">
         <span className="tool-badge">{event.label}</span>
-        <span className="tool-status">{event.detail}</span>
+        <span className="tool-status">
+          {event.variant === "readme"
+            ? `Selected ${summarizeReadmeModules(event.readmeModules ?? [])}`
+            : event.detail}
+        </span>
       </div>
       {event.inputPreview ? (
         <div className="tool-input-preview">
@@ -574,15 +617,40 @@ function downloadableWidgetFromMessage(
   return downloadableWidget;
 }
 
-function MessageContent({ message }: { message: ChatUIMessage }) {
+function AssistantStreamingIndicator() {
+  return (
+    <div
+      aria-live="polite"
+      aria-label="Assistant is still generating"
+      className="message-streaming-indicator"
+      role="status"
+    >
+      <span aria-hidden="true" className="message-streaming-dots">
+        <span className="message-streaming-dot" />
+        <span className="message-streaming-dot" />
+        <span className="message-streaming-dot" />
+      </span>
+    </div>
+  );
+}
+
+function MessageContent({
+  message,
+  isStreaming = false,
+}: {
+  message: ChatUIMessage;
+  isStreaming?: boolean;
+}) {
   const thinkingItems = thinkingItemsFromMessage(message);
   const renderableItems = renderableItemsFromMessage(message);
   const hasVisibleOutput = renderableItems.length > 0;
   const shouldOpenThinking = !hasVisibleOutput;
+  const showStreamingIndicator = isStreaming && !hasVisibleOutput;
 
   return (
     <>
       <ThinkingBlock items={thinkingItems} shouldOpen={shouldOpenThinking} />
+      {showStreamingIndicator ? <AssistantStreamingIndicator /> : null}
       {renderableItems.map((item) =>
         item.kind === "text" ? (
           <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
@@ -752,7 +820,7 @@ function messageScrollSignature(messages: ChatUIMessage[]) {
               return [
                 part.type,
                 part.state,
-                createToolInputPreview(part.input, 160) ?? "",
+                readmeModulesFromUnknown(part.input).join(","),
                 part.errorText?.length ?? 0,
               ].join(":");
             }
@@ -821,6 +889,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const isBusy = status === "submitted" || status === "streaming";
   const trimmedInput = input.trim();
   const streamScrollSignature = messageScrollSignature(messages);
+  const streamingAssistantMessageId =
+    status === "streaming"
+      ? [...messages]
+          .reverse()
+          .find((message) => message.role === "assistant")?.id ?? null
+      : null;
 
   function isMessageScrollAtBottom() {
     const element = messageScrollRef.current;
@@ -1633,6 +1707,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   message.role === "assistant"
                     ? downloadableWidgetFromMessage(message)
                     : null;
+                const isStreamingAssistantMessage =
+                  message.role === "assistant" &&
+                  message.id === streamingAssistantMessageId;
 
                 return (
                   <article
@@ -1665,50 +1742,55 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                       <>
                         <div className="message-body">
                           <span className="message-role">Assistant</span>
-                          <MessageContent message={message} />
+                          <MessageContent
+                            isStreaming={isStreamingAssistantMessage}
+                            message={message}
+                          />
                         </div>
-                        <div className="message-actions">
-                          <button
-                            aria-label={
-                              downloadableWidget
-                                ? "Copy widget HTML from assistant response"
-                                : "Copy assistant response"
-                            }
-                            className={`message-action-button ${
-                              copiedMessageId === message.id ? "is-copied" : ""
-                            }`}
-                            onClick={() => {
-                              void copyMessage(message);
-                            }}
-                            title={
-                              copiedMessageId === message.id
-                                ? "Copied"
-                                : downloadableWidget
-                                  ? "Copy widget HTML"
-                                  : "Copy message"
-                            }
-                            type="button"
-                          >
-                            {copiedMessageId === message.id ? (
-                              <CheckIcon />
-                            ) : (
-                              <CopyIcon />
-                            )}
-                          </button>
-                          {downloadableWidget ? (
+                        {!isStreamingAssistantMessage ? (
+                          <div className="message-actions">
                             <button
-                              aria-label="Download widget HTML files"
-                              className="message-action-button"
+                              aria-label={
+                                downloadableWidget
+                                  ? "Copy widget HTML from assistant response"
+                                  : "Copy assistant response"
+                              }
+                              className={`message-action-button ${
+                                copiedMessageId === message.id ? "is-copied" : ""
+                              }`}
                               onClick={() => {
-                                downloadGenerativeWidgetZip(downloadableWidget);
+                                void copyMessage(message);
                               }}
-                              title="Download widget HTML"
+                              title={
+                                copiedMessageId === message.id
+                                  ? "Copied"
+                                  : downloadableWidget
+                                    ? "Copy widget HTML"
+                                    : "Copy message"
+                              }
                               type="button"
                             >
-                              <DownloadIcon />
+                              {copiedMessageId === message.id ? (
+                                <CheckIcon />
+                              ) : (
+                                <CopyIcon />
+                              )}
                             </button>
-                          ) : null}
-                        </div>
+                            {downloadableWidget ? (
+                              <button
+                                aria-label="Download widget HTML files"
+                                className="message-action-button"
+                                onClick={() => {
+                                  downloadGenerativeWidgetZip(downloadableWidget);
+                                }}
+                                title="Download widget HTML"
+                                type="button"
+                              >
+                                <DownloadIcon />
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </>
                     )}
                   </article>

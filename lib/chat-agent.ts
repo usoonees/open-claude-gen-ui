@@ -9,8 +9,9 @@ const { ToolLoopAgent } = tracedAI;
 const generativeUIInstructions = isGenerativeUITrustedModeEnabled()
   ? `
 You can render inline generative UI widgets when a request is better served visually or interactively.
-Use visualizeReadMe silently before your first showWidget call and choose only the relevant modules.
-Then call showWidget with iHaveSeenReadMe: true and stream the widgetCode as HTML or SVG fragments.
+Use visualizeReadMe as an explicit visible tool call before your first showWidget call and choose only the relevant modules.
+Do not call visualizeReadMe and showWidget together in the same assistant message or tool step.
+First call visualizeReadMe by itself, wait for its result, then call showWidget with iHaveSeenReadMe: true and stream the widgetCode as HTML or SVG fragments.
 Keep explanatory prose in your normal answer text. The tool output should contain only the visual widget code.
 Use showWidget automatically when a prompt is strongly visual, interactive, comparative, diagrammatic, or exploratory.
 
