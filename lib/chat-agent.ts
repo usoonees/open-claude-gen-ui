@@ -1,8 +1,9 @@
 import { stepCountIs } from "ai";
+import type { ChatModelSelection } from "@/lib/chat-model-config";
+import { getChatLanguageModel } from "@/lib/chat-models";
 import { getChatTools } from "@/lib/chat-tools";
 import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui";
 import { tracedAI } from "@/lib/langsmith-ai";
-import { getVolcengineChatModel } from "@/lib/volcengine";
 
 const { ToolLoopAgent } = tracedAI;
 
@@ -21,15 +22,47 @@ Use the documented widget CSS variables for colors, fonts, borders, and radii. K
 Do not wrap widgetCode in a root element that only adds padding or font-family; the host already provides message spacing and font inheritance.`
   : "";
 
-export const chatSystemPrompt = `You are a concise, practical AI assistant.
+function padTwoDigits(value: number) {
+  return value.toString().padStart(2, "0");
+}
+
+function formatOffset(offsetMinutes: number) {
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteMinutes = Math.abs(offsetMinutes);
+  const hours = Math.floor(absoluteMinutes / 60);
+  const minutes = absoluteMinutes % 60;
+
+  return `UTC${sign}${padTwoDigits(hours)}:${padTwoDigits(minutes)}`;
+}
+
+export function formatPromptDateToHour(date: Date) {
+  const year = date.getFullYear();
+  const month = padTwoDigits(date.getMonth() + 1);
+  const day = padTwoDigits(date.getDate());
+  const hour = padTwoDigits(date.getHours());
+  const offset = formatOffset(-date.getTimezoneOffset());
+
+  return `${year}-${month}-${day} ${hour}:00 ${offset}`;
+}
+
+export function getChatSystemPrompt(date = new Date()) {
+  return `You are a concise, practical AI assistant.
 
 Use the tavilySearch tool whenever the user asks for current information, recent news, live web facts, or anything that should be verified on the web.
 After using the tool, answer directly and include the relevant source URLs when they materially support the answer.
-Do not claim you searched the web unless you actually used the tool.${generativeUIInstructions}`;
+Do not claim you searched the web unless you actually used the tool.${generativeUIInstructions}
 
-export const chatAgent = new ToolLoopAgent({
-  model: getVolcengineChatModel(),
-  instructions: chatSystemPrompt,
-  stopWhen: stepCountIs(5),
-  tools: getChatTools(),
-});
+Current date and time: ${formatPromptDateToHour(date)}.`;
+}
+
+export function createChatAgent(
+  selection: ChatModelSelection,
+  systemPrompt = getChatSystemPrompt()
+) {
+  return new ToolLoopAgent({
+    model: getChatLanguageModel(selection),
+    instructions: systemPrompt,
+    stopWhen: stepCountIs(5),
+    tools: getChatTools(),
+  });
+}

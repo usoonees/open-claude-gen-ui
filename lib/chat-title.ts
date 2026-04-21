@@ -1,6 +1,11 @@
 import { generateText } from "ai";
 import type { ChatUIMessage } from "@/lib/chat-message";
-import { getVolcengineChatModel, volcengineConfig } from "@/lib/volcengine";
+import type { ChatModelSelection } from "@/lib/chat-model-config";
+import {
+  getChatLanguageModel,
+  isChatModelSelectionConfigured,
+  normalizeChatModelSelection,
+} from "@/lib/chat-models";
 
 const LEGACY_TITLE_LENGTH = 48;
 const GENERATED_TITLE_LENGTH = 45;
@@ -62,12 +67,23 @@ export function fallbackTitleFromMessages(messages: ChatUIMessage[]) {
   return truncateTitle(text, LEGACY_TITLE_LENGTH);
 }
 
-export function canGenerateChatTitle(messages: ChatUIMessage[]) {
-  return Boolean(volcengineConfig.apiKey && titlePromptFromMessages(messages));
+export function canGenerateChatTitle(
+  messages: ChatUIMessage[],
+  selection?: ChatModelSelection
+) {
+  return Boolean(
+    isChatModelSelectionConfigured(normalizeChatModelSelection(selection)) &&
+      titlePromptFromMessages(messages)
+  );
 }
 
-export async function generateChatTitle(messages: ChatUIMessage[]) {
-  if (!canGenerateChatTitle(messages)) {
+export async function generateChatTitle(
+  messages: ChatUIMessage[],
+  selection?: ChatModelSelection
+) {
+  const normalizedSelection = normalizeChatModelSelection(selection);
+
+  if (!canGenerateChatTitle(messages, normalizedSelection)) {
     return null;
   }
 
@@ -75,7 +91,7 @@ export async function generateChatTitle(messages: ChatUIMessage[]) {
 
   try {
     const { text } = await generateText({
-      model: getVolcengineChatModel(),
+      model: getChatLanguageModel(normalizedSelection),
       system: [
         "Generate a short sidebar title for a chat conversation.",
         "Return only the title text.",

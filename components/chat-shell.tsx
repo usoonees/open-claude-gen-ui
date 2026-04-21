@@ -5,6 +5,11 @@ import {
   downloadGenerativeWidgetZip,
   type DownloadableGenerativeWidget,
 } from "@/components/generative-widget";
+import type {
+  ChatModelSelection,
+  ChatProviderId,
+  ChatProviderOption,
+} from "@/lib/chat-model-config";
 import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import { openTrustedWidgetLink } from "@/lib/generative-ui/browser-links";
 import type { ChatUIMessage } from "@/lib/chat-message";
@@ -23,6 +28,13 @@ type ChatSummary = {
 };
 
 type ChatController = ReactChat<ChatUIMessage>;
+
+type ProviderModelsState = {
+  status: "idle" | "loading" | "ready" | "error";
+  models: string[];
+  source: "suggested" | "provider-api";
+  errorMessage?: string;
+};
 
 type MessagePart = ChatUIMessage["parts"][number];
 
@@ -99,6 +111,67 @@ declare global {
     sendPrompt?: (text: string) => void;
     openLink?: (url: string) => boolean;
   }
+}
+
+const DEFAULT_MODEL_SELECTION: ChatModelSelection = {
+  providerId: "volcengine",
+  modelId: "doubao-seed-2-0-pro-260215",
+};
+
+function uniqueStrings(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function providerBadgeLabel(provider: ChatProviderOption | undefined) {
+  if (!provider) {
+    return "AI";
+  }
+
+  const words = provider.label
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return words
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function buildProviderModelsState(
+  provider: ChatProviderOption | undefined,
+  existing?: ProviderModelsState
+) {
+  const suggestedModels = provider ? uniqueStrings(provider.suggestedModels) : [];
+
+  if (!existing) {
+    return {
+      status: "idle",
+      models: suggestedModels,
+      source: "suggested",
+    } satisfies ProviderModelsState;
+  }
+
+  return {
+    ...existing,
+    models: uniqueStrings([...existing.models, ...suggestedModels]),
+  } satisfies ProviderModelsState;
+}
+
+function mergeModelOptions(
+  provider: ChatProviderOption | undefined,
+  state: ProviderModelsState | undefined,
+  currentModelId: string
+) {
+  return uniqueStrings([
+    currentModelId,
+    ...(state?.models ?? []),
+    ...(provider?.suggestedModels ?? []),
+  ]);
 }
 
 function asRecord(value: unknown) {
@@ -817,6 +890,44 @@ function TrashIcon() {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m21 21-4.35-4.35" />
+      <path d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function TuneIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M4 6h8" />
+      <path d="M16 6h4" />
+      <path d="M10 6a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z" />
+      <path d="M4 18h4" />
+      <path d="M12 18h8" />
+      <path d="M8 18a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 function createChatId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -893,15 +1004,34 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [starterPrompts, setStarterPrompts] = useState<string[]>([]);
   const [input, setInput] = useState("");
+  const [providerOptions, setProviderOptions] = useState<ChatProviderOption[]>([]);
+  const [defaultModelSelection, setDefaultModelSelection] =
+    useState<ChatModelSelection>(DEFAULT_MODEL_SELECTION);
+  const [draftModelSelection, setDraftModelSelection] =
+    useState<ChatModelSelection>(DEFAULT_MODEL_SELECTION);
+  const [chatModelSelections, setChatModelSelections] = useState<
+    Record<string, ChatModelSelection>
+  >({});
+  const [providerModels, setProviderModels] = useState<
+    Record<string, ProviderModelsState>
+  >({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [openMenuChatId, setOpenMenuChatId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [chatPendingDelete, setChatPendingDelete] = useState<ChatSummary | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
+  const [modelQuery, setModelQuery] = useState("");
+  const [isAddModelEntryOpen, setIsAddModelEntryOpen] = useState(false);
+  const [customProviderId, setCustomProviderId] = useState<ChatProviderId>("volcengine");
+  const [customModelId, setCustomModelId] = useState("");
   const chatIdRef = useRef(chatId);
+  const defaultModelSelectionRef = useRef(defaultModelSelection);
+  const draftModelSelectionRef = useRef(draftModelSelection);
   const lastLoadedChatIdRef = useRef<string | null>(null);
   const chatControllersRef = useRef<Map<string, ChatController>>(new Map());
+  const chatModelSelectionsRef = useRef<Map<string, ChatModelSelection>>(new Map());
   const draftChatRef = useRef<ChatController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
@@ -911,8 +1041,63 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const titleAnimationTimersRef = useRef<Map<string, number>>(new Map());
   const knownChatTitlesRef = useRef<Map<string, string>>(new Map());
   const sidebarMenuRef = useRef<HTMLDivElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
+  const modelSearchInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [animatedTitleChatIds, setAnimatedTitleChatIds] = useState<string[]>([]);
+
+  function getProviderOption(providerId: ChatProviderId | string) {
+    return providerOptions.find((provider) => provider.id === providerId);
+  }
+
+  function normalizeLocalModelSelection(
+    value: Partial<ChatModelSelection> | null | undefined
+  ) {
+    const fallback = defaultModelSelectionRef.current;
+    const requestedProviderId = value?.providerId;
+    const provider = requestedProviderId
+      ? getProviderOption(requestedProviderId)
+      : getProviderOption(fallback.providerId);
+    const providerId = (provider?.id ?? fallback.providerId) as ChatProviderId;
+
+    return {
+      providerId,
+      modelId: value?.modelId?.trim() || provider?.defaultModelId || fallback.modelId,
+    } satisfies ChatModelSelection;
+  }
+
+  function writeDraftModelSelection(nextSelection: ChatModelSelection) {
+    draftModelSelectionRef.current = nextSelection;
+    setDraftModelSelection(nextSelection);
+  }
+
+  function cacheChatModelSelection(chatKey: string, selection: ChatModelSelection) {
+    const normalizedSelection = normalizeLocalModelSelection(selection);
+    chatModelSelectionsRef.current.set(chatKey, normalizedSelection);
+    setChatModelSelections((current) => ({
+      ...current,
+      [chatKey]: normalizedSelection,
+    }));
+  }
+
+  function dropChatModelSelection(chatKey: string) {
+    chatModelSelectionsRef.current.delete(chatKey);
+    setChatModelSelections((current) => {
+      const next = { ...current };
+      delete next[chatKey];
+      return next;
+    });
+  }
+
+  function getModelSelectionForRequest(chatKey: string) {
+    return (
+      chatModelSelectionsRef.current.get(chatKey) ??
+      (chatKey === "draft-chat"
+        ? draftModelSelectionRef.current
+        : defaultModelSelectionRef.current)
+    );
+  }
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -922,6 +1107,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             body: {
               id: request.id,
               messages: request.messages,
+              modelSelection: getModelSelectionForRequest(request.id),
               trigger: request.trigger,
             },
           };
@@ -983,6 +1169,39 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           .reverse()
           .find((message) => message.role === "assistant")?.id ?? null
       : null;
+  const activeModelSelection = chatId
+    ? chatModelSelections[chatId] ?? defaultModelSelection
+    : draftModelSelection;
+  const activeProvider = getProviderOption(activeModelSelection.providerId);
+  const activeProviderModels = providerModels[activeModelSelection.providerId];
+  const groupedModelOptions = useMemo(() => {
+    const query = modelQuery.trim().toLowerCase();
+    return providerOptions
+      .map((provider) => {
+        const models = mergeModelOptions(
+          provider,
+          providerModels[provider.id],
+          provider.id === activeModelSelection.providerId
+            ? activeModelSelection.modelId
+            : ""
+        ).filter((modelId) => {
+          if (!query) {
+            return true;
+          }
+
+          return (
+            modelId.toLowerCase().includes(query) ||
+            provider.label.toLowerCase().includes(query)
+          );
+        });
+
+        return {
+          provider,
+          models,
+        };
+      })
+      .filter((entry) => entry.models.length > 0);
+  }, [activeModelSelection.modelId, activeModelSelection.providerId, modelQuery, providerModels, providerOptions]);
 
   function isMessageScrollAtBottom() {
     const element = messageScrollRef.current;
@@ -1038,6 +1257,14 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }, [chatId]);
 
   useEffect(() => {
+    defaultModelSelectionRef.current = defaultModelSelection;
+  }, [defaultModelSelection]);
+
+  useEffect(() => {
+    draftModelSelectionRef.current = draftModelSelection;
+  }, [draftModelSelection]);
+
+  useEffect(() => {
     return () => {
       if (copyResetTimerRef.current !== null) {
         window.clearTimeout(copyResetTimerRef.current);
@@ -1058,6 +1285,44 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     renameInputRef.current.focus();
     renameInputRef.current.select();
   }, [editingChatId]);
+
+  useEffect(() => {
+    if (!isModelPickerOpen) {
+      return;
+    }
+
+    setCustomProviderId(activeModelSelection.providerId);
+    setCustomModelId(activeModelSelection.modelId);
+
+    requestAnimationFrame(() => {
+      modelSearchInputRef.current?.focus();
+      modelSearchInputRef.current?.select();
+    });
+
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        modelPickerRef.current &&
+        event.target instanceof Node &&
+        !modelPickerRef.current.contains(event.target)
+      ) {
+        setIsModelPickerOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsModelPickerOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [activeModelSelection.modelId, activeModelSelection.providerId, isModelPickerOpen]);
 
   useEffect(() => {
     if (!openMenuChatId) {
@@ -1159,6 +1424,145 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setChatList(nextChats);
   }
 
+  function hydrateProviderModels(nextProviders: ChatProviderOption[]) {
+    setProviderModels((current) => {
+      const nextState: Record<string, ProviderModelsState> = {};
+
+      nextProviders.forEach((provider) => {
+        nextState[provider.id] = buildProviderModelsState(
+          provider,
+          current[provider.id]
+        );
+      });
+
+      return nextState;
+    });
+  }
+
+  async function loadProviderCatalog() {
+    const response = await fetch("/api/chat/providers");
+
+    if (!response.ok) {
+      debugChat("provider-catalog:error", { status: response.status });
+      return;
+    }
+
+    const data = (await response.json()) as {
+      providers?: ChatProviderOption[];
+      defaultSelection?: ChatModelSelection;
+    };
+    const nextProviders = Array.isArray(data.providers) ? data.providers : [];
+    const nextDefaultSelection =
+      data.defaultSelection?.providerId && data.defaultSelection?.modelId
+        ? data.defaultSelection
+        : DEFAULT_MODEL_SELECTION;
+    const normalizeWithProviders = (
+      value: Partial<ChatModelSelection> | null | undefined
+    ) => {
+      const fallback = nextDefaultSelection;
+      const provider =
+        nextProviders.find((entry) => entry.id === value?.providerId) ??
+        nextProviders.find((entry) => entry.id === fallback.providerId);
+      const providerId = (provider?.id ?? fallback.providerId) as ChatProviderId;
+
+      return {
+        providerId,
+        modelId: value?.modelId?.trim() || provider?.defaultModelId || fallback.modelId,
+      } satisfies ChatModelSelection;
+    };
+
+    setProviderOptions(nextProviders);
+    hydrateProviderModels(nextProviders);
+    defaultModelSelectionRef.current = nextDefaultSelection;
+    setDefaultModelSelection(nextDefaultSelection);
+    setDraftModelSelection((current) => {
+      const nextSelection = normalizeWithProviders(current);
+      draftModelSelectionRef.current = nextSelection;
+      return nextSelection;
+    });
+    setChatModelSelections((current) => {
+      const next: Record<string, ChatModelSelection> = {};
+
+      Object.entries(current).forEach(([chatKey, selection]) => {
+        const normalizedSelection = normalizeWithProviders(selection);
+        chatModelSelectionsRef.current.set(chatKey, normalizedSelection);
+        next[chatKey] = normalizedSelection;
+      });
+
+      return next;
+    });
+  }
+
+  async function loadProviderModels(providerId: ChatProviderId, force = false) {
+    const provider = getProviderOption(providerId);
+
+    if (!provider?.canListModels) {
+      return;
+    }
+
+    const currentState = providerModels[providerId];
+
+    if (!force && currentState?.status === "loading") {
+      return;
+    }
+
+    if (!force && currentState?.source === "provider-api" && currentState.models.length > 0) {
+      return;
+    }
+
+    setProviderModels((current) => ({
+      ...current,
+      [providerId]: {
+        ...(buildProviderModelsState(provider, current[providerId]) ?? {
+          status: "idle",
+          models: [],
+          source: "suggested",
+        }),
+        status: "loading",
+        errorMessage: undefined,
+      },
+    }));
+
+    try {
+      const response = await fetch(
+        `/api/chat/models?providerId=${encodeURIComponent(providerId)}`
+      );
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const data = (await response.json()) as { models?: string[] };
+      const loadedModels = Array.isArray(data.models)
+        ? data.models.filter((model): model is string => typeof model === "string")
+        : [];
+
+      setProviderModels((current) => ({
+        ...current,
+        [providerId]: {
+          status: "ready",
+          models: uniqueStrings([
+            ...mergeModelOptions(provider, current[providerId], ""),
+            ...loadedModels,
+          ]),
+          source: "provider-api",
+        },
+      }));
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unable to load models.";
+
+      setProviderModels((current) => ({
+        ...current,
+        [providerId]: {
+          ...buildProviderModelsState(provider, current[providerId]),
+          status: "error",
+          errorMessage,
+        },
+      }));
+    }
+  }
+
   function upsertChatSummary(chat: ChatSummary) {
     mergeChatList([
       chat,
@@ -1187,6 +1591,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   useEffect(() => {
     loadChatList();
+  }, []);
+
+  useEffect(() => {
+    void loadProviderCatalog();
   }, []);
 
   useEffect(() => {
@@ -1294,11 +1702,17 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         return;
       }
 
-      const chat = (await response.json()) as { messages?: ChatUIMessage[] };
+      const chat = (await response.json()) as {
+        messages?: ChatUIMessage[];
+        modelSelection?: ChatModelSelection;
+      };
       const nextMessages = Array.isArray(chat.messages) ? chat.messages : [];
 
       if (!ignore) {
         lastLoadedChatIdRef.current = chatId;
+        if (chat.modelSelection) {
+          cacheChatModelSelection(chatId, chat.modelSelection);
+        }
         setMessages(nextMessages);
         debugChat("chat-load:done", {
           chatId,
@@ -1314,6 +1728,20 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       ignore = true;
     };
   }, [chatId, setMessages]);
+
+  useEffect(() => {
+    if (!activeProvider?.configured || !activeProvider.canListModels) {
+      return;
+    }
+
+    const currentState = providerModels[activeProvider.id];
+
+    if (!currentState || currentState.status !== "idle") {
+      return;
+    }
+
+    void loadProviderModels(activeProvider.id);
+  }, [activeProvider, providerModels]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -1344,14 +1772,21 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   async function saveMessages(nextChatId: string, nextMessages: ChatUIMessage[]) {
     const startedAt = performance.now();
+    const modelSelection = getModelSelectionForRequest(nextChatId);
     debugChat("chat-save:start", {
       chatId: nextChatId,
       messageCount: nextMessages.length,
+      providerId: modelSelection.providerId,
+      modelId: modelSelection.modelId,
     });
     const response = await fetch("/api/chat/history", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: nextChatId, messages: nextMessages }),
+      body: JSON.stringify({
+        id: nextChatId,
+        messages: nextMessages,
+        modelSelection,
+      }),
     });
 
     if (!response.ok) {
@@ -1473,9 +1908,66 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     lastLoadedChatIdRef.current = nextId;
     setChatId(nextId);
     chatIdRef.current = nextId;
+    cacheChatModelSelection(nextId, draftModelSelectionRef.current);
     replaceUrl(nextId);
     debugChat("draft-chat:activate", { chatId: nextId });
     return nextId;
+  }
+
+  function updateActiveModelSelection(nextSelection: Partial<ChatModelSelection>) {
+    const normalizedSelection = normalizeLocalModelSelection({
+      ...activeModelSelection,
+      ...nextSelection,
+    });
+
+    if (chatIdRef.current) {
+      cacheChatModelSelection(chatIdRef.current, normalizedSelection);
+      return;
+    }
+
+    writeDraftModelSelection(normalizedSelection);
+  }
+
+  function selectProvider(providerId: ChatProviderId) {
+    const provider = getProviderOption(providerId);
+
+    updateActiveModelSelection({
+      providerId,
+      modelId: provider?.defaultModelId || activeModelSelection.modelId,
+    });
+
+    void loadProviderModels(providerId);
+  }
+
+  function updateModelId(modelId: string) {
+    updateActiveModelSelection({ modelId });
+  }
+
+  function applyManualModelQuery() {
+    const nextModelId = modelQuery.trim();
+
+    if (!nextModelId) {
+      return;
+    }
+
+    updateModelId(nextModelId);
+    setIsModelPickerOpen(false);
+  }
+
+  function applyCustomModelEntry() {
+    const nextModelId = customModelId.trim();
+
+    if (!nextModelId) {
+      return;
+    }
+
+    selectProvider(customProviderId);
+    updateActiveModelSelection({
+      providerId: customProviderId,
+      modelId: nextModelId,
+    });
+    setIsAddModelEntryOpen(false);
+    setIsModelPickerOpen(false);
   }
 
   async function copyMessage(message: ChatUIMessage) {
@@ -1566,6 +2058,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       debugChat("chat-delete:error", { chatId: chat.id, status: response.status });
       return;
     }
+
+    dropChatModelSelection(chat.id);
 
     if (chat.id === chatIdRef.current) {
       startNewChat();
@@ -1817,25 +2311,27 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
       <section className="chat-panel" aria-label="AI chat">
         <header className="chat-header">
-          <button
-            aria-label="Toggle sidebar"
-            className={isSidebarOpen ? "ghost-icon mobile-only" : "ghost-icon"}
-            onClick={toggleSidebar}
-            title="Toggle sidebar (Cmd+B)"
-            type="button"
-          >
-            <PanelIcon />
-          </button>
+          <div className="chat-header-leading">
+            <button
+              aria-label="Toggle sidebar"
+              className={isSidebarOpen ? "ghost-icon mobile-only" : "ghost-icon"}
+              onClick={toggleSidebar}
+              title="Toggle sidebar (Cmd+B)"
+              type="button"
+            >
+              <PanelIcon />
+            </button>
+            <button
+              aria-label="Start a new chat"
+              className={isSidebarOpen ? "ghost-icon mobile-only" : "ghost-icon"}
+              onClick={startNewChat}
+              title="Start a new chat (Cmd+K)"
+              type="button"
+            >
+              <NewChatIcon />
+            </button>
+          </div>
           <div className="header-spacer" />
-          <button
-            aria-label="Start a new chat"
-            className="ghost-icon"
-            onClick={startNewChat}
-            title="Start a new chat (Cmd+K)"
-            type="button"
-          >
-            <NewChatIcon />
-          </button>
         </header>
 
         <div
@@ -1992,12 +2488,204 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             />
             <div className="composer-footer">
               <div className="tool-row">
-                <button className="model-pill" type="button">
-                  Doubao Seed
-                </button>
-                <button className="model-pill" type="button">
-                  Volcengine ACK
-                </button>
+                <div className="model-rail">
+                  <button
+                    aria-expanded={isModelPickerOpen}
+                    className="model-trigger"
+                    onClick={() => {
+                      setModelQuery("");
+                      setIsAddModelEntryOpen(false);
+                      setIsModelPickerOpen((current) => !current);
+                    }}
+                    title={
+                      activeProvider
+                        ? `${activeProvider.label} · ${activeModelSelection.modelId}`
+                        : activeModelSelection.modelId
+                    }
+                    type="button"
+                  >
+                    <span className="model-trigger-badge">
+                      {providerBadgeLabel(activeProvider)}
+                    </span>
+                    <span className="model-trigger-text">{activeModelSelection.modelId}</span>
+                    <ChevronDownIcon />
+                  </button>
+                </div>
+                {isModelPickerOpen ? (
+                  <div className="model-picker" ref={modelPickerRef}>
+                    <div className="model-picker-topbar">
+                      <div className="model-search">
+                        <SearchIcon />
+                        <input
+                          aria-label="Search models"
+                          className="model-search-input"
+                          onChange={(event) => {
+                            setModelQuery(event.target.value);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              applyManualModelQuery();
+                            }
+                          }}
+                          placeholder="Search models"
+                          ref={modelSearchInputRef}
+                          value={modelQuery}
+                        />
+                      </div>
+                      <button
+                        aria-label="Add provider or model"
+                        className="picker-icon-button"
+                        onClick={() => {
+                          setCustomProviderId(activeModelSelection.providerId);
+                          setCustomModelId(modelQuery.trim() || activeModelSelection.modelId);
+                          setIsAddModelEntryOpen((current) => !current);
+                        }}
+                        title="Add provider or model"
+                        type="button"
+                      >
+                        <PlusIcon />
+                      </button>
+                      <button
+                        aria-label="Sync current provider models"
+                        className="picker-icon-button"
+                        disabled={!activeProvider?.canListModels}
+                        onClick={() => {
+                          if (activeProvider) {
+                            void loadProviderModels(activeProvider.id, true);
+                          }
+                        }}
+                        title="Sync current provider models"
+                        type="button"
+                      >
+                        <TuneIcon />
+                      </button>
+                    </div>
+                    {isAddModelEntryOpen ? (
+                      <div className="custom-entry-panel">
+                        <div className="custom-entry-header">
+                          <p>Add provider or model</p>
+                          <span>
+                            Pick a provider, then type any model id you want to use.
+                          </span>
+                        </div>
+                        <div className="custom-entry-row">
+                          <label className="custom-entry-field">
+                            <span className="manual-model-label">Provider</span>
+                            <select
+                              className="custom-entry-select"
+                              onChange={(event) => {
+                                setCustomProviderId(event.target.value as ChatProviderId);
+                              }}
+                              value={customProviderId}
+                            >
+                              {providerOptions.map((provider) => (
+                                <option key={provider.id} value={provider.id}>
+                                  {provider.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="custom-entry-field custom-entry-model">
+                            <span className="manual-model-label">Model</span>
+                            <input
+                              className="custom-entry-input"
+                              onChange={(event) => {
+                                setCustomModelId(event.target.value);
+                              }}
+                              placeholder="Type a model id"
+                              value={customModelId}
+                            />
+                          </label>
+                        </div>
+                        <div className="custom-entry-actions">
+                          <button
+                            className="custom-entry-submit"
+                            onClick={() => {
+                              applyCustomModelEntry();
+                            }}
+                            type="button"
+                          >
+                            <span>Use selection</span>
+                            <span className="custom-entry-submit-value">
+                              {providerOptions.find((provider) => provider.id === customProviderId)?.label ?? customProviderId}
+                              {" · "}
+                              {customModelId.trim() || "Type a model id"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {modelQuery.trim() ? (
+                      <button
+                        className="manual-model-option"
+                        onClick={() => {
+                          applyManualModelQuery();
+                        }}
+                        type="button"
+                      >
+                        <span className="manual-model-label">Use typed model</span>
+                        <span className="manual-model-value">{modelQuery.trim()}</span>
+                      </button>
+                    ) : null}
+                    <div className="model-group-list">
+                      {groupedModelOptions.length === 0 ? (
+                        <p className="model-empty-state">
+                          No models match that search. Use the typed value above to keep a custom model id.
+                        </p>
+                      ) : (
+                        groupedModelOptions.map(({ provider, models }) => (
+                          <section className="model-group" key={provider.id}>
+                            <div className="model-group-label">
+                              <span>{provider.label}</span>
+                              <div className="model-group-badges">
+                                {provider.id === activeModelSelection.providerId ? (
+                                  <span className="model-group-badge is-current">Current</span>
+                                ) : null}
+                                {!provider.configured ? (
+                                  <span className="model-group-badge">Key missing</span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="model-option-list">
+                              {models.map((modelId) => (
+                                <button
+                                  className={
+                                    modelId === activeModelSelection.modelId &&
+                                    provider.id === activeModelSelection.providerId
+                                      ? "model-option is-active"
+                                      : "model-option"
+                                  }
+                                  key={`${provider.id}:${modelId}`}
+                                  onClick={() => {
+                                    updateActiveModelSelection({
+                                      providerId: provider.id,
+                                      modelId,
+                                    });
+                                    setModelQuery(modelId);
+                                    setIsModelPickerOpen(false);
+                                  }}
+                                  type="button"
+                                >
+                                  <span className="model-option-main">{modelId}</span>
+                                  {modelId === activeModelSelection.modelId &&
+                                  provider.id === activeModelSelection.providerId ? (
+                                    <span className="model-option-check">
+                                      <CheckIcon />
+                                    </span>
+                                  ) : null}
+                                </button>
+                              ))}
+                            </div>
+                          </section>
+                        ))
+                      )}
+                    </div>
+                    {activeProviderModels?.status === "error" ? (
+                      <p className="selector-error">{activeProviderModels.errorMessage}</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               {isBusy ? (
                 <button

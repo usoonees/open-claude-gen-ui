@@ -6,14 +6,17 @@ import {
   resolvePendingGeneratedTitle,
   writeChat,
 } from "@/lib/chat-store";
-import { chatSystemPrompt } from "@/lib/chat-agent";
+import { getChatSystemPrompt } from "@/lib/chat-agent";
+import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
+import { normalizeChatModelSelection } from "@/lib/chat-models";
 import { getChatToolTraceList } from "@/lib/chat-tools";
 import { after } from "next/server";
 
 type SaveRequest = {
   id?: string;
   messages?: ChatUIMessage[];
+  modelSelection?: ChatModelSelection;
 };
 
 type RenameRequest = {
@@ -26,11 +29,14 @@ function getIdFromRequest(request: Request) {
   return url.searchParams.get("id")?.trim() || "";
 }
 
-function buildChatTrace() {
+function buildChatTrace(modelSelection: ChatModelSelection) {
+  const now = new Date();
+
   return {
-    systemPrompt: chatSystemPrompt,
+    systemPrompt: getChatSystemPrompt(now),
     tools: getChatToolTraceList(),
-    capturedAt: new Date().toISOString(),
+    capturedAt: now.toISOString(),
+    modelSelection,
   };
 }
 
@@ -63,9 +69,11 @@ export async function PUT(request: Request) {
     return new Response("Request body must include an id.", { status: 400 });
   }
 
+  const modelSelection = normalizeChatModelSelection(body.modelSelection);
   const chat = await writeChat(body.id, body.messages, {
-    trace: buildChatTrace(),
+    trace: buildChatTrace(modelSelection),
     deferGeneratedTitle: true,
+    modelSelection,
   });
 
   if (chat.titleState === "pending") {

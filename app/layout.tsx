@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Open Visual Layout Chat",
-  description: "An AI chat interface wired to Volcengine inference.",
+  description: "An AI chat interface with per-chat provider and model selection.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

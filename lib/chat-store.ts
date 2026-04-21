@@ -1,6 +1,11 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
+import {
+  getDefaultChatModelSelection,
+  normalizeChatModelSelection,
+} from "@/lib/chat-models";
 import {
   canGenerateChatTitle,
   fallbackTitleFromMessages,
@@ -14,11 +19,13 @@ export type StoredChatTrace = {
   systemPrompt: string;
   tools: ChatToolTrace[];
   capturedAt: string;
+  modelSelection: ChatModelSelection;
 };
 
 export type StoredChat = {
   id: string;
   messages: ChatUIMessage[];
+  modelSelection: ChatModelSelection;
   title: string;
   updatedAt: string;
   titleSource?: "generated" | "custom";
@@ -59,7 +66,12 @@ function sanitizeTrace(trace: StoredChatTrace | undefined) {
       typeof trace.capturedAt === "string"
         ? trace.capturedAt
         : new Date().toISOString(),
+    modelSelection: normalizeChatModelSelection(trace.modelSelection),
   } satisfies StoredChatTrace;
+}
+
+function sanitizeModelSelection(selection: ChatModelSelection | undefined) {
+  return selection ? normalizeChatModelSelection(selection) : undefined;
 }
 
 async function ensureStoreDir() {
@@ -140,6 +152,7 @@ export async function readChat(id: string): Promise<StoredChat> {
     return {
       id,
       messages: [],
+      modelSelection: getDefaultChatModelSelection(),
       title: "New chat",
       updatedAt: new Date(0).toISOString(),
       titleSource: "generated",
@@ -156,6 +169,10 @@ export async function readChat(id: string): Promise<StoredChat> {
   return {
     id: chat.id || id,
     messages,
+    modelSelection:
+      sanitizeModelSelection(chat.modelSelection) ??
+      sanitizeTrace(chat.trace)?.modelSelection ??
+      getDefaultChatModelSelection(),
     title: isCustomTitle(chat) ? chat.title.trim() : chat.title || fallbackTitle,
     updatedAt: chat.updatedAt || new Date(0).toISOString(),
     titleSource: chat.titleSource === "custom" ? "custom" : "generated",
@@ -170,6 +187,7 @@ export async function writeChat(
   options?: {
     trace?: StoredChatTrace;
     deferGeneratedTitle?: boolean;
+    modelSelection?: ChatModelSelection;
   }
 ) {
   await ensureStoreDir();
@@ -187,6 +205,11 @@ export async function writeChat(
   )
     ? existingChat?.title.trim() || ""
     : "";
+  const modelSelection =
+    sanitizeModelSelection(options?.modelSelection) ??
+    sanitizeModelSelection(existingChat?.modelSelection) ??
+    sanitizeTrace(existingChat?.trace)?.modelSelection ??
+    getDefaultChatModelSelection();
   const shouldKeepPendingGeneratedTitle =
     existingChat?.titleState === "pending" &&
     !customTitle &&
@@ -195,16 +218,25 @@ export async function writeChat(
     !customTitle &&
     !existingResolvedGeneratedTitle &&
     (shouldKeepPendingGeneratedTitle ||
-      (options?.deferGeneratedTitle === true && canGenerateChatTitle(cleanMessages)));
+      (options?.deferGeneratedTitle === true &&
+        canGenerateChatTitle(cleanMessages, modelSelection)));
   const title = customTitle || existingResolvedGeneratedTitle || fallbackTitle;
   const chat: StoredChat = {
     id,
     messages: cleanMessages,
+    modelSelection,
     title,
     updatedAt: new Date().toISOString(),
     titleSource: customTitle ? "custom" : "generated",
     titleState: customTitle ? "ready" : shouldDeferGeneratedTitle ? "pending" : "ready",
-    trace: sanitizeTrace(options?.trace) ?? sanitizeTrace(existingChat?.trace),
+    trace:
+      sanitizeTrace(options?.trace) ??
+      sanitizeTrace(existingChat?.trace) ?? {
+        systemPrompt: "",
+        tools: [],
+        capturedAt: new Date().toISOString(),
+        modelSelection,
+      },
   };
 
   await writeFile(chatPath(id), `${JSON.stringify(chat, null, 2)}\n`, {
@@ -236,7 +268,11 @@ export async function resolvePendingGeneratedTitle(id: string) {
   }
 
   const fallbackTitle = fallbackTitleFromMessages(messages);
-  const generatedTitle = await generateChatTitle(messages);
+  const modelSelection =
+    sanitizeModelSelection(existingChat.modelSelection) ??
+    sanitizeTrace(existingChat.trace)?.modelSelection ??
+    getDefaultChatModelSelection();
+  const generatedTitle = await generateChatTitle(messages, modelSelection);
   const latestChat = await readStoredChatFile(id);
 
   if (!latestChat) {
@@ -253,6 +289,10 @@ export async function resolvePendingGeneratedTitle(id: string) {
   const chat: StoredChat = {
     id: latestChat.id || id,
     messages: latestMessages,
+    modelSelection:
+      sanitizeModelSelection(latestChat.modelSelection) ??
+      sanitizeTrace(latestChat.trace)?.modelSelection ??
+      modelSelection,
     title: generatedTitle || fallbackTitleFromMessages(latestMessages) || fallbackTitle,
     updatedAt: latestChat.updatedAt || new Date().toISOString(),
     titleSource: "generated",
@@ -286,6 +326,10 @@ export async function renameChat(id: string, title: string) {
   const chat: StoredChat = {
     id: existingChat.id || id,
     messages,
+    modelSelection:
+      sanitizeModelSelection(existingChat.modelSelection) ??
+      sanitizeTrace(existingChat.trace)?.modelSelection ??
+      getDefaultChatModelSelection(),
     title: normalizedTitle,
     updatedAt: new Date().toISOString(),
     titleSource: "custom",

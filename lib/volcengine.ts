@@ -23,6 +23,10 @@ const volcengine = createOpenAICompatible({
   includeUsage: true,
 });
 
-export function getVolcengineChatModel() {
-  return volcengine.chatModel(volcengineConfig.model);
+export function getVolcengineProvider() {
+  return volcengine;
+}
+
+export function getVolcengineChatModel(modelId = volcengineConfig.model) {
+  return volcengine.chatModel(modelId);
 }

@@ -1,25 +1,36 @@
 import { writeChat } from "@/lib/chat-store";
-import { chatAgent, chatSystemPrompt } from "@/lib/chat-agent";
+import { createChatAgent, getChatSystemPrompt } from "@/lib/chat-agent";
+import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
+import {
+  getMissingProviderKeyMessage,
+  isChatModelSelectionConfigured,
+  normalizeChatModelSelection,
+} from "@/lib/chat-models";
 import { getChatToolTraceList } from "@/lib/chat-tools";
 import { langsmithClient } from "@/lib/langsmith-ai";
-import { volcengineConfig } from "@/lib/volcengine";
 import { createAgentUIStreamResponse } from "ai";
 import { after } from "next/server";
 
 export const maxDuration = 60;
 
-function buildChatTrace() {
+function buildChatTrace(
+  modelSelection: ChatModelSelection,
+  systemPrompt: string,
+  capturedAt: string
+) {
   return {
-    systemPrompt: chatSystemPrompt,
+    systemPrompt,
     tools: getChatToolTraceList(),
-    capturedAt: new Date().toISOString(),
+    capturedAt,
+    modelSelection,
   };
 }
 
 type ChatRequest = {
   id?: string;
   messages?: ChatUIMessage[];
+  modelSelection?: ChatModelSelection;
 };
 
 export async function POST(request: Request) {
@@ -41,11 +52,13 @@ export async function POST(request: Request) {
     return new Response("Request body must include an id.", { status: 400 });
   }
 
-  if (!volcengineConfig.apiKey) {
-    return new Response(
-      "VOLCENGINE_ACK_API_KEY is empty. Add your Volcengine API key to .env.local before chatting.",
-      { status: 503 }
-    );
+  const modelSelection = normalizeChatModelSelection(body.modelSelection);
+  const now = new Date();
+  const systemPrompt = getChatSystemPrompt(now);
+  const capturedAt = now.toISOString();
+
+  if (!isChatModelSelectionConfigured(modelSelection)) {
+    return new Response(getMissingProviderKeyMessage(modelSelection), { status: 503 });
   }
 
   if (process.env.LANGSMITH_TRACING === "true") {
@@ -55,12 +68,13 @@ export async function POST(request: Request) {
   }
 
   return createAgentUIStreamResponse({
-    agent: chatAgent,
+    agent: createChatAgent(modelSelection, systemPrompt),
     uiMessages: body.messages,
     sendReasoning: true,
     onFinish: async ({ messages }) => {
       await writeChat(body.id as string, messages, {
-        trace: buildChatTrace(),
+        trace: buildChatTrace(modelSelection, systemPrompt, capturedAt),
+        modelSelection,
       });
     },
   });

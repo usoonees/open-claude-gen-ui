@@ -19,9 +19,13 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
 - Confirm the sidebar show/hide transition animates smoothly instead of popping in or out.
+- On desktop, confirm the header-level `New Chat` icon only appears after the sidebar is collapsed and sits next to the sidebar toggle instead of on the far right.
 - Confirm a conversation URL under `/chat/:id` is only created when the first message or starter prompt is sent.
 - Confirm sending the first message or a starter prompt adds that chat to the sidebar immediately, without waiting for a page reload, and that the sidebar first shows the raw first prompt.
 - With inference available, confirm that same sidebar row later swaps to a short AI-generated title with a visible transition instead of changing abruptly.
+- Confirm the composer shows a single compact model selector below the textarea, and that opening it reveals grouped provider/model choices without moving the send button.
+- Confirm the model selector search filters the custom popup list only, without showing a separate browser autocomplete panel.
+- Confirm the picker lets users switch provider/model combinations, type a freeform model id from the inline add panel, and sync the active provider's model list when supported.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
@@ -34,8 +38,8 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm a generated widget can call `openLink(...)`, and that widget `<a href>` links also open in a new browser tab without navigating the chat surface away.
 - When an assistant response contains a completed gen-ui widget, confirm the widget fills the assistant message content width instead of applying a model-supplied width cap or root wrapper padding; while that assistant turn is still streaming, confirm no copy or download actions are shown; after the turn finishes, hover or focus the message and confirm the action hints read `Copy widget HTML` and `Download widget HTML`; download a widget ZIP and confirm `final-widget.html` does not depend on any model-supplied height hint.
 - If a `showWidget` render finishes before final assistant text starts, confirm the `Thinking` block stays collapsed while the live post-widget reasoning markdown also streams below the widget in a muted italic style, then disappears as soon as final assistant text begins rendering.
-- Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `trace` object with `systemPrompt`, `tools`, and `capturedAt`.
-- With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
+- Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `modelSelection` object, plus a `trace` object with `systemPrompt`, `tools`, `capturedAt`, and `modelSelection`.
+- With no key configured for the currently selected provider, sending a message should surface the explicit provider-specific missing-key error from `/api/chat`.
 - With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then smoothly auto-collapses once visible assistant output exists while remaining manually expandable.
 - While a real response is still generating after reasoning or tool activity but before any assistant text or widget is visible, verify a dot-only loading indicator appears directly under the `Thinking` block and disappears once visible output arrives or the stream ends.
 - While a real response is streaming, verify the message pane follows the newest assistant output until the user scrolls away, then resumes only after the user scrolls back near the bottom or sends another message.
@@ -49,9 +53,11 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `components/chat-shell.tsx` owns local chat UI state, draft-chat URL behavior, and the AI SDK client transport.
 - `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
+- `app/api/chat/providers/route.ts` and `app/api/chat/models/route.ts` own provider metadata and server-side model-list discovery.
 - `app/api/starter-prompts/route.ts` owns empty-state starter prompt recommendations, backed by `lib/starter-prompts.ts`.
 - `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
-- `lib/volcengine.ts` owns provider configuration and environment variable aliases.
+- `lib/chat-models.ts` owns multi-provider registration, default selections, and provider-specific model-list fetchers.
+- `lib/volcengine.ts` owns Volcengine-specific provider configuration and environment variable aliases.
 
 ## Styling
 
