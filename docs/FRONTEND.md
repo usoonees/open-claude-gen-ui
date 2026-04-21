@@ -32,9 +32,10 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - When an assistant response contains a completed gen-ui widget, confirm the widget fills the assistant message content width instead of applying a model-supplied width cap or root wrapper padding; hover or focus the message and confirm the download action appears beside `Copy`; download a widget ZIP and confirm `final-widget.html` preserves the same minimum height as the inline chat widget.
 - Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `trace` object with `systemPrompt`, `tools`, and `capturedAt`.
 - With no API key configured, sending a message should surface the explicit `VOLCENGINE_ACK_API_KEY is empty` error from `/api/chat`.
-- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then auto-collapses once visible assistant output exists while remaining manually expandable.
+- With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then smoothly auto-collapses once visible assistant output exists while remaining manually expandable.
 - While a real response is streaming, verify the message pane follows the newest assistant output until the user scrolls away, then resumes only after the user scrolls back near the bottom or sends another message.
 - When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
+- When trusted-mode generation calls `visualizeReadMe`, verify the `Thinking` block renders the tool name and input JSON only, with the large guideline output hidden from the chat UI.
 - Hover or focus a user or assistant message and verify the inline `Copy` action appears and copies that message's rendered text.
 
 ## Component Boundaries

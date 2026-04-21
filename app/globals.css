@@ -822,11 +822,28 @@ svg {
 .tool-card {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), #f8f8f8);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 1px 2px rgba(15, 23, 42, 0.04);
   display: grid;
   gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
   padding: 12px 14px;
+  position: relative;
+}
+
+.tool-card::before {
+  background: rgba(15, 23, 42, 0.22);
+  border-radius: 999px;
+  content: "";
+  height: calc(100% - 20px);
+  left: 7px;
+  position: absolute;
+  top: 10px;
+  width: 3px;
 }
 
 .tool-card-running {
@@ -839,6 +856,35 @@ svg {
 
 .tool-card-error {
   border-color: rgba(180, 35, 24, 0.2);
+}
+
+.tool-card-running::before {
+  background: #64748b;
+}
+
+.tool-card-done::before {
+  background: #3b6d11;
+}
+
+.tool-card-error::before {
+  background: #a32d2d;
+}
+
+.tool-card-readme {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9));
+  border-color: rgba(24, 95, 165, 0.2);
+  padding-left: 16px;
+}
+
+.tool-card-readme::before {
+  background: #185fa5;
+}
+
+.tool-card-readme .tool-badge {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .tool-card-header {
@@ -864,6 +910,38 @@ svg {
   color: var(--muted-foreground);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.tool-input-preview {
+  background: rgba(15, 23, 42, 0.035);
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  padding: 9px 10px 10px;
+}
+
+.tool-input-preview span {
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.tool-input-preview pre {
+  color: #1f2937;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .tool-sources {
@@ -975,16 +1053,74 @@ svg {
   width: 100%;
 }
 
-.reasoning-block summary {
+.reasoning-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
   color: var(--foreground);
   cursor: pointer;
+  display: flex;
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  line-height: 1.35;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
-.reasoning-block:not([open]) summary {
-  margin-bottom: 0;
+.reasoning-chevron {
+  border-bottom: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  display: inline-block;
+  height: 7px;
+  margin-left: 12px;
+  opacity: 0.58;
+  transform: rotate(45deg) translateY(-1px);
+  transition:
+    opacity 180ms ease,
+    transform 220ms ease;
+  width: 7px;
+}
+
+.reasoning-block.is-open .reasoning-chevron {
+  opacity: 0.82;
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.thinking-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-4px);
+  transition:
+    grid-template-rows 260ms ease,
+    margin-top 260ms ease,
+    opacity 180ms ease,
+    transform 220ms ease,
+    visibility 0s linear 260ms;
+  visibility: hidden;
+}
+
+.reasoning-block.is-open .thinking-panel {
+  grid-template-rows: 1fr;
+  margin-top: 8px;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    grid-template-rows 300ms ease,
+    margin-top 300ms ease,
+    opacity 220ms ease 45ms,
+    transform 260ms ease 35ms,
+    visibility 0s linear;
+  visibility: visible;
+}
+
+.thinking-panel-inner {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .reasoning-block .markdown-body {
@@ -995,11 +1131,21 @@ svg {
 .thinking-stack {
   display: grid;
   gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
 .pulse-text {
   animation: pulse 1.2s ease-in-out infinite;
   color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reasoning-chevron,
+  .thinking-panel,
+  .reasoning-block.is-open .thinking-panel {
+    transition: none;
+  }
 }
 
 .composer-wrap {

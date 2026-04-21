@@ -9,7 +9,7 @@ import type { ChatUIMessage } from "@/lib/chat-message";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -52,6 +52,8 @@ type ToolEvent = {
   label: string;
   tone: "running" | "done" | "error";
   detail: string;
+  variant?: "default" | "readme";
+  inputPreview?: string;
   sources?: Array<{
     url: string;
     title: string;
@@ -148,7 +150,9 @@ function isWidgetToolPart(part: MessagePart): part is Extract<MessagePart, { typ
   return part.type === "tool-showWidget";
 }
 
-function isSilentToolPart(part: MessagePart) {
+function isVisualizeReadMeToolPart(
+  part: MessagePart
+): part is Extract<MessagePart, { type: "tool-visualizeReadMe" }> {
   return part.type === "tool-visualizeReadMe";
 }
 
@@ -169,15 +173,107 @@ function isToolLikePart(
   return part.type === "dynamic-tool" || part.type.startsWith("tool-");
 }
 
-function summarizeToolPart(part: MessagePart): ToolEvent | null {
-  if (!isToolLikePart(part) || isSilentToolPart(part)) {
+function createToolInputPreview(input: unknown, maxLength = 420) {
+  if (input === undefined) {
     return null;
   }
 
-  const label = formatToolName(
-    part.type,
-    part.type === "dynamic-tool" ? part.toolName : undefined
-  );
+  let preview: string;
+
+  try {
+    preview = JSON.stringify(input, null, 2);
+  } catch {
+    preview = String(input);
+  }
+
+  if (!preview.trim()) {
+    return null;
+  }
+
+  if (preview.length <= maxLength) {
+    return preview;
+  }
+
+  return `${preview.slice(0, maxLength - 1)}...`;
+}
+
+function summarizeToolPart(part: MessagePart): ToolEvent | null {
+  if (!isToolLikePart(part)) {
+    return null;
+  }
+
+  const label = isVisualizeReadMeToolPart(part)
+    ? "visualizeReadMe"
+    : formatToolName(
+        part.type,
+        part.type === "dynamic-tool" ? part.toolName : undefined
+      );
+  const readmeInputPreview = isVisualizeReadMeToolPart(part)
+    ? createToolInputPreview(part.input)
+    : null;
+
+  if (isVisualizeReadMeToolPart(part)) {
+    switch (part.state) {
+      case "input-streaming":
+        return {
+          label,
+          tone: "running",
+          detail: "Selecting visual guideline modules...",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      case "input-available":
+        return {
+          label,
+          tone: "running",
+          detail: "Loading visual guideline modules...",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      case "output-available":
+        return {
+          label,
+          tone: "done",
+          detail: "Guidelines loaded; output hidden.",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      case "output-error":
+        return {
+          label,
+          tone: "error",
+          detail: part.errorText ?? "Guideline load failed.",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      case "output-denied":
+        return {
+          label,
+          tone: "error",
+          detail: "Guideline tool call denied.",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      case "approval-requested":
+        return {
+          label,
+          tone: "running",
+          detail: "Waiting for guideline tool approval.",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      case "approval-responded":
+        return {
+          label,
+          tone: part.approval?.approved ? "done" : "error",
+          detail: part.approval?.approved ? "Approved." : "Denied.",
+          variant: "readme",
+          inputPreview: readmeInputPreview ?? undefined,
+        };
+      default:
+        return null;
+    }
+  }
 
   switch (part.state) {
     case "input-streaming":
@@ -344,11 +440,19 @@ function MarkdownBlock({ children }: { children: string }) {
 
 function ToolEventCard({ event }: { event: ToolEvent }) {
   return (
-    <section className={`tool-card tool-card-${event.tone}`}>
+    <section
+      className={`tool-card tool-card-${event.tone} tool-card-${event.variant ?? "default"}`}
+    >
       <div className="tool-card-header">
         <span className="tool-badge">{event.label}</span>
         <span className="tool-status">{event.detail}</span>
       </div>
+      {event.inputPreview ? (
+        <div className="tool-input-preview">
+          <span>Tool input</span>
+          <pre>{event.inputPreview}</pre>
+        </div>
+      ) : null}
       {event.sources && event.sources.length > 0 ? (
         <div className="tool-sources">
           {event.sources.slice(0, 3).map((source) => (
@@ -376,6 +480,7 @@ function ThinkingBlock({
   shouldOpen: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(shouldOpen);
+  const contentId = useId();
 
   useEffect(() => {
     setIsOpen(shouldOpen);
@@ -386,22 +491,35 @@ function ThinkingBlock({
   }
 
   return (
-    <details
-      className="reasoning-block"
-      onToggle={(event) => setIsOpen(event.currentTarget.open)}
-      open={isOpen}
-    >
-      <summary>Thinking</summary>
-      <div className="thinking-stack">
-        {items.map((item) =>
-          item.kind === "reasoning" ? (
-            <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
-          ) : (
-            <ToolEventCard event={item.event} key={item.key} />
-          )
-        )}
+    <section className={`reasoning-block ${isOpen ? "is-open" : "is-closed"}`}>
+      <button
+        aria-controls={contentId}
+        aria-expanded={isOpen}
+        className="reasoning-toggle"
+        onClick={() => setIsOpen((open) => !open)}
+        type="button"
+      >
+        <span>Thinking</span>
+        <span aria-hidden="true" className="reasoning-chevron" />
+      </button>
+      <div
+        aria-hidden={!isOpen}
+        className="thinking-panel"
+        id={contentId}
+      >
+        <div className="thinking-panel-inner">
+          <div className="thinking-stack">
+            {items.map((item) =>
+              item.kind === "reasoning" ? (
+                <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
+              ) : (
+                <ToolEventCard event={item.event} key={item.key} />
+              )
+            )}
+          </div>
+        </div>
       </div>
-    </details>
+    </section>
   );
 }
 
@@ -644,6 +762,15 @@ function messageScrollSignature(messages: ChatUIMessage[]) {
           }
 
           if (isToolLikePart(part)) {
+            if (isVisualizeReadMeToolPart(part)) {
+              return [
+                part.type,
+                part.state,
+                createToolInputPreview(part.input, 160) ?? "",
+                part.errorText?.length ?? 0,
+              ].join(":");
+            }
+
             return `${part.type}:${part.state}`;
           }
 
