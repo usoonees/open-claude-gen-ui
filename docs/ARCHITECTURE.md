@@ -18,6 +18,7 @@ This file is the top-level map for the repository.
 - `app/api/chat/route.ts` validates the request and delegates chat execution to a Vercel AI SDK `ToolLoopAgent` through `createAgentUIStreamResponse`.
 - When `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, the agent can call `visualizeReadMe` and `showWidget`, and `components/generative-widget.tsx` renders streamed widget HTML inline inside assistant messages with a browser-side ZIP download action once rendering is complete. The ZIP includes the raw widget fragment and a standalone wrapped HTML file.
 - `lib/chat-agent.ts` defines the agent instructions, step limit, and server-side tools available to the assistant.
+- `lib/starter-prompts.ts` owns backend starter recommendation copy, and `/api/starter-prompts` returns a randomized subset for the empty chat composer.
 - `lib/chat-title.ts` decides whether a chat title can be generated, saves the first user prompt as the immediate placeholder title, and later resolves a short AI title in the background when inference is available.
 - `lib/chat-tools.ts` defines the shared Tavily and generative-UI tool contracts used by the agent and the typed chat UI.
 - `lib/generative-ui/` contains the trusted-mode flag, widget script allowlist, and vendored widget guideline source.

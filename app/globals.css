@@ -1489,6 +1489,7 @@ svg {
   .reasoning-chevron,
   .thinking-panel,
   .reasoning-block.is-open .thinking-panel,
+  .starter-card,
   .message-streaming-dot {
     transition: none;
     animation: none;
@@ -1511,6 +1512,7 @@ svg {
 }
 
 .starter-card {
+  animation: starter-card-enter 420ms ease both;
   background: rgba(255, 255, 255, 0.48);
   border: 1px solid rgba(229, 229, 229, 0.78);
   border-radius: 12px;
@@ -1525,11 +1527,35 @@ svg {
     color 150ms ease;
 }
 
+.starter-card:nth-child(2) {
+  animation-delay: 55ms;
+}
+
+.starter-card:nth-child(3) {
+  animation-delay: 110ms;
+}
+
+.starter-card:nth-child(4) {
+  animation-delay: 165ms;
+}
+
 .starter-card:hover {
   background: rgba(255, 255, 255, 0.78);
   box-shadow: var(--shadow-card);
   color: var(--foreground);
   transform: translateY(-1px);
+}
+
+@keyframes starter-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .error-banner {

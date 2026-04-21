@@ -14,13 +14,6 @@ import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-const starterPrompts = [
-  "Create an interactive map of how a transformer processes tokens",
-  "Compare React, Vue, and Svelte in a visual decision matrix",
-  "Show the latest AI model launches as a compact timeline",
-  "Design a mortgage payoff calculator with sliders and charts",
-];
-
 type ChatSummary = {
   id: string;
   title: string;
@@ -896,6 +889,7 @@ function messageScrollSignature(messages: ChatUIMessage[]) {
 export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
+  const [starterPrompts, setStarterPrompts] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [openMenuChatId, setOpenMenuChatId] = useState<string | null>(null);
@@ -1189,6 +1183,39 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   useEffect(() => {
     loadChatList();
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadStarterPrompts() {
+      try {
+        const response = await fetch("/api/starter-prompts");
+
+        if (!response.ok) {
+          throw new Error(`Unable to load starter prompts: ${response.status}`);
+        }
+
+        const data = (await response.json()) as { prompts?: unknown };
+        const prompts = Array.isArray(data.prompts)
+          ? data.prompts.filter((prompt): prompt is string => typeof prompt === "string")
+          : [];
+
+        if (!ignore) {
+          setStarterPrompts(prompts);
+        }
+      } catch (error) {
+        debugChat("starter-prompts:error", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    void loadStarterPrompts();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -1925,7 +1952,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         </div>
 
         <div className="composer-wrap">
-          {messages.length === 0 && (
+          {messages.length === 0 && starterPrompts.length > 0 && (
             <div className="starter-grid">
               {starterPrompts.map((prompt) => (
                 <button

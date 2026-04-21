@@ -15,7 +15,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 ## Browser Verification
 
 - Open <http://localhost:3000> after `pnpm dev`.
-- Confirm the empty state renders, diverse gen-ui-oriented prompt suggestions populate the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
+- Confirm the empty state fetches randomized gen-ui-oriented prompt suggestions from `/api/starter-prompts`, renders them smoothly above the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
 - Confirm the sidebar show/hide transition animates smoothly instead of popping in or out.
@@ -48,6 +48,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `components/chat-shell.tsx` owns local chat UI state, draft-chat URL behavior, and the AI SDK client transport.
 - `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
+- `app/api/starter-prompts/route.ts` owns empty-state starter prompt recommendations, backed by `lib/starter-prompts.ts`.
 - `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
 - `lib/volcengine.ts` owns provider configuration and environment variable aliases.
 
