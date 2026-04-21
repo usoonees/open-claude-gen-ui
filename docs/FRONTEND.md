@@ -31,6 +31,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
 - With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=false`, confirm the chat still behaves as a text/tool-only assistant with no widget output.
 - With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, ask for a strongly visual explanation and confirm the assistant first makes an explicit `visualizeReadMe` call in `Thinking`, then later streams an inline widget card while the `showWidget` tool input is still arriving.
+- With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, ask for several different visual tasks and confirm the assistant tends to prioritize richer gen-ui widgets over plain text when a widget would help, and that the resulting widgets are not all the same generic card pattern.
 - While a trusted-mode widget is still streaming, confirm its required `loadingMessages` input renders as a compact in-flow status line directly below the widget content, does not overlap the widget itself, and rotates slowly enough to read with a subtle trailing ellipsis.
 - Confirm trusted-mode widgets resolve the documented `--color-*`, `--font-*`, and `--border-radius-*` design tokens in the live chat view, not only in downloaded HTML.
 - Confirm the final widget becomes interactive only after the tool input completes, rather than during partial HTML streaming.
