@@ -1365,14 +1365,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   async function persistOptimisticUserTurn(
     chatIdToSave: string,
-    text: string,
+    message: ChatUIMessage,
     baseMessages: ChatUIMessage[]
   ) {
     try {
-      await saveMessages(chatIdToSave, [
-        ...baseMessages,
-        createOptimisticUserMessage(text),
-      ]);
+      await saveMessages(chatIdToSave, [...baseMessages, message]);
     } catch (error) {
       debugChat("chat-save:error", {
         chatId: chatIdToSave,
@@ -1392,7 +1389,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         return [
           {
             id: chatIdToSave,
-            title: titleFromUserText(text),
+            title: titleFromUserText(message.parts.find(p => p.type === 'text')?.text || ""),
             updatedAt: nextUpdatedAt,
           },
           ...currentChats,
@@ -1596,15 +1593,15 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     });
     shouldFollowStreamRef.current = true;
     const activeChatController = getChatController(activeChatId);
+    const userMessage = createOptimisticUserMessage(messageText);
+
     void persistOptimisticUserTurn(
       activeChatId,
-      messageText,
+      userMessage,
       activeChatController.messages
     );
-    await activeChatController.sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: messageText }],
-    });
+
+    await activeChatController.sendMessage(userMessage);
 
     requestAnimationFrame(() => {
       scrollMessagesToBottom("smooth");
@@ -1847,7 +1844,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             </div>
           ) : (
             <div className="message-list">
-              {messages.map((message) => {
+              {messages.map((message, index) => {
                 const downloadableWidget =
                   message.role === "assistant"
                     ? downloadableWidgetFromMessage(message)
@@ -1859,7 +1856,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 return (
                   <article
                     className={`message message-${message.role}`}
-                    key={message.id}
+                    key={message.id || `msg-${index}`}
                   >
                     {message.role === "user" ? (
                       <div className="message-user-row">
