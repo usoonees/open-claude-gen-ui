@@ -665,6 +665,9 @@ function MessageContent({
           />
         )
       )}
+      {showWidgetReasoningPreview ? (
+        <AssistantWidgetReasoningPreview reasoningText={postWidgetReasoning} />
+      ) : null}
     </>
   );
 }
@@ -752,14 +755,6 @@ function TrashIcon() {
       <path d="M10 11v6M14 11v6" />
       <path d="M6 7l1 12h10l1-12" />
       <path d="M9 7V4h6v3" />
-    </svg>
-  );
-}
-
-function PaperclipIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="m21 8.5-9.8 9.8a5 5 0 0 1-7.1-7.1l9.2-9.2a3.5 3.5 0 0 1 5 5l-9.4 9.4a2 2 0 0 1-2.8-2.8l8.6-8.6" />
     </svg>
   );
 }
