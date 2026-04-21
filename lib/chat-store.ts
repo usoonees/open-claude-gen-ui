@@ -11,6 +11,7 @@ import {
   fallbackTitleFromMessages,
   generateChatTitle,
 } from "@/lib/chat-title";
+import { normalizePreShowWidgetTextMessages } from "@/lib/chat-widget-stream";
 import type { ChatToolTrace } from "@/lib/chat-tools";
 
 const storeDir = path.join(process.cwd(), ".data", "chats");
@@ -83,7 +84,9 @@ function chatPath(id: string) {
 }
 
 function sanitizeMessages(messages: ChatUIMessage[]) {
-  return messages.filter((message) => message.role !== "system");
+  return normalizePreShowWidgetTextMessages(
+    messages.filter((message) => message.role !== "system")
+  );
 }
 
 function isLegacyGeneratedTitle(
@@ -162,7 +165,7 @@ export async function readChat(id: string): Promise<StoredChat> {
   }
 
   const messages = Array.isArray(chat.messages)
-    ? (chat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(chat.messages as ChatUIMessage[])
     : [];
   const fallbackTitle = fallbackTitleFromMessages(messages);
 
@@ -260,7 +263,7 @@ export async function resolvePendingGeneratedTitle(id: string) {
   }
 
   const messages = Array.isArray(existingChat.messages)
-    ? (existingChat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(existingChat.messages as ChatUIMessage[])
     : [];
 
   if (hasResolvedGeneratedTitle(existingChat, messages)) {
@@ -284,7 +287,7 @@ export async function resolvePendingGeneratedTitle(id: string) {
   }
 
   const latestMessages = Array.isArray(latestChat.messages)
-    ? (latestChat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(latestChat.messages as ChatUIMessage[])
     : messages;
   const chat: StoredChat = {
     id: latestChat.id || id,
@@ -322,7 +325,9 @@ export async function renameChat(id: string, title: string) {
     throw new Error("Chat title cannot be empty.");
   }
 
-  const messages = Array.isArray(existingChat.messages) ? existingChat.messages : [];
+  const messages = Array.isArray(existingChat.messages)
+    ? normalizePreShowWidgetTextMessages(existingChat.messages as ChatUIMessage[])
+    : [];
   const chat: StoredChat = {
     id: existingChat.id || id,
     messages,

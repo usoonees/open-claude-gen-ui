@@ -1,5 +1,9 @@
 import { writeChat } from "@/lib/chat-store";
 import { createChatAgent, getChatSystemPrompt } from "@/lib/chat-agent";
+import {
+  normalizePreShowWidgetTextMessages,
+  normalizePreShowWidgetTextStream,
+} from "@/lib/chat-widget-stream";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import {
@@ -9,7 +13,7 @@ import {
 } from "@/lib/chat-models";
 import { getChatToolTraceList } from "@/lib/chat-tools";
 import { langsmithClient } from "@/lib/langsmith-ai";
-import { createAgentUIStreamResponse } from "ai";
+import { createAgentUIStream, createUIMessageStreamResponse } from "ai";
 import { after } from "next/server";
 
 export const maxDuration = 60;
@@ -67,15 +71,23 @@ export async function POST(request: Request) {
     });
   }
 
-  return createAgentUIStreamResponse({
-    agent: createChatAgent(modelSelection, systemPrompt),
-    uiMessages: body.messages,
-    sendReasoning: true,
-    onFinish: async ({ messages }) => {
-      await writeChat(body.id as string, messages, {
-        trace: buildChatTrace(modelSelection, systemPrompt, capturedAt),
-        modelSelection,
-      });
-    },
-  });
+  const stream = normalizePreShowWidgetTextStream(
+    await createAgentUIStream({
+      agent: createChatAgent(modelSelection, systemPrompt),
+      uiMessages: body.messages,
+      sendReasoning: true,
+      onFinish: async ({ messages }) => {
+        await writeChat(
+          body.id as string,
+          normalizePreShowWidgetTextMessages(messages as ChatUIMessage[]),
+          {
+            trace: buildChatTrace(modelSelection, systemPrompt, capturedAt),
+            modelSelection,
+          }
+        );
+      },
+    })
+  );
+
+  return createUIMessageStreamResponse({ stream });
 }
