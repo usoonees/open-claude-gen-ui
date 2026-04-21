@@ -34,6 +34,10 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, ask for several different visual tasks and confirm the assistant tends to prioritize richer gen-ui widgets over plain text when a widget would help, and that the resulting widgets are not all the same generic card pattern.
 - While a trusted-mode widget is still streaming, confirm its required `loadingMessages` input renders as a compact in-flow status line directly below the widget content, does not overlap the widget itself, and rotates slowly enough to read with a subtle trailing ellipsis.
 - Confirm trusted-mode widgets resolve the documented `--color-*`, `--font-*`, and `--border-radius-*` design tokens in the live chat view, not only in downloaded HTML.
+- For trusted-mode widgets that load external CDN scripts, confirm named `onload` callbacks such as `initChart()` or `initCalculator()` still initialize inside the widget host without throwing global-scope errors.
+- For trusted-mode widgets that combine a CDN script with a later inline classic script, confirm saved chart conversations still initialize after a hard reload in Next.js dev mode, without `initChart is not defined` or similar callback-race errors.
+- For trusted-mode widgets that use inline DOM event attributes such as `onclick="switchTab('...')"`, confirm the saved conversation still switches tabs after reload without `... is not defined` errors and that handler queries stay scoped to that widget host.
+- For trusted-mode widgets that summarize complex prompts, confirm they include enough concrete information to be useful on their own, such as labels, grouped facts, comparisons, statuses, or multiple meaningful sections instead of a sparse shell.
 - Confirm the final widget becomes interactive only after the tool input completes, rather than during partial HTML streaming.
 - Confirm a generated widget can call `sendPrompt(...)` and create a new user turn in the same chat.
 - Confirm a generated widget can call `openLink(...)`, and that widget `<a href>` links also open in a new browser tab without navigating the chat surface away.
@@ -65,7 +69,8 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Global CSS tokens live in `app/globals.css`.
 - Components use stable dimensions for icon buttons, composer controls, and message containers to avoid layout shifts.
 - Cards are limited to repeated prompt and message items; page-level layout remains a full-screen app surface.
-- Trusted-mode widget HTML renders in the same document. The host exposes the documented widget design tokens, SVG helper classes (`t`, `ts`, `th`, `box`, `arr`, `leader`, `node`, and `c-*` ramps), and resets global SVG defaults inside `.widget-host`, while generated widget styling should stay scoped and visually polite.
+- Trusted-mode widget HTML renders inside an isolated shadow-root host. The host still exposes the documented widget design tokens, SVG helper classes (`t`, `ts`, `th`, `box`, `arr`, `leader`, `node`, and `c-*` ramps), but generated widget CSS and DOM queries must remain confined to that widget host and must not affect the surrounding chat UI.
+- Before trusted-mode widget scripts are mounted into the live DOM, external `src`, inline classic-script execution, and non-script inline event attributes are made inert. The widget runtime then replays allowed external scripts, executes inline classic scripts in widget scope, and rebinds inline event handlers against that same per-widget scope so React dev-mode effect replays and CDN callback ordering do not reintroduce global-scope or race-condition failures.
 
 ## Testing Strategy
 
