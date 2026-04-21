@@ -25,7 +25,9 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - With inference available, confirm that same sidebar row later swaps to a short AI-generated title with a visible transition instead of changing abruptly.
 - Confirm the composer shows a single compact model selector below the textarea, and that opening it reveals grouped provider/model choices without moving the send button.
 - Confirm the model selector search filters the custom popup list only, without showing a separate browser autocomplete panel.
-- Confirm the picker lets users switch provider/model combinations, type a freeform model id from the inline add panel, and sync the active provider's model list when supported.
+- Confirm the default `Choose model` view only lists visible models for connected providers, still allows a typed custom model id for the current provider, and closes after selection.
+- Confirm the picker `Connect Provider` action opens a separate provider list, lets users switch to another provider, and shows the required `.env.local` key for providers that are not configured yet.
+- Confirm the picker `Manage Models` action opens a separate model-management view where per-model and per-provider visibility toggles change which entries appear back in `Choose model`, and that `Sync` still refreshes a provider's model list when supported.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.

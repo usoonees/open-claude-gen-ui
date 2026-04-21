@@ -36,6 +36,8 @@ type ProviderModelsState = {
   errorMessage?: string;
 };
 
+type ModelPickerView = "models" | "providers" | "manage";
+
 type MessagePart = ChatUIMessage["parts"][number];
 
 type ToolLikePart = {
@@ -118,28 +120,24 @@ const DEFAULT_MODEL_SELECTION: ChatModelSelection = {
   modelId: "doubao-seed-2-0-pro-260215",
 };
 
+const MODEL_VISIBILITY_STORAGE_KEY = "open-visual-layout:model-visibility:v1";
+
 function uniqueStrings(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
-function providerBadgeLabel(provider: ChatProviderOption | undefined) {
-  if (!provider) {
-    return "AI";
+function modelVisibilityKey(providerId: string, modelId: string) {
+  return `${providerId}:${modelId}`;
+}
+
+function normalizeHiddenModelKeys(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as string[];
   }
 
-  const words = provider.label
-    .split(/\s+/)
-    .map((word) => word.trim())
-    .filter(Boolean);
-
-  if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase();
-  }
-
-  return words
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("");
+  return uniqueStrings(
+    value.filter((entry): entry is string => typeof entry === "string").map((entry) => entry.trim())
+  );
 }
 
 function buildProviderModelsState(
@@ -928,6 +926,14 @@ function TuneIcon() {
   );
 }
 
+function ChevronLeftIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m15 6-6 6 6 6" />
+    </svg>
+  );
+}
+
 function ChevronDownIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -1030,10 +1036,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [chatPendingDelete, setChatPendingDelete] = useState<ChatSummary | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
+  const [modelPickerView, setModelPickerView] = useState<ModelPickerView>("models");
   const [modelQuery, setModelQuery] = useState("");
-  const [isAddModelEntryOpen, setIsAddModelEntryOpen] = useState(false);
-  const [customProviderId, setCustomProviderId] = useState<ChatProviderId>("volcengine");
-  const [customModelId, setCustomModelId] = useState("");
+  const [providerQuery, setProviderQuery] = useState("");
+  const [manageModelQuery, setManageModelQuery] = useState("");
+  const [hiddenModelKeys, setHiddenModelKeys] = useState<string[]>([]);
   const chatIdRef = useRef(chatId);
   const defaultModelSelectionRef = useRef(defaultModelSelection);
   const draftModelSelectionRef = useRef(draftModelSelection);
@@ -1182,13 +1189,97 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     : draftModelSelection;
   const activeProvider = getProviderOption(activeModelSelection.providerId);
   const activeProviderModels = providerModels[activeModelSelection.providerId];
+
+  function isModelVisible(providerId: string, modelId: string) {
+    return !hiddenModelKeys.includes(modelVisibilityKey(providerId, modelId));
+  }
+
+  function getProviderKnownModels(
+    provider: ChatProviderOption | undefined,
+    currentModelId = ""
+  ) {
+    return mergeModelOptions(provider, provider ? providerModels[provider.id] : undefined, currentModelId);
+  }
+
   const groupedModelOptions = useMemo(() => {
     const query = modelQuery.trim().toLowerCase();
     return providerOptions
+      .filter(
+        (provider) =>
+          provider.configured || provider.id === activeModelSelection.providerId
+      )
       .map((provider) => {
-        const models = mergeModelOptions(
+        const models = getProviderKnownModels(
           provider,
-          providerModels[provider.id],
+          provider.id === activeModelSelection.providerId
+            ? activeModelSelection.modelId
+            : ""
+        ).filter((modelId) => {
+          const isCurrentSelection =
+            modelId === activeModelSelection.modelId &&
+            provider.id === activeModelSelection.providerId;
+
+          if (!isCurrentSelection && !isModelVisible(provider.id, modelId)) {
+            return false;
+          }
+
+          if (!query) {
+            return true;
+          }
+
+          return (
+            modelId.toLowerCase().includes(query) ||
+            provider.label.toLowerCase().includes(query) ||
+            provider.description.toLowerCase().includes(query)
+          );
+        });
+
+        return {
+          provider,
+          models,
+        };
+      })
+      .filter((entry) => entry.models.length > 0);
+  }, [
+    activeModelSelection.modelId,
+    activeModelSelection.providerId,
+    hiddenModelKeys,
+    modelQuery,
+    providerModels,
+    providerOptions,
+  ]);
+
+  const providerSearchGroups = useMemo(() => {
+    const query = providerQuery.trim().toLowerCase();
+    const filteredProviders = providerOptions.filter((provider) => {
+      if (!query) {
+        return true;
+      }
+
+      return (
+        provider.label.toLowerCase().includes(query) ||
+        provider.description.toLowerCase().includes(query) ||
+        provider.apiKeyEnv.toLowerCase().includes(query)
+      );
+    });
+
+    return {
+      connected: filteredProviders.filter((provider) => provider.configured),
+      available: filteredProviders.filter((provider) => !provider.configured),
+    };
+  }, [providerOptions, providerQuery]);
+
+  const manageableProviderGroups = useMemo(() => {
+    const query = manageModelQuery.trim().toLowerCase();
+    return providerOptions
+      .filter(
+        (provider) =>
+          provider.configured || provider.id === activeModelSelection.providerId
+      )
+      .map((provider) => ({
+        provider,
+        models: getProviderKnownModels(
+          provider,
           provider.id === activeModelSelection.providerId
             ? activeModelSelection.modelId
             : ""
@@ -1201,15 +1292,16 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             modelId.toLowerCase().includes(query) ||
             provider.label.toLowerCase().includes(query)
           );
-        });
-
-        return {
-          provider,
-          models,
-        };
-      })
+        }),
+      }))
       .filter((entry) => entry.models.length > 0);
-  }, [activeModelSelection.modelId, activeModelSelection.providerId, modelQuery, providerModels, providerOptions]);
+  }, [
+    activeModelSelection.modelId,
+    activeModelSelection.providerId,
+    manageModelQuery,
+    providerModels,
+    providerOptions,
+  ]);
 
   function isMessageScrollAtBottom() {
     const element = messageScrollRef.current;
@@ -1273,6 +1365,27 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }, [draftModelSelection]);
 
   useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(MODEL_VISIBILITY_STORAGE_KEY);
+
+      if (!stored) {
+        return;
+      }
+
+      setHiddenModelKeys(normalizeHiddenModelKeys(JSON.parse(stored)));
+    } catch {
+      setHiddenModelKeys([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      MODEL_VISIBILITY_STORAGE_KEY,
+      JSON.stringify(hiddenModelKeys)
+    );
+  }, [hiddenModelKeys]);
+
+  useEffect(() => {
     return () => {
       if (copyResetTimerRef.current !== null) {
         window.clearTimeout(copyResetTimerRef.current);
@@ -1298,9 +1411,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     if (!isModelPickerOpen) {
       return;
     }
-
-    setCustomProviderId(activeModelSelection.providerId);
-    setCustomModelId(activeModelSelection.modelId);
 
     requestAnimationFrame(() => {
       modelSearchInputRef.current?.focus();
@@ -1330,7 +1440,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       window.removeEventListener("mousedown", handlePointerDown);
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [activeModelSelection.modelId, activeModelSelection.providerId, isModelPickerOpen]);
+  }, [isModelPickerOpen, modelPickerView]);
 
   useEffect(() => {
     if (!openMenuChatId) {
@@ -1951,6 +2061,50 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     updateActiveModelSelection({ modelId });
   }
 
+  function setModelVisibility(
+    providerId: ChatProviderId,
+    modelId: string,
+    isVisible: boolean
+  ) {
+    const key = modelVisibilityKey(providerId, modelId);
+
+    setHiddenModelKeys((current) =>
+      isVisible
+        ? current.filter((entry) => entry !== key)
+        : uniqueStrings([...current, key])
+    );
+  }
+
+  function setProviderModelVisibility(
+    providerId: ChatProviderId,
+    modelIds: string[],
+    isVisible: boolean
+  ) {
+    const keys = new Set(modelIds.map((modelId) => modelVisibilityKey(providerId, modelId)));
+
+    setHiddenModelKeys((current) => {
+      if (isVisible) {
+        return current.filter((entry) => !keys.has(entry));
+      }
+
+      return uniqueStrings([...current, ...keys]);
+    });
+  }
+
+  function openProviderPicker() {
+    setProviderQuery("");
+    setModelPickerView("providers");
+  }
+
+  function openManageModels() {
+    setManageModelQuery("");
+    setModelPickerView("manage");
+  }
+
+  function returnToModelList() {
+    setModelPickerView("models");
+  }
+
   function applyManualModelQuery() {
     const nextModelId = modelQuery.trim();
 
@@ -1959,22 +2113,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
 
     updateModelId(nextModelId);
-    setIsModelPickerOpen(false);
-  }
-
-  function applyCustomModelEntry() {
-    const nextModelId = customModelId.trim();
-
-    if (!nextModelId) {
-      return;
-    }
-
-    selectProvider(customProviderId);
-    updateActiveModelSelection({
-      providerId: customProviderId,
-      modelId: nextModelId,
-    });
-    setIsAddModelEntryOpen(false);
     setIsModelPickerOpen(false);
   }
 
@@ -2501,8 +2639,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                     aria-expanded={isModelPickerOpen}
                     className="model-trigger"
                     onClick={() => {
+                      setModelPickerView("models");
                       setModelQuery("");
-                      setIsAddModelEntryOpen(false);
+                      setProviderQuery("");
+                      setManageModelQuery("");
                       setIsModelPickerOpen((current) => !current);
                     }}
                     title={
@@ -2512,9 +2652,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                     }
                     type="button"
                   >
-                    <span className="model-trigger-badge">
-                      {providerBadgeLabel(activeProvider)}
-                    </span>
                     <span className="model-trigger-text">{activeModelSelection.modelId}</span>
                     <ChevronDownIcon />
                   </button>
@@ -2522,176 +2659,357 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 {isModelPickerOpen ? (
                   <div className="model-picker" ref={modelPickerRef}>
                     <div className="model-picker-topbar">
+                      {modelPickerView !== "models" ? (
+                        <button
+                          aria-label="Back to model list"
+                          className="picker-icon-button picker-back-button"
+                          onClick={returnToModelList}
+                          title="Back"
+                          type="button"
+                        >
+                          <ChevronLeftIcon />
+                        </button>
+                      ) : null}
                       <div className="model-search">
                         <SearchIcon />
                         <input
-                          aria-label="Search models"
+                          aria-label={
+                            modelPickerView === "providers"
+                              ? "Search providers"
+                              : "Search models"
+                          }
                           className="model-search-input"
                           onChange={(event) => {
-                            setModelQuery(event.target.value);
+                            const nextValue = event.target.value;
+
+                            if (modelPickerView === "models") {
+                              setModelQuery(nextValue);
+                              return;
+                            }
+
+                            if (modelPickerView === "providers") {
+                              setProviderQuery(nextValue);
+                              return;
+                            }
+
+                            setManageModelQuery(nextValue);
                           }}
                           onKeyDown={(event) => {
-                            if (event.key === "Enter") {
+                            if (
+                              modelPickerView === "models" &&
+                              event.key === "Enter"
+                            ) {
                               event.preventDefault();
                               applyManualModelQuery();
                             }
                           }}
-                          placeholder="Search models"
+                          placeholder={
+                            modelPickerView === "providers"
+                              ? "Search providers"
+                              : "Search models"
+                          }
                           ref={modelSearchInputRef}
-                          value={modelQuery}
+                          value={
+                            modelPickerView === "models"
+                              ? modelQuery
+                              : modelPickerView === "providers"
+                                ? providerQuery
+                                : manageModelQuery
+                          }
                         />
                       </div>
-                      <button
-                        aria-label="Add provider or model"
-                        className="picker-icon-button"
-                        onClick={() => {
-                          setCustomProviderId(activeModelSelection.providerId);
-                          setCustomModelId(modelQuery.trim() || activeModelSelection.modelId);
-                          setIsAddModelEntryOpen((current) => !current);
-                        }}
-                        title="Add provider or model"
-                        type="button"
-                      >
-                        <PlusIcon />
-                      </button>
-                      <button
-                        aria-label="Sync current provider models"
-                        className="picker-icon-button"
-                        disabled={!activeProvider?.canListModels}
-                        onClick={() => {
-                          if (activeProvider) {
-                            void loadProviderModels(activeProvider.id, true);
-                          }
-                        }}
-                        title="Sync current provider models"
-                        type="button"
-                      >
-                        <TuneIcon />
-                      </button>
-                    </div>
-                    {isAddModelEntryOpen ? (
-                      <div className="custom-entry-panel">
-                        <div className="custom-entry-header">
-                          <p>Add provider or model</p>
-                          <span>
-                            Pick a provider, then type any model id you want to use.
-                          </span>
-                        </div>
-                        <div className="custom-entry-row">
-                          <label className="custom-entry-field">
-                            <span className="manual-model-label">Provider</span>
-                            <select
-                              className="custom-entry-select"
-                              onChange={(event) => {
-                                setCustomProviderId(event.target.value as ChatProviderId);
-                              }}
-                              value={customProviderId}
-                            >
-                              {providerOptions.map((provider) => (
-                                <option key={provider.id} value={provider.id}>
-                                  {provider.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="custom-entry-field custom-entry-model">
-                            <span className="manual-model-label">Model</span>
-                            <input
-                              className="custom-entry-input"
-                              onChange={(event) => {
-                                setCustomModelId(event.target.value);
-                              }}
-                              placeholder="Type a model id"
-                              value={customModelId}
-                            />
-                          </label>
-                        </div>
-                        <div className="custom-entry-actions">
+                      {modelPickerView === "models" ? (
+                        <>
                           <button
-                            className="custom-entry-submit"
+                            aria-label="Connect provider"
+                            className="picker-icon-button"
+                            onClick={openProviderPicker}
+                            title="Connect Provider"
+                            type="button"
+                          >
+                            <PlusIcon />
+                          </button>
+                          <button
+                            aria-label="Manage models"
+                            className="picker-icon-button"
+                            onClick={openManageModels}
+                            title="Manage Models"
+                            type="button"
+                          >
+                            <TuneIcon />
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                    {modelPickerView === "providers" ? (
+                      <>
+                        <div className="model-group-list">
+                          {providerSearchGroups.connected.length === 0 &&
+                          providerSearchGroups.available.length === 0 ? (
+                            <p className="model-empty-state">
+                              No providers match that search.
+                            </p>
+                          ) : (
+                            <>
+                              {providerSearchGroups.connected.length > 0 ? (
+                                <section className="model-group">
+                                  <div className="model-group-label">
+                                    <span>Connected</span>
+                                  </div>
+                                  <div className="provider-option-list">
+                                    {providerSearchGroups.connected.map((provider) => (
+                                      <button
+                                        className={
+                                          provider.id === activeModelSelection.providerId
+                                            ? "provider-option is-active"
+                                            : "provider-option"
+                                        }
+                                        key={provider.id}
+                                        onClick={() => {
+                                          selectProvider(provider.id);
+                                          setModelQuery("");
+                                          returnToModelList();
+                                        }}
+                                        type="button"
+                                      >
+                                        <span className="provider-option-copy">
+                                          <span className="provider-option-title-row">
+                                            <span className="provider-option-title">
+                                              {provider.label}
+                                            </span>
+                                            <span className="model-group-badges">
+                                              {provider.id === activeModelSelection.providerId ? (
+                                                <span className="model-group-badge is-current">
+                                                  Current
+                                                </span>
+                                              ) : null}
+                                              <span className="model-group-badge">
+                                                Connected
+                                              </span>
+                                            </span>
+                                          </span>
+                                          <span className="provider-option-description">
+                                            {provider.description}
+                                          </span>
+                                        </span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </section>
+                              ) : null}
+                              {providerSearchGroups.available.length > 0 ? (
+                                <section className="model-group">
+                                  <div className="model-group-label">
+                                    <span>Available</span>
+                                  </div>
+                                  <div className="provider-option-list">
+                                    {providerSearchGroups.available.map((provider) => (
+                                      <button
+                                        className={
+                                          provider.id === activeModelSelection.providerId
+                                            ? "provider-option is-active"
+                                            : "provider-option"
+                                        }
+                                        key={provider.id}
+                                        onClick={() => {
+                                          selectProvider(provider.id);
+                                          setModelQuery("");
+                                          returnToModelList();
+                                        }}
+                                        type="button"
+                                      >
+                                        <span className="provider-option-copy">
+                                          <span className="provider-option-title-row">
+                                            <span className="provider-option-title">
+                                              {provider.label}
+                                            </span>
+                                            <span className="model-group-badges">
+                                              {provider.id === activeModelSelection.providerId ? (
+                                                <span className="model-group-badge is-current">
+                                                  Current
+                                                </span>
+                                              ) : null}
+                                              <span className="model-group-badge">
+                                                Set {provider.apiKeyEnv}
+                                              </span>
+                                            </span>
+                                          </span>
+                                          <span className="provider-option-description">
+                                            {provider.description}
+                                          </span>
+                                          <span className="provider-option-meta">
+                                            Add {provider.apiKeyEnv} to `.env.local`, then reload to
+                                            enable this provider.
+                                          </span>
+                                        </span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </section>
+                              ) : null}
+                            </>
+                          )}
+                        </div>
+                      </>
+                    ) : modelPickerView === "manage" ? (
+                      <div className="model-group-list">
+                        {manageableProviderGroups.length === 0 ? (
+                          <p className="model-empty-state">
+                            No models match that search.
+                          </p>
+                        ) : (
+                          manageableProviderGroups.map(({ provider, models }) => {
+                            const allVisible = models.every((modelId) =>
+                              isModelVisible(provider.id, modelId)
+                            );
+                            const providerState = providerModels[provider.id];
+
+                            return (
+                              <section className="model-group" key={provider.id}>
+                                <div className="model-group-label manage-group-label">
+                                  <span>{provider.label}</span>
+                                  <div className="manage-group-actions">
+                                    {provider.configured && provider.canListModels ? (
+                                      <button
+                                        className="picker-text-button"
+                                        onClick={() => {
+                                          void loadProviderModels(provider.id, true);
+                                        }}
+                                        type="button"
+                                      >
+                                        {providerState?.status === "loading" ? "Syncing..." : "Sync"}
+                                      </button>
+                                    ) : null}
+                                    <button
+                                      className="picker-text-button"
+                                      onClick={() => {
+                                        setProviderModelVisibility(
+                                          provider.id,
+                                          models,
+                                          !allVisible
+                                        );
+                                      }}
+                                      type="button"
+                                    >
+                                      {allVisible ? "Hide all" : "Show all"}
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="model-option-list">
+                                  {models.map((modelId) => {
+                                    const isVisible = isModelVisible(provider.id, modelId);
+
+                                    return (
+                                      <button
+                                        className={
+                                          isVisible
+                                            ? "manage-model-option is-visible"
+                                            : "manage-model-option"
+                                        }
+                                        key={`${provider.id}:${modelId}`}
+                                        onClick={() => {
+                                          setModelVisibility(
+                                            provider.id,
+                                            modelId,
+                                            !isVisible
+                                          );
+                                        }}
+                                        type="button"
+                                      >
+                                        <span className="model-option-main">{modelId}</span>
+                                        <span className="manage-model-state">
+                                          {isVisible ? "Shown" : "Hidden"}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {providerState?.status === "error" ? (
+                                  <p className="selector-error">
+                                    {providerState.errorMessage}
+                                  </p>
+                                ) : null}
+                              </section>
+                            );
+                          })
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {modelQuery.trim() ? (
+                          <button
+                            className="manual-model-option"
                             onClick={() => {
-                              applyCustomModelEntry();
+                              applyManualModelQuery();
                             }}
                             type="button"
                           >
-                            <span>Use selection</span>
-                            <span className="custom-entry-submit-value">
-                              {providerOptions.find((provider) => provider.id === customProviderId)?.label ?? customProviderId}
-                              {" · "}
-                              {customModelId.trim() || "Type a model id"}
+                            <span className="manual-model-label">Use custom model</span>
+                            <span className="manual-model-value">
+                              {activeProvider?.label ?? "Provider"} · {modelQuery.trim()}
                             </span>
                           </button>
+                        ) : null}
+                        <div className="model-group-list">
+                          {groupedModelOptions.length === 0 ? (
+                            <p className="model-empty-state">
+                              No models match that search.
+                            </p>
+                          ) : (
+                            groupedModelOptions.map(({ provider, models }) => (
+                              <section className="model-group" key={provider.id}>
+                                <div className="model-group-label">
+                                  <span>{provider.label}</span>
+                                  <div className="model-group-badges">
+                                    {provider.id === activeModelSelection.providerId ? (
+                                      <span className="model-group-badge is-current">Current</span>
+                                    ) : null}
+                                    {!provider.configured ? (
+                                      <span className="model-group-badge">
+                                        Set {provider.apiKeyEnv}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <div className="model-option-list">
+                                  {models.map((modelId) => (
+                                    <button
+                                      className={
+                                        modelId === activeModelSelection.modelId &&
+                                        provider.id === activeModelSelection.providerId
+                                          ? "model-option is-active"
+                                          : "model-option"
+                                      }
+                                      key={`${provider.id}:${modelId}`}
+                                      onClick={() => {
+                                        updateActiveModelSelection({
+                                          providerId: provider.id,
+                                          modelId,
+                                        });
+                                        setModelQuery(modelId);
+                                        setIsModelPickerOpen(false);
+                                      }}
+                                      type="button"
+                                    >
+                                      <span className="model-option-main">{modelId}</span>
+                                      {modelId === activeModelSelection.modelId &&
+                                      provider.id === activeModelSelection.providerId ? (
+                                        <span className="model-option-check">
+                                          <CheckIcon />
+                                        </span>
+                                      ) : null}
+                                    </button>
+                                  ))}
+                                </div>
+                              </section>
+                            ))
+                          )}
                         </div>
-                      </div>
-                    ) : null}
-                    {modelQuery.trim() ? (
-                      <button
-                        className="manual-model-option"
-                        onClick={() => {
-                          applyManualModelQuery();
-                        }}
-                        type="button"
-                      >
-                        <span className="manual-model-label">Use typed model</span>
-                        <span className="manual-model-value">{modelQuery.trim()}</span>
-                      </button>
-                    ) : null}
-                    <div className="model-group-list">
-                      {groupedModelOptions.length === 0 ? (
-                        <p className="model-empty-state">
-                          No models match that search. Use the typed value above to keep a custom model id.
-                        </p>
-                      ) : (
-                        groupedModelOptions.map(({ provider, models }) => (
-                          <section className="model-group" key={provider.id}>
-                            <div className="model-group-label">
-                              <span>{provider.label}</span>
-                              <div className="model-group-badges">
-                                {provider.id === activeModelSelection.providerId ? (
-                                  <span className="model-group-badge is-current">Current</span>
-                                ) : null}
-                                {!provider.configured ? (
-                                  <span className="model-group-badge">Key missing</span>
-                                ) : null}
-                              </div>
-                            </div>
-                            <div className="model-option-list">
-                              {models.map((modelId) => (
-                                <button
-                                  className={
-                                    modelId === activeModelSelection.modelId &&
-                                    provider.id === activeModelSelection.providerId
-                                      ? "model-option is-active"
-                                      : "model-option"
-                                  }
-                                  key={`${provider.id}:${modelId}`}
-                                  onClick={() => {
-                                    updateActiveModelSelection({
-                                      providerId: provider.id,
-                                      modelId,
-                                    });
-                                    setModelQuery(modelId);
-                                    setIsModelPickerOpen(false);
-                                  }}
-                                  type="button"
-                                >
-                                  <span className="model-option-main">{modelId}</span>
-                                  {modelId === activeModelSelection.modelId &&
-                                  provider.id === activeModelSelection.providerId ? (
-                                    <span className="model-option-check">
-                                      <CheckIcon />
-                                    </span>
-                                  ) : null}
-                                </button>
-                              ))}
-                            </div>
-                          </section>
-                        ))
-                      )}
-                    </div>
-                    {activeProviderModels?.status === "error" ? (
-                      <p className="selector-error">{activeProviderModels.errorMessage}</p>
-                    ) : null}
+                        {activeProviderModels?.status === "error" ? (
+                          <p className="selector-error">{activeProviderModels.errorMessage}</p>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                 ) : null}
               </div>

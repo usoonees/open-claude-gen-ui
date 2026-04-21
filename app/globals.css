@@ -1774,6 +1774,10 @@ svg {
   opacity: 0.55;
 }
 
+.picker-back-button {
+  flex: 0 0 auto;
+}
+
 .model-picker {
   background: rgba(255, 255, 252, 0.98);
   border: 1px solid rgba(210, 208, 201, 0.95);
@@ -1811,8 +1815,10 @@ svg {
 }
 
 .model-search:focus-within,
-.custom-entry-select:focus,
-.custom-entry-input:focus {
+.picker-text-button:focus-visible,
+.provider-option:focus-visible,
+.manage-model-option:focus-visible,
+.manual-model-option:focus-visible {
   border-color: rgba(168, 162, 152, 0.9);
   box-shadow: 0 0 0 3px rgba(220, 216, 206, 0.35);
 }
@@ -1831,102 +1837,69 @@ svg {
   color: rgba(120, 116, 107, 0.7);
 }
 
-.custom-entry-panel {
-  background: rgba(246, 244, 239, 0.72);
-  border: 1px solid rgba(228, 225, 218, 0.9);
-  border-radius: 14px;
-  display: grid;
-  gap: 12px;
-  margin-top: 10px;
-  padding: 12px;
-}
-
-.custom-entry-header {
-  display: grid;
-  gap: 2px;
-}
-
-.custom-entry-header p {
-  color: rgba(46, 44, 40, 0.94);
-  font-size: 13px;
+.picker-text-button {
+  background: transparent;
+  border: 1px solid rgba(223, 219, 212, 0.95);
+  border-radius: 999px;
+  color: rgba(95, 90, 82, 0.92);
+  flex: 0 0 auto;
+  font-size: 11px;
   font-weight: 600;
-  margin: 0;
+  height: 24px;
+  padding: 0 8px;
 }
 
-.custom-entry-header span {
-  color: rgba(118, 112, 102, 0.92);
-  font-size: 12px;
-  line-height: 1.45;
+.picker-text-button:hover {
+  background: rgba(247, 244, 238, 0.92);
+  color: var(--foreground);
 }
 
-.custom-entry-row {
-  display: flex;
-  gap: 8px;
-}
-
-.custom-entry-field {
+.provider-option-list {
   display: grid;
-  flex: 0 0 148px;
   gap: 6px;
 }
 
-.custom-entry-model {
-  flex: 1 1 auto;
-}
-
-.custom-entry-select,
-.custom-entry-input {
-  appearance: none;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(224, 221, 214, 0.94);
-  border-radius: 10px;
-  color: var(--foreground);
-  font-size: 13px;
-  height: 38px;
-  outline: none;
-  padding: 0 12px;
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.custom-entry-actions {
-  display: flex;
-}
-
-.custom-entry-submit {
-  align-items: center;
-  background: rgba(34, 34, 31, 0.92);
-  border: 1px solid rgba(34, 34, 31, 0.92);
+.provider-option {
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 12px;
-  color: rgba(250, 248, 242, 0.98);
+  color: var(--foreground);
   display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  min-height: 42px;
-  padding: 0 12px;
+  padding: 10px;
   text-align: left;
-  transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    opacity 140ms ease,
-    transform 140ms ease;
   width: 100%;
 }
 
-.custom-entry-submit:hover {
-  background: rgba(52, 51, 47, 0.96);
-  border-color: rgba(52, 51, 47, 0.96);
-  transform: translateY(-1px);
+.provider-option:hover,
+.provider-option.is-active {
+  background: rgba(246, 244, 239, 0.8);
+  border-color: rgba(227, 223, 215, 0.96);
 }
 
-.custom-entry-submit-value {
-  color: rgba(250, 248, 242, 0.78);
-  font-size: 12px;
+.provider-option-copy {
+  display: grid;
+  gap: 4px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.provider-option-title-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.provider-option-title {
+  color: rgba(46, 44, 40, 0.96);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.provider-option-description,
+.provider-option-meta {
+  color: rgba(110, 104, 95, 0.92);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .manual-model-option {
@@ -1957,7 +1930,46 @@ svg {
 
 .manual-model-value {
   color: var(--foreground);
+  font-size: 13px;
+}
+
+.manage-group-label {
+  align-items: flex-start;
+}
+
+.manage-group-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.manage-model-option {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: rgba(39, 38, 35, 0.94);
+  display: flex;
   font-size: 14px;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.manage-model-option:hover,
+.manage-model-option.is-visible {
+  background: rgba(248, 246, 241, 0.82);
+  border-color: rgba(234, 230, 223, 0.96);
+}
+
+.manage-model-state {
+  color: rgba(112, 108, 99, 0.9);
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .model-group-list {
@@ -2177,14 +2189,6 @@ svg {
 
   .model-trigger {
     max-width: calc(100vw - 104px);
-  }
-
-  .custom-entry-row {
-    flex-direction: column;
-  }
-
-  .custom-entry-field {
-    flex: 1 1 auto;
   }
 
   .send-button {

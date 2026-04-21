@@ -16,6 +16,7 @@ export type ChatProviderOption = {
   id: ChatProviderId;
   label: string;
   description: string;
+  apiKeyEnv: string;
   configured: boolean;
   canListModels: boolean;
   defaultModelId: string;

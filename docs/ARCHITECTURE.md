@@ -14,7 +14,7 @@ This file is the top-level map for the repository.
 
 - Browser users load `app/page.tsx`, which renders `components/chat-shell.tsx`.
 - The chat client uses Vercel AI SDK's `useChat` hook with `DefaultChatTransport` to POST conversation state to `/api/chat`.
-- `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata and `/api/chat/models` for provider-backed model suggestions when available.
+- `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata and `/api/chat/models` for provider-backed model suggestions when available, while persisting browser-local model visibility preferences so users can manage which models appear in the picker.
 - `components/chat-shell.tsx` keeps an in-memory `Chat` controller per open conversation so sidebar navigation changes the visible subscription without aborting an in-flight stream for another chat.
 - `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, and delegates chat execution to a Vercel AI SDK `ToolLoopAgent` through `createAgentUIStreamResponse`.
 - When `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, the agent can call `visualizeReadMe` and `showWidget`, and `components/generative-widget.tsx` renders streamed widget HTML inline inside assistant messages inside an isolated shadow-root host with a browser-side ZIP download action once rendering is complete. The ZIP includes the raw widget fragment and a standalone wrapped HTML file.
@@ -45,7 +45,7 @@ This file is the top-level map for the repository.
 ## Boundary Rules
 
 - Keep provider credentials and inference configuration server-side only.
-- Keep UI state in React components until persistence is explicitly added, but persist the chosen provider/model with each saved chat so reloads keep the same inference target.
+- Keep UI state in React components until persistence is explicitly added; the only browser-local exception today is model-visibility preferences for the picker, while the chosen provider/model is still persisted with each saved chat so reloads keep the same inference target.
 - Put shared provider logic in `lib/` before spreading it across route handlers.
 - Keep infrastructure and runtime orchestration explicit and versioned.
 - Treat generative UI as a trusted local capability; do not expose privileged browser or server APIs to widget code.
