@@ -26,31 +26,69 @@ Use the documented widget CSS variables for colors, fonts, borders, and radii. K
 Do not wrap widgetCode in a root element that only adds padding or font-family; the host already provides message spacing and font inheritance.`
   : "";
 
-function padTwoDigits(value: number) {
-  return value.toString().padStart(2, "0");
+type PromptTimeZoneReference = {
+  label: string;
+  timeZone: string;
+};
+
+const promptTimeZoneReferences: PromptTimeZoneReference[] = [
+  { label: "China", timeZone: "Asia/Shanghai" },
+  { label: "United States Pacific", timeZone: "America/Los_Angeles" },
+  { label: "United States Eastern", timeZone: "America/New_York" },
+];
+
+function getPromptDateParts(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  const parts = formatter.formatToParts(date);
+
+  return {
+    year: parts.find(({ type }) => type === "year")?.value ?? "0000",
+    month: parts.find(({ type }) => type === "month")?.value ?? "00",
+    day: parts.find(({ type }) => type === "day")?.value ?? "00",
+    hour: parts.find(({ type }) => type === "hour")?.value ?? "00",
+    minute: parts.find(({ type }) => type === "minute")?.value ?? "00",
+  };
 }
 
-function formatOffset(offsetMinutes: number) {
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const absoluteMinutes = Math.abs(offsetMinutes);
-  const hours = Math.floor(absoluteMinutes / 60);
-  const minutes = absoluteMinutes % 60;
+function formatTimeZoneOffset(date: Date, timeZone: string) {
+  const timeZoneName =
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      timeZoneName: "longOffset",
+    })
+      .formatToParts(date)
+      .find(({ type }) => type === "timeZoneName")?.value ?? "GMT";
 
-  return `UTC${sign}${padTwoDigits(hours)}:${padTwoDigits(minutes)}`;
+  return timeZoneName === "GMT"
+    ? "UTC+00:00"
+    : timeZoneName.replace("GMT", "UTC");
 }
 
-export function formatPromptDateToHour(date: Date) {
-  const year = date.getFullYear();
-  const month = padTwoDigits(date.getMonth() + 1);
-  const day = padTwoDigits(date.getDate());
-  const hour = padTwoDigits(date.getHours());
-  const offset = formatOffset(-date.getTimezoneOffset());
+export function formatPromptDateTimeForZone(date: Date, timeZone: string) {
+  const parts = getPromptDateParts(date, timeZone);
+  const offset = formatTimeZoneOffset(date, timeZone);
 
-  return `${year}-${month}-${day} ${hour}:00 ${offset}`;
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute} ${offset}`;
 }
 
 function getPromptDateLine(date: Date) {
-  return `Current date and time: ${formatPromptDateToHour(date)}.`;
+  const references = promptTimeZoneReferences
+    .map(
+      ({ label, timeZone }) =>
+        `${label} (${timeZone}) ${formatPromptDateTimeForZone(date, timeZone)}`
+    )
+    .join("; ");
+
+  return `Current time references: ${references}.`;
 }
 
 export function getChatSystemPrompt(date = new Date()) {
@@ -59,6 +97,7 @@ export function getChatSystemPrompt(date = new Date()) {
 Use the tavilySearch tool whenever the user asks for current information, recent news, live web facts, or anything that should be verified on the web.
 Do not claim you searched the web unless you actually used the tool.
 Default toward building a generative UI widget when that would make the result clearer, richer, or more memorable for the user.${generativeUIInstructions}
+When the user asks for relative-time current-events queries like "today", "latest", "this morning", or "yesterday", resolve them against the relevant region. For China and United States topics, watch for cross-day differences between China time and U.S. time, and name the timezone explicitly when it matters.
 
 ${getPromptDateLine(date)}`;
 }

@@ -10,6 +10,11 @@ import {
   type ChatProviderOption,
 } from "@/lib/chat-model-config";
 import { getOpenRouterProvider, openrouterConfig } from "@/lib/openrouter";
+import {
+  getVolcengineCodingProvider,
+  VOLCENGINE_CODING_SUGGESTED_MODELS,
+  volcengineCodingConfig,
+} from "@/lib/volcengine-coding";
 import { getVolcengineProvider, volcengineConfig } from "@/lib/volcengine";
 
 const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
@@ -36,6 +41,19 @@ const providerCatalog = {
     canListModels: true,
     defaultModelId: volcengineConfig.model,
     suggestedModels: [volcengineConfig.model],
+  },
+  "volcengine-coding": {
+    id: "volcengine-coding",
+    label: "Volcengine Coding",
+    description: "OpenAI-compatible Volcengine coding endpoint for Ark Code models",
+    apiKeyEnv: "VOLCENGINE_CODING_API_KEY",
+    configured: Boolean(volcengineCodingConfig.apiKey),
+    canListModels: false,
+    defaultModelId: volcengineCodingConfig.model,
+    suggestedModels: uniqueStrings([
+      volcengineCodingConfig.model,
+      ...VOLCENGINE_CODING_SUGGESTED_MODELS,
+    ]),
   },
   openai: {
     id: "openai",
@@ -93,6 +111,7 @@ const providerCatalog = {
 
 const chatProviderRegistry = createProviderRegistry({
   volcengine: getVolcengineProvider(),
+  "volcengine-coding": getVolcengineCodingProvider(),
   openai,
   openrouter: getOpenRouterProvider(),
   anthropic,
@@ -245,6 +264,8 @@ export function getMissingProviderKeyMessage(selection: ChatModelSelection) {
   switch (selection.providerId) {
     case "volcengine":
       return "VOLCENGINE_ACK_API_KEY is empty. Add your Volcengine API key to .env.local before chatting.";
+    case "volcengine-coding":
+      return "VOLCENGINE_CODING_API_KEY is empty. Add your Volcengine coding API key to .env.local before chatting.";
     case "openai":
       return "OPENAI_API_KEY is empty. Add your OpenAI API key to .env.local before chatting.";
     case "openrouter":
@@ -282,6 +303,17 @@ export async function fetchChatProviderModels(providerId: ChatProviderId) {
         volcengineConfig.baseURL,
         volcengineConfig.apiKey
       );
+    case "volcengine-coding":
+      if (!volcengineCodingConfig.apiKey) {
+        throw new Error(
+          getMissingProviderKeyMessage({
+            providerId: "volcengine-coding",
+            modelId: providerCatalog["volcengine-coding"].defaultModelId,
+          })
+        );
+      }
+
+      return uniqueStrings(providerCatalog["volcengine-coding"].suggestedModels);
     case "openai": {
       const apiKey = readEnv("OPENAI_API_KEY");
 

@@ -14,10 +14,10 @@ This file is the top-level map for the repository.
 
 - Browser users load `app/page.tsx`, which renders `components/chat-shell.tsx`.
 - The chat client uses Vercel AI SDK's `useChat` hook with `DefaultChatTransport` to POST conversation state to `/api/chat`.
-- `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata, `/api/chat/models` for provider-backed model suggestions when available, and `/api/chat/preferences` for persisted model-picker visibility preferences.
+- `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata, `/api/chat/models` for provider-backed model suggestions when available, and `/api/chat/preferences` for persisted model-picker visibility preferences, while the last manually chosen provider/model for the next new chat still remains browser-local.
 - `components/chat-shell.tsx` keeps an in-memory `Chat` controller per open conversation so sidebar navigation changes the visible subscription without aborting an in-flight stream for another chat.
-- `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, and delegates chat execution to a single Vercel AI SDK `ToolLoopAgent` through `createAgentUIStreamResponse`.
-- `app/api/chat/preferences/route.ts` stores global model-picker preferences such as hidden models in `.data/preferences/`.
+- `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, streams a single Vercel AI SDK `ToolLoopAgent`, and rewrites pre-`showWidget` assistant text chunks into reasoning chunks so widget lead-in prose stays in `Thinking` for both live streams and saved chats.
+- `app/api/chat/preferences/route.ts` stores global model-picker preferences such as hidden models in `.data/preferences/` so `Manage Models` survives reloads outside the browser.
 - When `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, the agent can call `visualizeReadMe` and `showWidget`, and `components/generative-widget.tsx` renders streamed widget HTML inline inside assistant messages inside an isolated shadow-root host with a browser-side ZIP download action once rendering is complete. The ZIP includes the raw widget fragment and a standalone wrapped HTML file.
 - `lib/chat-agent.ts` defines the single-agent prompt, gen-ui behavior bias, and step limit, while `lib/chat-models.ts` owns the provider registry and model-list fetchers.
 - `lib/starter-prompts.ts` owns backend starter recommendation copy, and `/api/starter-prompts` returns a randomized subset for the empty chat composer.
@@ -28,13 +28,17 @@ This file is the top-level map for the repository.
 - `lib/langsmith-ai.ts` wraps the AI SDK with LangSmith tracing so the agent loop, child LLM calls, tool calls, and tool results can be inspected when tracing is enabled.
 - `lib/openrouter.ts` owns the OpenRouter OpenAI-compatible provider instance and defaults.
 - `lib/tavily.ts` calls Tavily's search API so the agent can fetch current web information during a tool loop.
-- `lib/volcengine.ts` owns the Volcengine OpenAI-compatible provider instance and env aliases.
+- `lib/volcengine.ts` owns the Volcengine ACK OpenAI-compatible provider instance and env aliases.
+- `lib/volcengine-coding.ts` owns the Volcengine coding OpenAI-compatible provider instance and env aliases.
 
 ## Configuration
 
 - `VOLCENGINE_ACK_API_KEY` is required at runtime for real inference and is intentionally blank in `.env.example`.
 - `VOLCENGINE_ACK_BASE_URL` defaults to the public Ark OpenAI-compatible base URL and can be replaced with an AI acceleration gateway BaseUrl.
 - `VOLCENGINE_ACK_MODEL` selects the model or endpoint ID.
+- `VOLCENGINE_CODING_API_KEY` enables the Volcengine coding provider against the `/api/coding/v3` chat-completions surface.
+- `VOLCENGINE_CODING_BASE_URL` defaults to the public Volcengine coding OpenAI-compatible base URL.
+- `VOLCENGINE_CODING_MODEL` selects the default coding model id.
 - `OPENAI_API_KEY` and `OPENAI_MODEL` enable OpenAI in the provider selector.
 - `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, and `OPENROUTER_MODEL` enable OpenRouter in the provider selector.
 - `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` enable Anthropic in the provider selector.
@@ -43,12 +47,12 @@ This file is the top-level map for the repository.
 - `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true` enables trusted-mode generative UI tools and inline widget rendering.
 - `LANGSMITH_TRACING=true` enables LangSmith trace capture through `langsmith/experimental/vercel`.
 - `LANGSMITH_API_KEY`, `LANGSMITH_ENDPOINT`, and `LANGSMITH_PROJECT` configure trace ingestion and routing.
-- `VOLCENGINE_ARK_*` aliases are accepted for teams using Ark naming directly.
+- `VOLCENGINE_ARK_*` aliases are accepted for teams using Ark naming directly, including `VOLCENGINE_ARK_CODING_*` for the coding provider.
 
 ## Boundary Rules
 
 - Keep provider credentials and inference configuration server-side only.
-- Keep UI state in React components until persistence is explicitly added; hidden model-picker entries now persist server-side, while the chosen provider/model is still persisted with each saved chat so reloads keep the same inference target.
+- Keep UI state in React components until persistence is explicitly added; the remaining browser-local exception today is the last manually chosen provider/model for future new chats, while hidden model-picker entries now persist server-side and each saved chat still persists its own provider/model so reloads keep the same inference target.
 - Put shared provider logic in `lib/` before spreading it across route handlers.
 - Keep infrastructure and runtime orchestration explicit and versioned.
 - Treat generative UI as a trusted local capability; do not expose privileged browser or server APIs to widget code.
