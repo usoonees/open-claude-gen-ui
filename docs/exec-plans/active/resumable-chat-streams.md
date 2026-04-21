@@ -31,7 +31,7 @@ Make active chat generations survive browser refresh, tab close/reopen, and rout
   - `app/api/chat/history/route.ts`
   - `lib/chat-store.ts`
 - Constraints:
-  - The current chat route uses `createAgentUIStreamResponse`, not plain `streamText`.
+  - The current chat route uses `createAgentUIStreamResponse` around a single `ToolLoopAgent`, not plain `streamText`.
   - The AI SDK resume path requires `consumeSseStream` and a `GET /api/chat/[id]/stream` reconnect endpoint.
   - Stream resumption is incompatible with normal browser abort semantics; refresh recovery requires the backend producer to keep consuming the stream after client disconnect.
   - File-backed chat JSON can track `activeStreamId` and partial messages, but replaying missed chunks needs a stream buffer/pubsub backend such as Redis.

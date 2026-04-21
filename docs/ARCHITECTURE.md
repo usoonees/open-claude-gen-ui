@@ -16,14 +16,14 @@ This file is the top-level map for the repository.
 - The chat client uses Vercel AI SDK's `useChat` hook with `DefaultChatTransport` to POST conversation state to `/api/chat`.
 - `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata and `/api/chat/models` for provider-backed model suggestions when available, while persisting browser-local model visibility preferences so users can manage which models appear in the picker.
 - `components/chat-shell.tsx` keeps an in-memory `Chat` controller per open conversation so sidebar navigation changes the visible subscription without aborting an in-flight stream for another chat.
-- `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, and delegates chat execution to a Vercel AI SDK `ToolLoopAgent` through `createAgentUIStreamResponse`.
+- `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, and delegates chat execution to a single Vercel AI SDK `ToolLoopAgent` through `createAgentUIStreamResponse`.
 - When `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, the agent can call `visualizeReadMe` and `showWidget`, and `components/generative-widget.tsx` renders streamed widget HTML inline inside assistant messages inside an isolated shadow-root host with a browser-side ZIP download action once rendering is complete. The ZIP includes the raw widget fragment and a standalone wrapped HTML file.
-- `lib/chat-agent.ts` defines the agent instructions, step limit, and server-side tools available to the assistant, while `lib/chat-models.ts` owns the provider registry and model-list fetchers.
+- `lib/chat-agent.ts` defines the single-agent prompt, gen-ui behavior bias, and step limit, while `lib/chat-models.ts` owns the provider registry and model-list fetchers.
 - `lib/starter-prompts.ts` owns backend starter recommendation copy, and `/api/starter-prompts` returns a randomized subset for the empty chat composer.
 - `lib/chat-title.ts` decides whether a chat title can be generated, saves the first user prompt as the immediate placeholder title, and later resolves a short AI title in the background with the selected chat provider/model when inference is available.
-- `lib/chat-tools.ts` defines the shared Tavily and generative-UI tool contracts used by the agent and the typed chat UI.
+- `lib/chat-tools.ts` defines the shared Tavily and generative-UI tool contracts used by the chat agent and the typed chat UI.
 - `lib/generative-ui/` contains the trusted-mode flag, widget script allowlist, and vendored widget guideline source.
-- `lib/chat-store.ts` persists each conversation as a trace record that includes the UI messages, the current sidebar title state (`pending` placeholder or ready), the selected provider/model, and the resolved system prompt and enabled tool manifest captured at save time.
+- `lib/chat-store.ts` persists each conversation as a trace record that includes the UI messages, the current sidebar title state (`pending` placeholder or ready), the selected provider/model, the resolved system prompt, and the enabled tool manifest captured at save time.
 - `lib/langsmith-ai.ts` wraps the AI SDK with LangSmith tracing so the agent loop, child LLM calls, tool calls, and tool results can be inspected when tracing is enabled.
 - `lib/openrouter.ts` owns the OpenRouter OpenAI-compatible provider instance and defaults.
 - `lib/tavily.ts` calls Tavily's search API so the agent can fetch current web information during a tool loop.

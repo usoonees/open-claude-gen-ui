@@ -6,7 +6,9 @@ import {
   resolvePendingGeneratedTitle,
   writeChat,
 } from "@/lib/chat-store";
-import { getChatSystemPrompt } from "@/lib/chat-agent";
+import {
+  getChatSystemPrompt,
+} from "@/lib/chat-agent";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import { normalizeChatModelSelection } from "@/lib/chat-models";
@@ -31,9 +33,10 @@ function getIdFromRequest(request: Request) {
 
 function buildChatTrace(modelSelection: ChatModelSelection) {
   const now = new Date();
+  const systemPrompt = getChatSystemPrompt(now);
 
   return {
-    systemPrompt: getChatSystemPrompt(now),
+    systemPrompt,
     tools: getChatToolTraceList(),
     capturedAt: now.toISOString(),
     modelSelection,
