@@ -18,7 +18,7 @@ Add a first generative-UI slice that behaves like the Claude-style reference flo
 ## Risks
 
 - Risk: same-document widget execution can affect the host page.
-- Mitigation: keep the feature explicitly trusted/local only, expose only `window.sendPrompt`, and restrict external script execution to a narrow allowlist.
+- Mitigation: keep the feature explicitly trusted/local only, expose only the narrow `window.sendPrompt` and sanitized `window.openLink` host bridges, and restrict external script execution to a narrow allowlist.
 
 ## Milestones
 

@@ -6,6 +6,7 @@ import {
   type DownloadableGenerativeWidget,
 } from "@/components/generative-widget";
 import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
+import { openTrustedWidgetLink } from "@/lib/generative-ui/browser-links";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import { Chat as ReactChat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
@@ -96,6 +97,7 @@ type RenderableMessageItem =
 declare global {
   interface Window {
     sendPrompt?: (text: string) => void;
+    openLink?: (url: string) => boolean;
   }
 }
 
@@ -1109,9 +1111,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     window.sendPrompt = (text: string) => {
       void submitUserText(text, "widget");
     };
+    window.openLink = (url: string) => openTrustedWidgetLink(url);
 
     return () => {
       delete window.sendPrompt;
+      delete window.openLink;
     };
   });
 

@@ -81,7 +81,7 @@ All auto-adapt to light/dark mode. For custom colors in HTML, use CSS variables.
 A global function that sends a message to chat as if the user typed it. Use it when the user's next step benefits from Claude thinking. Handle filtering, sorting, toggling, and calculations in JS instead.
 
 ### Links
-\`<a href="https://...">\` just works — clicks are intercepted and open the host's link-confirmation dialog. Or call \`openLink(url)\` directly.
+\`<a href="https://...">\` just works — the host intercepts widget links and opens them in a new browser tab. Or call \`openLink(url)\` directly for clickable SVG nodes and custom handlers.
 
 ## When nothing fits
 Pick the closest use case below and adapt. When nothing fits cleanly:

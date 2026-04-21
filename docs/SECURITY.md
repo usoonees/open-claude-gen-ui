@@ -8,7 +8,7 @@ The repository now supports a trusted local generative UI mode behind `NEXT_PUBL
 
 - Treat this mode as local/dev-only. Generated widget HTML and JavaScript run in the same browser document as the chat surface.
 - Never expose server secrets, authenticated browser capabilities, or privileged host APIs to widget code.
-- The only supported host bridge is `window.sendPrompt(text)`, which appends a new user prompt into the current chat.
+- The supported host bridges are `window.sendPrompt(text)`, which appends a new user prompt into the current chat, and `window.openLink(url)`, which only opens sanitized `http(s)` URLs in a new tab.
 - Widget script execution only permits external script URLs from the allowlist in `lib/generative-ui/index.ts`.
 - If broader deployment safety is required later, move away from same-document injection before enabling the feature by default.
 

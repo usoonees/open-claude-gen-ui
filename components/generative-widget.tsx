@@ -2,6 +2,10 @@
 
 import morphdom from "morphdom";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  openTrustedWidgetLink,
+  resolveTrustedWidgetLink,
+} from "@/lib/generative-ui/browser-links";
 import { isAllowedWidgetScriptUrl } from "@/lib/generative-ui";
 
 type WidgetStatus = "streaming" | "ready" | "error";
@@ -389,6 +393,35 @@ export function GenerativeWidget({
     status === "streaming" && visibleLoadingMessage.length > 0;
 
   useEffect(() => {
+    if (!hostRef.current) {
+      return;
+    }
+
+    const host = hostRef.current;
+
+    function handleHostClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const anchor = event.target.closest("a[href]");
+
+      if (!(anchor instanceof HTMLAnchorElement) || !host.contains(anchor)) {
+        return;
+      }
+
+      event.preventDefault();
+      openTrustedWidgetLink(anchor.href);
+    }
+
+    host.addEventListener("click", handleHostClick);
+
+    return () => {
+      host.removeEventListener("click", handleHostClick);
+    };
+  }, []);
+
+  useEffect(() => {
     if (status !== "streaming" || loadingMessages.length <= 1) {
       return;
     }
@@ -437,6 +470,20 @@ export function GenerativeWidget({
         return node;
       },
     });
+
+    for (const anchor of source.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      const resolvedHref = resolveTrustedWidgetLink(anchor.getAttribute("href") ?? "");
+
+      if (!resolvedHref) {
+        anchor.removeAttribute("href");
+        continue;
+      }
+
+      anchor.href = resolvedHref;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.referrerPolicy = "no-referrer";
+    }
 
     if (status === "ready" && lastExecutedMarkupRef.current !== widgetCode) {
       executeScripts(source);
