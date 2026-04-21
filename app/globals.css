@@ -1699,25 +1699,28 @@ svg {
 
 .model-trigger {
   align-items: center;
-  background: rgba(249, 249, 246, 0.98);
-  border: 1px solid rgba(219, 216, 209, 0.92);
-  border-radius: 12px;
-  color: rgba(48, 48, 45, 0.88);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: rgba(72, 68, 62, 0.84);
   display: inline-flex;
-  font-size: 13px;
-  gap: 8px;
-  height: 34px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  height: auto;
+  line-height: 1.2;
   max-width: min(360px, calc(100vw - 140px));
   min-width: 0;
-  padding: 0 10px 0 8px;
+  padding: 0 0 0 6px;
   transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease,
     color 140ms ease;
 }
 
 .model-trigger:hover,
+.model-trigger:focus-visible {
+  color: var(--foreground);
+}
+
 .picker-icon-button:hover:not(:disabled) {
   background: rgba(255, 255, 252, 0.98);
   border-color: rgba(185, 182, 173, 0.92);
@@ -1738,22 +1741,8 @@ svg {
   width: 14px;
 }
 
-.model-trigger-badge {
-  align-items: center;
-  background: rgba(35, 35, 33, 0.92);
-  border-radius: 8px;
-  color: rgba(250, 248, 242, 0.98);
-  display: inline-flex;
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  height: 20px;
-  justify-content: center;
-  letter-spacing: 0.03em;
-  width: 20px;
-}
-
 .model-trigger-text {
+  color: rgba(48, 48, 45, 0.92);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
