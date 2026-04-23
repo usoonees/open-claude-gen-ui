@@ -119,6 +119,8 @@ type WidgetToolInput = {
   loadingMessages?: string[];
 };
 
+const SHOWCASE_GITHUB_URL = "https://github.com/usoonees/open-claude-gen-ui";
+
 type RenderableMessageItem =
   | {
       kind: "text";
@@ -245,40 +247,6 @@ function providerCredentialSummary(provider: ChatProviderOption | undefined) {
   }
 
   return `Using ${provider.apiKeyEnv} from the environment.`;
-}
-
-function tavilyCredentialSummary(settings: TavilySettingsSummary | null | undefined) {
-  if (!settings?.configured) {
-    return "No Tavily API key saved yet.";
-  }
-
-  if (settings.credentialSource === "frontend") {
-    return settings.keyPreview
-      ? `Saved locally as ${settings.keyPreview}.`
-      : "Saved locally.";
-  }
-
-  return `Using ${settings.apiKeyEnv} from the environment.`;
-}
-
-function generativeUISettingsSummary(
-  settings: GenerativeUISettingsSummary | null | undefined
-) {
-  if (!settings) {
-    return "Generative UI widgets are on by default.";
-  }
-
-  if (settings.source === "frontend") {
-    return settings.enabled
-      ? "Saved locally. Generative UI widgets are enabled."
-      : "Saved locally. Generative UI widgets are disabled.";
-  }
-
-  if (settings.source === "env") {
-    return `Using ${settings.envVar} from the environment.`;
-  }
-
-  return "Using the app default. Generative UI widgets are enabled.";
 }
 
 function getConfiguredProviderOptions(providers: ChatProviderOption[]) {
@@ -2958,10 +2926,6 @@ export function ChatShell({
   }
 
   function openSettings() {
-    if (readOnly) {
-      return;
-    }
-
     setOpenMenuChatId(null);
     resetTavilyCredentialForm();
     resetGenerativeUIForm();
@@ -3354,8 +3318,7 @@ export function ChatShell({
             <button
               className="sidebar-settings-button"
               onClick={openSettings}
-              disabled={readOnly}
-              title={readOnly ? "Showcase settings are locked" : "Open settings"}
+              title={readOnly ? "View settings" : "Open settings"}
               type="button"
             >
               <span className="sidebar-settings-icon">
@@ -3417,7 +3380,6 @@ export function ChatShell({
           role="presentation"
         >
           <section
-            aria-describedby="settings-description"
             aria-labelledby="settings-title"
             className="dialog-card settings-dialog"
             onClick={(event) => event.stopPropagation()}
@@ -3426,12 +3388,7 @@ export function ChatShell({
           >
             <div className="settings-header">
               <div className="settings-copy">
-                <p className="settings-eyebrow">Settings</p>
-                <h2 id="settings-title">Search, widgets, and models</h2>
-                <p className="settings-description" id="settings-description">
-                  Manage live web search, trusted generative UI widgets, and model
-                  visibility from the sidebar footer.
-                </p>
+                <h2 id="settings-title">Settings</h2>
               </div>
               <button
                 aria-label="Close settings"
@@ -3443,18 +3400,25 @@ export function ChatShell({
                 <CloseIcon />
               </button>
             </div>
+            {readOnly ? (
+              <div className="settings-showcase-note">
+                <p className="settings-showcase-copy">
+                  Showcase mode is view-only. Use the source repo for local setup.
+                </p>
+                <Link
+                  className="settings-github-link"
+                  href={SHOWCASE_GITHUB_URL}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  View on GitHub
+                </Link>
+              </div>
+            ) : null}
             <div className="settings-stack">
               <section className="settings-section-card">
                 <div className="settings-section-copy">
-                  <p className="settings-section-eyebrow">Web search</p>
                   <h3>Tavily API key</h3>
-                  <p className="settings-section-description">
-                    The assistant uses Tavily for current web results. Saved keys stay
-                    local to this app and work without restarting.
-                  </p>
-                  <p className="settings-section-meta">
-                    {tavilyCredentialSummary(tavilySettings)}
-                  </p>
                 </div>
                 <form
                   autoComplete="off"
@@ -3480,10 +3444,15 @@ export function ChatShell({
                       }
                     }}
                     placeholder={
-                      tavilySettings.configured ? "****************" : "Paste Tavily API key"
+                      readOnly
+                        ? "Showcase mode is view-only"
+                        : tavilySettings.configured
+                          ? "****************"
+                          : "Paste Tavily API key"
                     }
                     ref={tavilyApiKeyInputRef}
                     spellCheck={false}
+                    disabled={readOnly}
                     type="text"
                     value={tavilyApiKeyInput}
                   />
@@ -3501,7 +3470,7 @@ export function ChatShell({
                   <div className="provider-option-actions">
                     <button
                       className="dialog-button"
-                      disabled={tavilyCredentialMutation.status === "saving"}
+                      disabled={readOnly || tavilyCredentialMutation.status === "saving"}
                       type="submit"
                     >
                       {tavilyCredentialMutation.status === "saving"
@@ -3511,7 +3480,7 @@ export function ChatShell({
                     {tavilySettings.credentialSource === "frontend" ? (
                       <button
                         className="dialog-button"
-                        disabled={tavilyCredentialMutation.status === "saving"}
+                        disabled={readOnly || tavilyCredentialMutation.status === "saving"}
                         onClick={() => {
                           void removeStoredTavilyCredential();
                         }}
@@ -3526,15 +3495,7 @@ export function ChatShell({
 
               <section className="settings-section-card">
                 <div className="settings-section-copy">
-                  <p className="settings-section-eyebrow">Generative UI</p>
                   <h3>Trusted widget mode</h3>
-                  <p className="settings-section-description">
-                    Inline widgets are enabled by default. Turn them off here if you
-                    want the assistant to stay in text-and-tool mode.
-                  </p>
-                  <p className="settings-section-meta">
-                    {generativeUISettingsSummary(generativeUISettings)}
-                  </p>
                 </div>
                 <div className="settings-toggle-row">
                   <button
@@ -3542,7 +3503,7 @@ export function ChatShell({
                     className={`settings-switch${
                       generativeUISettings.enabled ? " is-active" : ""
                     }`}
-                    disabled={generativeUIMutation.status === "saving"}
+                    disabled={readOnly || generativeUIMutation.status === "saving"}
                     onClick={() => {
                       void updateGenerativeUITrustedMode(
                         !generativeUISettings.enabled
@@ -3550,9 +3511,11 @@ export function ChatShell({
                     }}
                     role="switch"
                     title={
-                      generativeUISettings.enabled
-                        ? "Turn trusted widget mode off"
-                        : "Turn trusted widget mode on"
+                      readOnly
+                        ? "Showcase mode is view-only"
+                        : generativeUISettings.enabled
+                          ? "Turn trusted widget mode off"
+                          : "Turn trusted widget mode on"
                     }
                     type="button"
                   >
@@ -3562,11 +3525,6 @@ export function ChatShell({
                     <span className="settings-switch-copy">
                       <span className="settings-switch-label">
                         {generativeUISettings.enabled ? "On" : "Off"}
-                      </span>
-                      <span className="settings-switch-caption">
-                        {generativeUISettings.enabled
-                          ? "Prefer widgets"
-                          : "Text-first replies"}
                       </span>
                     </span>
                   </button>
@@ -3586,32 +3544,24 @@ export function ChatShell({
 
               <section className="settings-section-card">
                 <div className="settings-section-copy">
-                  <p className="settings-section-eyebrow">Models</p>
-                  <h3>Visibility and providers</h3>
-                  <p className="settings-section-description">
-                    Open the existing model management window to show or hide models
-                    and connect providers.
-                  </p>
+                  <h3>Model management</h3>
                 </div>
                 <div className="settings-shortcuts">
                   <button
                     className="dialog-button danger"
+                    disabled={readOnly}
                     onClick={openManageModels}
+                    title={
+                      readOnly
+                        ? "Model management is unavailable in showcase mode"
+                        : "Manage models"
+                    }
                     type="button"
                   >
                     Manage models
                   </button>
                 </div>
               </section>
-            </div>
-            <div className="dialog-actions settings-actions">
-              <button
-                className="dialog-button"
-                onClick={closeSettings}
-                type="button"
-              >
-                Close
-              </button>
             </div>
           </section>
         </div>
@@ -4286,11 +4236,15 @@ export function ChatShell({
 
           {error && <p className="error-banner">{error.message}</p>}
 
-          <form className="composer" onSubmit={submitMessage}>
+          <form
+            className={`composer${readOnly ? " is-read-only" : ""}`}
+            onSubmit={submitMessage}
+          >
             <label className="sr-only" htmlFor="chat-input">
               Message
             </label>
             <textarea
+              disabled={readOnly}
               id="chat-input"
               ref={inputRef}
               onChange={(event) => setInput(event.target.value)}
@@ -4300,7 +4254,7 @@ export function ChatShell({
                   submitMessage();
                 }
               }}
-              placeholder="Ask anything..."
+              placeholder={readOnly ? "Showcase mode is view-only" : "Ask anything..."}
               rows={3}
               value={input}
             />
