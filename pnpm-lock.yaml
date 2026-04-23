@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  uuid: 14.0.0
+
 importers:
 
   .:
@@ -813,8 +816,8 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  uuid@10.0.0:
-    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+  uuid@14.0.0:
+    resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
     hasBin: true
 
   vfile-message@4.0.3:
@@ -1162,7 +1165,7 @@ snapshots:
   langsmith@0.5.20(@opentelemetry/api@1.9.0):
     dependencies:
       p-queue: 6.6.2
-      uuid: 10.0.0
+      uuid: 14.0.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
 
@@ -1749,7 +1752,7 @@ snapshots:
     dependencies:
       react: 19.2.5
 
-  uuid@10.0.0: {}
+  uuid@14.0.0: {}
 
   vfile-message@4.0.3:
     dependencies:
