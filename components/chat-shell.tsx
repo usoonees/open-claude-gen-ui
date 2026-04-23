@@ -164,8 +164,11 @@ const DEFAULT_GENERATIVE_UI_SETTINGS: GenerativeUISettingsSummary = {
   source: "default",
 };
 
-const MODEL_VISIBILITY_STORAGE_KEY = "open-visual-layout:model-visibility:v1";
-const MODEL_SELECTION_STORAGE_KEY = "open-visual-layout:model-selection:v1";
+const LEGACY_MODEL_VISIBILITY_STORAGE_KEY =
+  "open-visual-layout:model-visibility:v1";
+const MODEL_VISIBILITY_STORAGE_KEY = "open-claude-gen-ui:model-visibility:v1";
+const LEGACY_MODEL_SELECTION_STORAGE_KEY = "open-visual-layout:model-selection:v1";
+const MODEL_SELECTION_STORAGE_KEY = "open-claude-gen-ui:model-selection:v1";
 
 function uniqueStrings(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
@@ -173,6 +176,25 @@ function uniqueStrings(values: string[]) {
 
 function modelVisibilityKey(providerId: string, modelId: string) {
   return `${providerId}:${modelId}`;
+}
+
+function getLocalStorageValueWithLegacyFallback(
+  primaryKey: string,
+  legacyKey: string
+) {
+  const primaryValue = window.localStorage.getItem(primaryKey);
+
+  if (primaryValue !== null) {
+    return primaryValue;
+  }
+
+  const legacyValue = window.localStorage.getItem(legacyKey);
+
+  if (legacyValue !== null) {
+    window.localStorage.setItem(primaryKey, legacyValue);
+  }
+
+  return legacyValue;
 }
 
 function modelSelectionFromUnknown(value: unknown) {
@@ -1396,7 +1418,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     try {
       localHiddenModelKeys = normalizeHiddenModelKeys(
         JSON.parse(
-          window.localStorage.getItem(MODEL_VISIBILITY_STORAGE_KEY) ?? "[]"
+          getLocalStorageValueWithLegacyFallback(
+            MODEL_VISIBILITY_STORAGE_KEY,
+            LEGACY_MODEL_VISIBILITY_STORAGE_KEY
+          ) ?? "[]"
         )
       );
     } catch {
@@ -1446,6 +1471,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       MODEL_SELECTION_STORAGE_KEY,
       JSON.stringify(normalizedSelection)
     );
+    window.localStorage.removeItem(LEGACY_MODEL_SELECTION_STORAGE_KEY);
   }
 
   function cacheChatModelSelection(chatKey: string, selection: ChatModelSelection) {
@@ -1786,6 +1812,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       MODEL_VISIBILITY_STORAGE_KEY,
       JSON.stringify(hiddenModelKeys)
     );
+    window.localStorage.removeItem(LEGACY_MODEL_VISIBILITY_STORAGE_KEY);
 
     void saveModelVisibilityPreferences(hiddenModelKeys).catch((error) => {
       debugChat("model-visibility:save:error", {
@@ -2057,7 +2084,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     try {
       storedManualSelection = modelSelectionFromUnknown(
         JSON.parse(
-          window.localStorage.getItem(MODEL_SELECTION_STORAGE_KEY) ?? "null"
+          getLocalStorageValueWithLegacyFallback(
+            MODEL_SELECTION_STORAGE_KEY,
+            LEGACY_MODEL_SELECTION_STORAGE_KEY
+          ) ?? "null"
         )
       );
     } catch {
@@ -2101,8 +2131,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           MODEL_SELECTION_STORAGE_KEY,
           JSON.stringify(nextManualDefaultSelection)
         );
+        window.localStorage.removeItem(LEGACY_MODEL_SELECTION_STORAGE_KEY);
       } else {
         window.localStorage.removeItem(MODEL_SELECTION_STORAGE_KEY);
+        window.localStorage.removeItem(LEGACY_MODEL_SELECTION_STORAGE_KEY);
       }
     }
     writeDraftModelSelection(

@@ -761,7 +761,7 @@ function runWidgetExecutor(
   } catch (error) {
     const message = widgetExecutionErrorMessage(stage, error);
 
-    console.error("[open-visual-layout] widget execution failed", {
+    console.error("[open-claude-gen-ui] widget execution failed", {
       stage,
       error,
       bodyPreview: body.slice(0, 600),

@@ -9,7 +9,7 @@ export const tracedAI = wrapAISDK(ai, {
   name: "chat-agent",
   tags: ["chat", "tool-loop", "volcengine"],
   metadata: {
-    app: "open-visual-layout",
+    app: "open-claude-gen-ui",
     route: "/api/chat",
   },
   traceResponseMetadata: true,
