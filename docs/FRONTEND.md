@@ -70,6 +70,8 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Tool badges in the `Thinking` block should render canonical camelCase names, including `tavilySearch`, `visualizeReadMe`, and `showWidget`, without uppercase text transform or inserted spaces.
 - When trusted-mode generation calls `visualizeReadMe`, verify the `Thinking` block renders an explicit visible one-line tool call that shows just the module names, such as `Diagram, Interactive`, before any `showWidget` call, and keeps the large guideline output hidden from the chat UI.
 - Hover or focus a user or assistant message and verify the inline `Copy` action appears and copies that message's rendered text.
+- After an assistant turn finishes, confirm only the most recent assistant message also shows a `Replay response` action next to `Copy`, and that clicking it replays a fast synthetic stream rebuilt from the saved assistant message without another model call.
+- With `SHOWCASE_ONLY=true`, confirm the shared `/chat/:id` routes still render the same sidebar and composer shell as the live app, the six curated chats load from exported snapshots, and the send button stays disabled with write controls such as chat options, settings, and model selection locked.
 
 ## Component Boundaries
 

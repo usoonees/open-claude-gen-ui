@@ -1,0 +1,144 @@
+{
+  "slug": "nba",
+  "sourceChatId": "7d75f9e3-51bd-426a-8a39-d147d798d883",
+  "title": "NBA news board",
+  "description": "A current-events sports example that preserves sourced tool traces plus the final visual summary.",
+  "updatedAt": "2026-04-23T04:59:34.293Z",
+  "modelSelection": {
+    "providerId": "openrouter",
+    "modelId": "z-ai/glm-5.1"
+  },
+  "modelId": "z-ai/glm-5.1",
+  "messages": [
+    {
+      "id": "local-d63a429a-132b-4757-9523-1f105dc51140",
+      "role": "user",
+      "parts": [
+        {
+          "type": "text",
+          "text": "nba thunder news"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "role": "assistant",
+      "metadata": {
+        "modelId": "z-ai/glm-5.1"
+      },
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user is asking for NBA Thunder news. Let me search for the latest news about the Oklahoma City Thunder.",
+          "state": "done"
+        },
+        {
+          "type": "tool-tavilySearch",
+          "toolCallId": "call_202341c6851144cf8fee5ad2",
+          "state": "output-available",
+          "input": {
+            "query": "NBA Oklahoma City Thunder news 2026",
+            "topic": "news",
+            "maxResults": 8
+          },
+          "output": {
+            "query": "NBA Oklahoma City Thunder news 2026",
+            "results": [
+              {
+                "title": "Reigning MVP Shai Gilgeous-Alexander and the Thunder begin their quest for a repeat against the Suns - AP News",
+                "url": "https://apnews.com/article/suns-thunder-6aa5279d043904434525a5d4164e6d88"
+              },
+              {
+                "title": "Oklahoma City Thunder Seeks Series Advantage Against Phoenix Suns - HarianBasis.co",
+                "url": "https://www.harianbasis.co/en/thunder-suns-game-two-preview"
+              },
+              {
+                "title": "null null vs Oklahoma City Thunder Apr 22, 2026 Game Summary - NBA",
+                "url": "https://www.nba.com/thunder/game/0042500142"
+              },
+              {
+                "title": "Oklahoma City Thunder vs null null Apr 26, 2026 Game Summary - NBA",
+                "url": "https://www.nba.com/thunder/game/0042500144"
+              },
+              {
+                "title": "null null vs Oklahoma City Thunder May 2, 2026 Game Summary - NBA",
+                "url": "https://www.nba.com/thunder/game/0042500147"
+              },
+              {
+                "title": "Full List of 2026 NBA Awards Finalists for DPOY, 6th Man of Year, MIP, More - Bleacher Report",
+                "url": "https://bleacherreport.com/articles/25419786-full-list-2026-nba-awards-finalists-dpoy-6th-man-year-mip-more"
+              },
+              {
+                "title": "Full List of 2026 NBA Awards Finalists for MVP, DPOY, ROY, 6th Man of Year, COY, MIP - Bleacher Report",
+                "url": "https://bleacherreport.com/articles/25419786-full-list-2026-nba-awards-finalists-mvp-dpoy-roy-6th-man-year-coy-mip"
+              },
+              {
+                "title": "Thunder vs. Suns odds, prediction, time: 2026 NBA playoff picks, Game 2 best bets by proven model - CBS Sports",
+                "url": "https://www.cbssports.com/nba/news/thunder-suns-odds-prediction-spread-time-2026-nba-playoff-picks-game-2-best-bets/"
+              }
+            ]
+          }
+        },
+        {
+          "type": "tool-visualizeReadMe",
+          "toolCallId": "call_5d7cce37b4524d65986cde9d",
+          "state": "output-available",
+          "input": {
+            "modules": [
+              "mockup",
+              "chart"
+            ]
+          },
+          "output": {
+            "modules": [
+              "mockup",
+              "chart"
+            ]
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "I have the search results now. Let me compile the key Thunder news and build a visual widget for it.\n\nKey facts:\n1. OKC Thunder are in the Western Conference first-round playoffs vs Phoenix Suns\n2. Thunder won Game 1: 119-84\n3. Game 2 was scheduled for Wednesday April 22, 2026 at 9:30 PM ET at Paycom Center\n4. Thunder are the 1st seed (65-18 regular season record), Suns are 8th seed (46-39)\n5. Shai Gilgeous-Alexander is the reigning MVP, up for MVP again (finalist with Jokic and Wembanyama)\n6. SGA averaged 31.1 PPG, 6.6 APG this season\n7. Chet Holmgren is a DPOY finalist\n8. Jalen Williams had 22 points in Game 1\n9. Thunder are 17.5-point favorites in Game 2\n10. Thunder had the best regular season record at 64-18 (wait, one source says 65-18, another says 64-18 - CBS says 65-18)\n\nLet me build a nice widget with this info.",
+          "state": "done"
+        },
+        {
+          "type": "tool-showWidget",
+          "toolCallId": "call_d29ccee75ff9469f9f697a5b",
+          "state": "output-available",
+          "input": {
+            "iHaveSeenReadMe": true,
+            "title": "thunder_news_dashboard",
+            "loadingMessages": [
+              "Loading Thunder playoff data...",
+              "Building dashboard..."
+            ],
+            "widgetCode": "<style>\n.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem}\n.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem;text-align:center}\n.metric-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:4px}\n.metric-value{font-size:24px;font-weight:500;color:var(--color-text-primary)}\n.badge{display:inline-block;font-size:11px;font-weight:500;padding:3px 10px;border-radius:var(--border-radius-md);margin-right:6px}\n.series-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:8px}\n.tag{font-size:12px;color:var(--color-text-secondary);margin-bottom:2px}\n</style>\n\n<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:16px;\">\n  <div style=\"width:40px;height:40px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px;color:var(--color-text-info);\">OKC</div>\n  <div>\n    <h2 style=\"margin:0;font-size:18px;font-weight:500;\">Oklahoma City Thunder</h2>\n    <span style=\"font-size:13px;color:var(--color-text-secondary);\">1st seed west  ·  65-18  ·  defending champions</span>\n  </div>\n</div>\n\n<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;\">\n  <div class=\"metric\"><div class=\"metric-label\">Game 1</div><div class=\"metric-value\" style=\"color:var(--color-text-success);\">W</div><div class=\"tag\">119-84</div></div>\n  <div class=\"metric\"><div class=\"metric-label\">Series</div><div class=\"metric-value\">1-0</div><div class=\"tag\">vs PHX</div></div>\n  <div class=\"metric\"><div class=\"metric-label\">Home record</div><div class=\"metric-value\">34-7</div><div class=\"tag\">Paycom Center</div></div>\n  <div class=\"metric\"><div class=\"metric-label\">Game 2 line</div><div class=\"metric-value\">-17.5</div><div class=\"tag\">Wed Apr 22, 9:30 ET</div></div>\n</div>\n\n<div class=\"card\" style=\"margin-bottom:12px;\">\n  <div style=\"font-weight:500;font-size:15px;margin-bottom:10px;\">Playoff series vs Phoenix Suns</div>\n  <div style=\"display:flex;gap:16px;font-size:13px;color:var(--color-text-secondary);margin-bottom:6px;\">\n    <span>OKC</span>\n    <span style=\"flex:1;\"></span>\n    <span>PHX</span>\n  </div>\n  <div class=\"series-bar\">\n    <div style=\"width:50%;background:var(--color-background-info);\"></div>\n    <div style=\"width:50%;background:var(--color-background-tertiary);\"></div>\n  </div>\n  <div style=\"display:flex;justify-content:space-between;font-size:12px;color:var(--color-text-secondary);margin-top:4px;\">\n    <span>1 win</span>\n    <span>0 wins</span>\n  </div>\n  <div style=\"margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;\">\n    <span class=\"badge\" style=\"background:var(--color-background-success);color:var(--color-text-success);\">G1: W 119-84</span>\n    <span class=\"badge\" style=\"background:var(--color-background-secondary);color:var(--color-text-secondary);\">G2: Apr 22</span>\n    <span class=\"badge\" style=\"background:var(--color-background-secondary);color:var(--color-text-secondary);\">G3: Apr 26 @ PHX</span>\n    <span class=\"badge\" style=\"background:var(--color-background-secondary);color:var(--color-text-secondary);\">G4: Apr 28 @ PHX</span>\n    <span class=\"badge\" style=\"background:var(--color-background-secondary);color:var(--color-text-secondary);\">G5: May 2</span>\n  </div>\n</div>\n\n<div class=\"card\" style=\"margin-bottom:12px;\">\n  <div style=\"font-weight:500;font-size:15px;margin-bottom:10px;\">Key players</div>\n  <div style=\"display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;\">\n    <div>\n      <div style=\"font-weight:500;\">Shai Gilgeous-Alexander</div>\n      <div style=\"color:var(--color-text-secondary);\">31.1 PPG · 6.6 APG</div>\n      <div style=\"display:flex;gap:4px;margin-top:4px;\">\n        <span class=\"badge\" style=\"background:var(--color-background-info);color:var(--color-text-info);\">MVP finalist</span>\n        <span class=\"badge\" style=\"background:var(--color-background-warning);color:var(--color-text-warning);\">Clutch finalist</span>\n      </div>\n    </div>\n    <div>\n      <div style=\"font-weight:500;\">Chet Holmgren</div>\n      <div style=\"color:var(--color-text-secondary);\">DPOY finalist</div>\n      <div style=\"display:flex;gap:4px;margin-top:4px;\">\n        <span class=\"badge\" style=\"background:var(--color-background-success);color:var(--color-text-success);\">DPOY finalist</span>\n      </div>\n    </div>\n    <div>\n      <div style=\"font-weight:500;\">Jalen Williams</div>\n      <div style=\"color:var(--color-text-secondary);\">22 pts in Game 1</div>\n    </div>\n    <div>\n      <div style=\"font-weight:500;\">Top-ranked defense</div>\n      <div style=\"color:var(--color-text-secondary);\">11 fewer turnovers than PHX in G1</div>\n    </div>\n  </div>\n</div>\n\n<div class=\"card\">\n  <div style=\"font-weight:500;font-size:15px;margin-bottom:8px;\">2026 award finalists</div>\n  <div style=\"font-size:13px;color:var(--color-text-secondary);\">\n    <div style=\"display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary);\"><span>MVP</span><span style=\"color:var(--color-text-primary);font-weight:500;\">SGA vs Jokic vs Wembanyama</span></div>\n    <div style=\"display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary);\"><span>DPOY</span><span style=\"color:var(--color-text-primary);font-weight:500;\">Holmgren vs Wembanyama vs A. Thompson</span></div>\n    <div style=\"display:flex;justify-content:space-between;padding:4px 0;\"><span>Clutch</span><span style=\"color:var(--color-text-primary);font-weight:500;\">SGA vs Edwards vs Murray</span></div>\n  </div>\n</div>\n"
+          },
+          "output": {
+            "rendered": true,
+            "title": "thunder_news_dashboard"
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The widget rendered successfully. Let me provide a text summary of the key news as well.",
+          "state": "done"
+        },
+        {
+          "type": "text",
+          "text": "Here's the latest on the Oklahoma City Thunder:\n\n**Playoffs — West first round vs. Phoenix Suns**\n- The top-seeded Thunder (65-18) demolished the 8th-seeded Suns **119-84** in Game 1 on Sunday. Jalen Williams led the way with 22 points despite SGA shooting just 5-for-18.\n- **Game 2** is Wednesday, April 22 at 9:30 PM ET on ESPN at Paycom Center. OKC is a massive 17.5-point favorite.\n- The series schedule runs through at least May 2 (Game 5, if needed).\n\n**Award season highlights**\n- **SGA** is a finalist for both **MVP** (vs. Jokic and Wembanyama) and **Clutch Player of the Year** after averaging 31.1 PPG and 6.6 APG while leading the league's best record.\n- **Chet Holmgren** is a **Defensive Player of the Year** finalist alongside Wembanyama and Ausar Thompson.\n\n**Key storylines**\n- The Thunder's league-best defense forced 11 more turnovers than the Suns in Game 1, setting the tone.\n- Phoenix relied heavily on perimeter shooting (47% of shots from 3) but couldn't capitalize on weak-side rotations.\n- SGA is seeking a **repeat MVP** and a **repeat NBA championship** — OKC is no longer the young upstart, they're the defending champs.",
+          "state": "done"
+        }
+      ]
+    }
+  ]
+}

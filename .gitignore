@@ -48,3 +48,5 @@ venv/
 # Misc generated artifacts
 *.swp
 *.swo
+artifacts/
+.vercel

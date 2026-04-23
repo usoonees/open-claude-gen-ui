@@ -1,0 +1,103 @@
+{
+  "slug": "roadmap",
+  "sourceChatId": "25d4c6bf-f005-43ed-becf-2c82cb1ad6c1",
+  "title": "Full-stack TypeScript roadmap",
+  "description": "An interactive roadmap widget that stays locally interactive while the surrounding chat stays read-only.",
+  "updatedAt": "2026-04-23T04:58:06.937Z",
+  "modelSelection": {
+    "providerId": "openrouter",
+    "modelId": "z-ai/glm-5.1"
+  },
+  "modelId": "z-ai/glm-5.1",
+  "messages": [
+    {
+      "id": "local-0c9f9958-2c09-43b9-a878-e77b4cdd7891",
+      "role": "user",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Create an interactive roadmap for learning full-stack TypeScript"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "role": "assistant",
+      "metadata": {
+        "modelId": "z-ai/glm-5.1"
+      },
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user wants an interactive roadmap for learning full-stack TypeScript. This is a great candidate for a generative UI widget - it's visual, interactive, and would benefit from a structured diagram-like layout.\n\nLet me first call visualizeReadMe to get the guidelines, then build the widget.",
+          "state": "done"
+        },
+        {
+          "type": "tool-visualizeReadMe",
+          "toolCallId": "call_2710850e38324f07aec70be3",
+          "state": "output-available",
+          "input": {
+            "modules": [
+              "diagram",
+              "interactive"
+            ]
+          },
+          "output": {
+            "modules": [
+              "diagram",
+              "interactive"
+            ]
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have the guidelines. Let me plan an interactive roadmap for learning full-stack TypeScript. This is a great fit for an interactive HTML widget with a stepper/progression approach.\n\nThe roadmap should cover:\n1. TypeScript fundamentals\n2. Frontend with TypeScript (React/Next.js)\n3. Backend with TypeScript (Node.js)\n4. Database & ORM\n5. Full-stack integration\n6. Deployment & DevOps\n\nI'll create an interactive widget with:\n- Phases/stages that users can click through\n- Each phase shows topics, resources, and estimated time\n- Progress tracking with visual indicators\n- Click-through detail panels\n\nLet me design this as a rich interactive HTML widget with multiple phases, each expandable, with visual progression indicators.\n\nI'll use a stepper-style layout with phases that users can click to expand, showing subtopics and key skills for each phase.\n\nLet me think about the layout:\n- A vertical timeline/roadmap with phases\n- Each phase has a circle indicator and a card\n- Clicking a phase expands it to show details\n- A progress bar or phase indicator at the top\n\nLet me build this out. I need to keep it within the widget constraints - no gradients, no shadows, use CSS variables, etc.\n\nI'll structure the roadmap into these phases:\n1. TypeScript core (types, interfaces, generics, utility types)\n2. Frontend foundations (React + TS, state management, routing)\n3. Backend foundations (Node.js + TS, Express/Fastify, REST APIs)\n4. Database layer (PostgreSQL, Prisma/Drizzle, migrations)\n5. Full-stack framework (Next.js, tRPC, auth)\n6. Testing & quality (Jest, Playwright, linting)\n7. Deployment & DevOps (Docker, CI/CD, monitoring)\n\nLet me create an interactive widget with these phases. I'll make it so clicking a phase expands the detail card, and there's a progress indicator.\n\nI need to be careful about the complexity - keep it rich but not overflowing. Let me use a vertical stepper with clickable phase cards.\n\nLet me code this up now.",
+          "state": "done"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I'll build the interactive roadmap widget.",
+          "state": "done"
+        },
+        {
+          "type": "tool-showWidget",
+          "toolCallId": "call_ae78d16991f4469dbb54d680",
+          "state": "output-available",
+          "input": {
+            "iHaveSeenReadMe": true,
+            "title": "fullstack_ts_roadmap",
+            "loadingMessages": [
+              "Mapping your full-stack TypeScript journey",
+              "Building interactive phase cards",
+              "Connecting the learning path"
+            ],
+            "widgetCode": "<style>\n  .phase-row { display: flex; gap: 16px; align-items: stretch; margin-bottom: 4px; cursor: pointer; }\n  .phase-marker { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }\n  .phase-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; border: 2px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-secondary); transition: all .2s; }\n  .phase-dot.active { border-color: var(--color-text-info); background: var(--color-background-info); color: var(--color-text-info); }\n  .phase-dot.done { border-color: var(--color-text-success); background: var(--color-background-success); color: var(--color-text-success); }\n  .phase-line { flex: 1; width: 2px; background: var(--color-border-tertiary); min-height: 8px; transition: background .2s; }\n  .phase-line.done { background: var(--color-text-success); }\n  .phase-card { flex: 1; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px; background: var(--color-background-primary); transition: all .2s; margin-bottom: 4px; }\n  .phase-card:hover { border-color: var(--color-border-secondary); }\n  .phase-card.active { border-color: var(--color-text-info); border-width: 1.5px; }\n  .phase-card.done { border-color: var(--color-text-success); border-width: 1.5px; }\n  .phase-header { display: flex; justify-content: space-between; align-items: center; }\n  .phase-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }\n  .phase-time { font-size: 12px; color: var(--color-text-tertiary); background: var(--color-background-secondary); padding: 2px 8px; border-radius: var(--border-radius-md); }\n  .phase-desc { font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 0; line-height: 1.5; }\n  .phase-detail { overflow: hidden; max-height: 0; transition: max-height .35s ease, margin .2s; }\n  .phase-detail.open { max-height: 500px; margin-top: 12px; }\n  .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }\n  .skill-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-secondary); }\n  .skill-check { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--color-border-secondary); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; background: var(--color-background-primary); color: transparent; transition: all .15s; }\n  .skill-check.checked { background: var(--color-background-success); border-color: var(--color-text-success); color: var(--color-text-success); }\n  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }\n  .tag { font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); }\n  .tag-tool { background: var(--color-background-info); color: var(--color-text-info); }\n  .tag-lib { background: var(--color-background-warning); color: var(--color-text-warning); }\n  .progress-bar { height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; margin-bottom: 20px; }\n  .progress-fill { height: 100%; background: var(--color-text-success); border-radius: 3px; transition: width .4s ease; }\n  .header-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }\n  .header-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); }\n  .header-stat { font-size: 13px; color: var(--color-text-secondary); }\n</style>\n\n<div style=\"max-width: 640px; margin: 0 auto;\">\n  <div class=\"header-row\">\n    <span class=\"header-title\">Full-stack TypeScript roadmap</span>\n    <span class=\"header-stat\" id=\"stat-label\">0 / 7 phases complete</span>\n  </div>\n  <div class=\"progress-bar\"><div class=\"progress-fill\" id=\"progress-fill\" style=\"width: 0%\"></div></div>\n\n  <div id=\"roadmap\"></div>\n</div>\n\n<script>\nconst phases = [\n  {\n    title: \"TypeScript core\",\n    time: \"3-4 weeks\",\n    desc: \"Master the type system before building anything. This is the foundation everything else rests on.\",\n    skills: [\"Primitive & literal types\", \"Interfaces vs type aliases\", \"Generics & constraints\", \"Utility types (Partial, Pick, Omit)\", \"Discriminated unions\", \"Type guards & narrowing\", \"Declaration files (.d.ts)\", \"Module systems & tsconfig\"],\n    tools: [{ name: \"TypeScript 5.x\", type: \"tool\" }, { name: \"tsx\", type: \"lib\" }]\n  },\n  {\n    title: \"Frontend with React + TS\",\n    time: \"4-5 weeks\",\n    desc: \"Build typed UIs with React. Understand component patterns, state management, and client-side routing.\",\n    skills: [\"Typed props & state\", \"useState / useReducer generics\", \"Context with type safety\", \"Custom hook patterns\", \"React Router with params\", \"Zod for form validation\", \"CSS modules / Tailwind + TS\", \"Component composition patterns\"],\n    tools: [{ name: \"React 19\", type: \"lib\" }, { name: \"Vite\", type: \"tool\" }, { name: \"Zod\", type: \"lib\" }, { name: \"Tailwind\", type: \"lib\" }]\n  },\n  {\n    title: \"Backend with Node + TS\",\n    time: \"4-5 weeks\",\n    desc: \"Build type-safe APIs. Choose a framework, define routes, handle middleware, and structure your server code.\",\n    skills: [\"Express / Hono with TS\", \"Typed request & response objects\", \"Middleware patterns\", \"Error handling & result types\", \"Environment variables (zod)\", \"File-based routing\", \"Streaming responses\", \"WebSocket basics\"],\n    tools: [{ name: \"Hono / Express\", type: \"lib\" }, { name: \"tsx watch\", type: \"tool\" }, { name: \"Zod\", type: \"lib\" }]\n  },\n  {\n    title: \"Database & ORM layer\",\n    time: \"3-4 weeks\",\n    desc: \"Connect your backend to a database with full type safety from schema to query results.\",\n    skills: [\"Prisma / Drizzle setup\", \"Schema-first modeling\", \"Migrations workflow\", \"Typed queries & relations\", \"Connection pooling\", \"Transactions & batch ops\", \"Seed scripts\", \"SQLite for local dev\"],\n    tools: [{ name: \"Prisma / Drizzle\", type: \"lib\" }, { name: \"PostgreSQL\", type: \"tool\" }, { name: \"Docker (for DB)\", type: \"tool\" }]\n  },\n  {\n    title: \"Full-stack integration\",\n    time: \"4-6 weeks\",\n    desc: \"Unify frontend and backend into one type-safe app. Share types end-to-end and add authentication.\",\n    skills: [\"Next.js App Router + TS\", \"Server components vs client\", \"tRPC or server actions\", \"End-to-end type safety\", \"Auth (NextAuth / Clerk)\", \"Session & JWT handling\", \"API design patterns\", \"Monorepo with Turborepo\"],\n    tools: [{ name: \"Next.js 15\", type: \"lib\" }, { name: \"tRPC\", type: \"lib\" }, { name: \"Turborepo\", type: \"tool\" }, { name: \"NextAuth\", type: \"lib\" }]\n  },\n  {\n    title: \"Testing & quality\",\n    time: \"2-3 weeks\",\n    desc: \"Write tests that leverage your types. Unit, integration, and E2E — all in TypeScript.\",\n    skills: [\"Vitest unit testing\", \"Testing Library for React\", \"MSW for API mocking\", \"Integration test patterns\", \"Playwright E2E tests\", \"Coverage & thresholds\", \"ESLint + typescript-eslint\", \"Prettier config\"],\n    tools: [{ name: \"Vitest\", type: \"lib\" }, { name: \"Playwright\", type: \"lib\" }, { name: \"MSW\", type: \"lib\" }, { name: \"eslint\", type: \"tool\" }]\n  },\n  {\n    title: \"Deploy & monitor\",\n    time: \"2-3 weeks\",\n    desc: \"Ship your app to production. Set up CI/CD, containerization, and observability.\",\n    skills: [\"Dockerfile for TS app\", \"CI pipeline (GitHub Actions)\", \"Vercel / Fly.io deploy\", \"Build optimization\", \"Runtime error tracking\", \"Logging & monitoring\", \"Database migrations in CI\", \"Environment management\"],\n    tools: [{ name: \"Vercel / Fly.io\", type: \"tool\" }, { name: \"Docker\", type: \"tool\" }, { name: \"GitHub Actions\", type: \"tool\" }, { name: \"Sentry\", type: \"lib\" }]\n  }\n];\n\nconst skillState = phases.map(() => []);\nconst phaseState = phases.map(() => false); // expanded\nconst container = document.getElementById('roadmap');\n\nfunction render() {\n  container.innerHTML = '';\n  const totalSkills = phases.reduce((s, p) => s + p.skills.length, 0);\n  const checkedSkills = skillState.reduce((s, arr) => s + arr.filter(Boolean).length, 0);\n  const donePhases = phases.filter((_, i) => skillState[i].filter(Boolean).length === phases[i].skills.length).length;\n\n  document.getElementById('progress-fill').style.width = Math.round((checkedSkills / totalSkills) * 100) + '%';\n  document.getElementById('stat-label').textContent = `${donePhases} / ${phases.length} phases complete`;\n\n  phases.forEach((phase, pi) => {\n    const allDone = skillState[pi].filter(Boolean).length === phase.skills.length;\n    const row = document.createElement('div');\n    row.className = 'phase-row';\n    row.innerHTML = `\n      <div class=\"phase-marker\">\n        <div class=\"phase-dot ${allDone ? 'done' : phaseState[pi] ? 'active' : ''}\">${allDone ? '&#10003;' : pi + 1}</div>\n        ${pi < phases.length - 1 ? `<div class=\"phase-line ${allDone ? 'done' : ''}\"></div>` : ''}\n      </div>\n      <div class=\"phase-card ${allDone ? 'done' : phaseState[pi] ? 'active' : ''}\">\n        <div class=\"phase-header\">\n          <span class=\"phase-title\">${phase.title}</span>\n          <span class=\"phase-time\">${phase.time}</span>\n        </div>\n        <p class=\"phase-desc\">${phase.desc}</p>\n        <div class=\"phase-detail ${phaseState[pi] ? 'open' : ''}\" id=\"detail-${pi}\">\n          <div class=\"skill-grid\">\n            ${phase.skills.map((sk, si) => `\n              <div class=\"skill-item\">\n                <div class=\"skill-check ${skillState[pi][si] ? 'checked' : ''}\" data-p=\"${pi}\" data-s=\"${si}\">&#10003;</div>\n                <span>${sk}</span>\n              </div>\n            `).join('')}\n          </div>\n          <div class=\"tag-row\">\n            ${phase.tools.map(t => `<span class=\"tag tag-${t.type}\">${t.name}</span>`).join('')}\n          </div>\n        </div>\n      </div>\n    `;\n\n    const card = row.querySelector('.phase-card');\n    card.addEventListener('click', (e) => {\n      if (e.target.classList.contains('skill-check') || e.target.closest('.skill-check')) return;\n      phaseState[pi] = !phaseState[pi];\n      render();\n    });\n\n    row.querySelectorAll('.skill-check').forEach(el => {\n      el.addEventListener('click', (e) => {\n        e.stopPropagation();\n        const p = parseInt(el.dataset.p);\n        const s = parseInt(el.dataset.s);\n        skillState[p][s] = !skillState[p][s];\n        render();\n      });\n    });\n\n    container.appendChild(row);\n  });\n}\n\nrender();\n</script>"
+          },
+          "output": {
+            "rendered": true,
+            "title": "fullstack_ts_roadmap"
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The widget has been rendered. Let me now provide a summary of the roadmap in my response text.",
+          "state": "done"
+        },
+        {
+          "type": "text",
+          "text": "Here's your interactive full-stack TypeScript learning roadmap! Here's how it works:\n\n**Click any phase card** to expand it and see the detailed skill checklist. **Click the small checkboxes** to mark skills as you learn them — your progress is tracked on the bar at the top.\n\n## The 7 phases at a glance\n\n| Phase | Focus | Time |\n|-------|-------|------|\n| 1 | **TypeScript core** — types, generics, utility types, tsconfig | 3–4 weeks |\n| 2 | **Frontend with React + TS** — typed components, hooks, validation | 4–5 weeks |\n| 3 | **Backend with Node + TS** — Hono/Express, typed routes, middleware | 4–5 weeks |\n| 4 | **Database & ORM layer** — Prisma/Drizzle, migrations, typed queries | 3–4 weeks |\n| 5 | **Full-stack integration** — Next.js, tRPC, auth, monorepo | 4–6 weeks |\n| 6 | **Testing & quality** — Vitest, Playwright, MSW, linting | 2–3 weeks |\n| 7 | **Deploy & monitor** — Docker, CI/CD, Vercel/Fly.io, Sentry | 2–3 weeks |\n\n## A few tips for the journey\n\n- **Don't skip phase 1** — every later phase assumes you're comfortable with generics, discriminated unions, and narrowing. Rush this and the rest feels like guesswork.\n- **Phases 2 and 3 can overlap** — alternate frontend and backend days to stay fresh and start seeing the full picture sooner.\n- **Phase 5 is the payoff** — this is where the type-safety investment really compounds. When tRPC or server actions give you auto-complete from your database schema all the way to your UI, it clicks.\n- **Testing (phase 6) is portable** — Vitest + Testing Library patterns transfer to any TS project, so this is high-ROI time even if you switch frameworks later.\n\nTotal estimated time: **22–30 weeks** at a steady pace. Click into each phase in the widget above to track your progress!",
+          "state": "done"
+        }
+      ]
+    }
+  ]
+}

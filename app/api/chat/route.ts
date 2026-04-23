@@ -1,4 +1,8 @@
-import { writeChat } from "@/lib/chat-store";
+import { createSyntheticReplayStream } from "@/lib/chat-replay";
+import {
+  readReplayableAssistantMessage,
+  writeChat,
+} from "@/lib/chat-store";
 import { createChatAgent, getChatSystemPrompt } from "@/lib/chat-agent";
 import { applyHiddenGenerativeUIReminder } from "@/lib/chat-hidden-reminders";
 import {
@@ -15,7 +19,14 @@ import {
 import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui-runtime";
 import { getChatToolTraceList } from "@/lib/chat-tools";
 import { langsmithClient } from "@/lib/langsmith-ai";
-import { createAgentUIStream, createUIMessageStreamResponse } from "ai";
+import {
+  isShowcaseOnlyEnabled,
+  showcaseReadOnlyResponse,
+} from "@/lib/showcase-mode";
+import {
+  createAgentUIStream,
+  createUIMessageStreamResponse,
+} from "ai";
 import { after } from "next/server";
 
 export const maxDuration = 60;
@@ -46,9 +57,16 @@ type ChatRequest = {
   id?: string;
   messages?: ChatUIMessage[];
   modelSelection?: ChatModelSelection;
+  trigger?: "submit-message" | "regenerate-message";
+  messageId?: string;
+  replayMode?: "assistant-message";
 };
 
 export async function POST(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: ChatRequest;
 
   try {
@@ -65,6 +83,32 @@ export async function POST(request: Request) {
 
   if (!body.id) {
     return new Response("Request body must include an id.", { status: 400 });
+  }
+
+  if (
+    body.trigger === "regenerate-message" &&
+    body.replayMode === "assistant-message"
+  ) {
+    if (!body.messageId) {
+      return new Response("Replay requests must include a messageId.", {
+        status: 400,
+      });
+    }
+
+    const replayMessage = await readReplayableAssistantMessage(
+      body.id,
+      body.messageId
+    );
+
+    if (!replayMessage) {
+      return new Response("Only the latest assistant message can be replayed.", {
+        status: 404,
+      });
+    }
+
+    return createUIMessageStreamResponse({
+      stream: createSyntheticReplayStream(replayMessage),
+    });
   }
 
   const modelSelection = normalizeChatModelSelection(body.modelSelection);

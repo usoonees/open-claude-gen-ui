@@ -2,6 +2,10 @@ import { deleteStoredTavilyCredential, writeStoredTavilyCredential } from "@/lib
 import { getGenerativeUITrustedModeSummary, writeStoredGenerativeUITrustedModeOverride } from "@/lib/generative-ui-runtime";
 import { getTavilySettingsSummary } from "@/lib/tavily-settings";
 import type { AppSettingsPayload } from "@/lib/chat-settings-config";
+import {
+  isShowcaseOnlyEnabled,
+  showcaseReadOnlyResponse,
+} from "@/lib/showcase-mode";
 
 type UpdateSettingsRequest = {
   tavilyApiKey?: string;
@@ -20,6 +24,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: UpdateSettingsRequest;
 
   try {
@@ -52,6 +60,10 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE() {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   deleteStoredTavilyCredential();
   return Response.json(getSettingsPayload());
 }

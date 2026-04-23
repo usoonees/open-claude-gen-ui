@@ -1,0 +1,195 @@
+{
+  "slug": "ai-news",
+  "sourceChatId": "b18b0317-52cb-491c-9275-4feff9c14ae2",
+  "title": "AI news snapshot",
+  "description": "A dated AI news example that mixes web search trace cards with a compact generated widget.",
+  "updatedAt": "2026-04-23T08:25:17.646Z",
+  "modelSelection": {
+    "providerId": "openrouter",
+    "modelId": "minimax/minimax-m2.7"
+  },
+  "modelId": "minimax/minimax-m2.7",
+  "messages": [
+    {
+      "id": "local-b245eb97-36d7-4ee5-9b83-686a6a7fc4c6",
+      "role": "user",
+      "parts": [
+        {
+          "type": "text",
+          "text": "hi"
+        }
+      ]
+    },
+    {
+      "id": "YIYZeZC0ZhHjrkWc",
+      "role": "assistant",
+      "metadata": {
+        "modelId": "minimax/minimax-m2.7"
+      },
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user just said \"hi\" - this is a simple greeting, not a request for any visual content, analysis, or information. I should respond with a friendly, concise greeting. No need to use any tools for this.",
+          "state": "done"
+        },
+        {
+          "type": "text",
+          "text": "Hi! How can I help you today?",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "local-554c881c-543a-4ca9-a5a3-ec2588742745",
+      "role": "user",
+      "parts": [
+        {
+          "type": "text",
+          "text": "ai news in last month"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "role": "assistant",
+      "metadata": {
+        "modelId": "minimax/minimax-m2.7"
+      },
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user is asking about AI news from the last month. Since they specified \"in last month\" which implies recent/current events, I should search for recent AI news to get accurate, up-to-date information. Let me search for recent AI news.",
+          "state": "done"
+        },
+        {
+          "type": "tool-tavilySearch",
+          "toolCallId": "call_function_g1bn9wv0hk99_1",
+          "state": "output-error",
+          "input": {
+            "query": "AI artificial intelligence news 2026",
+            "topic": "news",
+            "maxResults": 8
+          },
+          "errorText": "Tavily request to https://api.tavily.com/search failed: TypeError: fetch failed: cause: ConnectTimeoutError: Connect Timeout Error (attempted addresses: 100.49.192.141:443, 34.203.115.219:443, 32.194.136.6:443, timeout: 10000ms)"
+        },
+        {
+          "type": "tool-visualizeReadMe",
+          "toolCallId": "call_function_g1bn9wv0hk99_2",
+          "state": "output-available",
+          "input": {
+            "modules": [
+              "news",
+              "chart"
+            ]
+          },
+          "output": {
+            "modules": [
+              "news",
+              "chart"
+            ]
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The search failed due to a connection timeout. Let me try again with a fresh search.",
+          "state": "done"
+        },
+        {
+          "type": "tool-tavilySearch",
+          "toolCallId": "call_function_apn95ck34df3_1",
+          "state": "output-available",
+          "input": {
+            "query": "AI artificial intelligence news April 2026",
+            "topic": "news",
+            "maxResults": 8
+          },
+          "output": {
+            "query": "AI artificial intelligence news April 2026",
+            "results": [
+              {
+                "title": "Exclusive | An Investor Dared Him to Quit School. Now He’s Building a $1.5 Billion AI Startup. - WSJ",
+                "url": "https://www.wsj.com/tech/ai/an-investor-dared-him-to-quit-school-now-hes-building-a-1-5-billion-ai-startup-d8663e72"
+              },
+              {
+                "title": "Forbes Unveils 2026 AI 50, Marking Shift From AI Dominance To AI Independence - Yahoo Finance Singapore",
+                "url": "https://sg.finance.yahoo.com/news/forbes-unveils-2026-ai-50-130123886.html"
+              },
+              {
+                "title": "Perovskite solar cells reach 26.61% certified efficiency with cesium-doping strategy - Tech Xplore",
+                "url": "https://techxplore.com/news/2026-04-perovskite-solar-cells-certified-efficiency.html"
+              },
+              {
+                "title": "AI Robotics: Moving from the lab to the real-world factory floor - The Robot Report",
+                "url": "https://www.therobotreport.com/ai-robotics-moving-from-the-lab-to-the-real-world-factory-floor/"
+              },
+              {
+                "title": "‘Euphoria’ Season 3 Episode 2 Gets Gross In A Half Dozen Different Ways - Forbes",
+                "url": "https://www.forbes.com/sites/paultassi/2026/04/20/euphoria-season-3-episode-2-gets-gross-in-a-half-dozen-different-ways/"
+              },
+              {
+                "title": "‘Invincible’ Episode 7 Ties An All-Time IMDB Review Score Record - Forbes",
+                "url": "https://www.forbes.com/sites/paultassi/2026/04/16/invincible-episode-7-ties-an-all-time-imdb-review-score-record/"
+              },
+              {
+                "title": "AI & Tech Brief: Beijing tightens grip on AI startups - The Washington Post",
+                "url": "https://www.washingtonpost.com/wp-intelligence/ai-tech-brief/2026/04/22/ai-tech-brief-beijing-tightens-grip-ai-startups/"
+              },
+              {
+                "title": "New Poll Reveals Major Effect Of Eric Swalwell Dropping Out Of California Governor Race - Forbes",
+                "url": "https://www.forbes.com/sites/forbestv/2026/04/16/new-poll-reveals-major-effect-of-eric-swalwell-dropping-out-of-california-governor-race/"
+              }
+            ]
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "Good, I got some results. Let me summarize the key AI news from the last month (April 2026):\n\n1. Factory AI startup - $150M raise at $1.5B valuation (Khosla Ventures leading)\n2. Forbes 2026 AI 50 list released - shift from AI dominance to AI independence\n3. AI 50 companies raised $305.6B collectively, OpenAI raised $182.6B\n4. Meta expected to unseat Google as largest digital ad player (fueled by AI)\n5. Intel stock surge\n6. AI & Tech Brief from Washington Post - Beijing tightens grip on AI startups\n7. Florida AG opens criminal investigation into OpenAI\n8. Sen. Marsha Blackburn's AI framework gaining support\n9. AI robotics moving from lab to factory floor (Robotics Summit & Expo 2026)\n10. Anthropic set to preview powerful 'Mythos' model\n11. Anthropic in talks to invest $200M in new private-equity venture\n12. Broadcom supplying AI chips to Google, computing capacity to Anthropic\n\nLet me create a nice visual widget to display this news.",
+          "state": "done"
+        },
+        {
+          "type": "tool-showWidget",
+          "toolCallId": "call_function_ee3p26kug38i_1",
+          "state": "output-available",
+          "input": {
+            "iHaveSeenReadMe": true,
+            "title": "ai_news_april_2026",
+            "loadingMessages": [
+              "Loading AI news...",
+              "Compiling headlines..."
+            ],
+            "widgetCode": "<div style=\"display: grid; gap: 10px; font-size: 13px;\">\n  <div style=\"display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px;\">\n    <div style=\"background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; text-align: center;\">\n      <div style=\"font-size: 22px; font-weight: 500; color: var(--color-text-primary);\">$150M</div>\n      <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Factory raise</div>\n    </div>\n    <div style=\"background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; text-align: center;\">\n      <div style=\"font-size: 22px; font-weight: 500; color: var(--color-text-primary);\">$305.6B</div>\n      <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">AI 50 raised</div>\n    </div>\n    <div style=\"background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; text-align: center;\">\n      <div style=\"font-size: 22px; font-weight: 500; color: var(--color-text-primary);\">50</div>\n      <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Forbes AI 50</div>\n    </div>\n  </div>\n\n  <div style=\"border-left: 3px solid #7F77DD; padding-left: 10px; margin-bottom: 8px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 16</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">Factory AI coding startup in talks to raise $150M at $1.5B valuation</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Khosla Ventures leads, Keith Rabois joins board. Investors include Sequoia, Insight Partners, Blackstone.</div>\n  </div>\n\n  <div style=\"border-left: 3px solid #378ADD; padding-left: 10px; margin-bottom: 8px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 16</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">Forbes 2026 AI 50: shift from AI dominance to AI independence</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Featured: OpenAI, Anthropic, Mistral, Perplexity, Cursor, Sierra, Harvey, Databricks. Focus on control, cost, real-world application.</div>\n  </div>\n\n  <div style=\"border-left: 3px solid #1D9E75; padding-left: 10px; margin-bottom: 8px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 22</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">Beijing tightens grip on AI startups</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Chinese authorities move to block domestic AI startups and talent from leaving for Western capital.</div>\n  </div>\n\n  <div style=\"border-left: 3px solid #D85A30; padding-left: 10px; margin-bottom: 8px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 22</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">Florida AG opens criminal investigation into OpenAI</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Investigation stems from alleged use of ChatGPT to plan a mass shooting at Florida State University.</div>\n  </div>\n\n  <div style=\"border-left: 3px solid #AFA9EC; padding-left: 10px; margin-bottom: 8px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 21</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">AI robotics moves from lab to factory floor</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">2026 Robotics Summit & Expo features 70+ speakers from Tesla, Toyota Research, AWS. Key question: is AI ready for real-world production deployment?</div>\n  </div>\n\n  <div style=\"border-left: 3px solid #5DCAA5; padding-left: 10px; margin-bottom: 8px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 17</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">Anthropic previews Mythos model for AI cybersecurity</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Powerful new model aimed at countering AI-powered cyber threats. Also in talks for $200M private-equity investment.</div>\n  </div>\n\n  <div style=\"border-left: 3px solid #F0997B; padding-left: 10px;\">\n    <div style=\"font-size: 11px; color: var(--color-text-tertiary);\">APR 17</div>\n    <div style=\"font-weight: 500; line-height: 1.4;\">Broadcom expands AI chip partnerships</div>\n    <div style=\"font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;\">Supplying AI chips to Google, computing capacity to Anthropic in expanded collaboration.</div>\n  </div>\n</div>"
+          },
+          "output": {
+            "rendered": true,
+            "title": "ai_news_april_2026"
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "Good, the widget is displayed. Now let me provide a summary of the AI news from April 2026.",
+          "state": "done"
+        },
+        {
+          "type": "text",
+          "text": "Here's a summary of major AI news from April 2026:\n\n**Funding & Valuation**\n- **Factory** (AI coding startup) is in talks to raise **$150M at a $1.5B valuation** — led by Khosla Ventures with Keith Rabois joining the board\n- **Forbes 2026 AI 50** list released — the 50 companies collectively raised **$305.6B**, with OpenAI accounting for $182.6B of that\n\n**Policy & Regulation**\n- **Beijing** is tightening control over domestic AI startups, blocking talent from seeking Western capital\n- **Florida AG** opened a criminal investigation into OpenAI related to alleged ChatGPT use in planning a mass shooting\n- **Sen. Marsha Blackburn's** AI framework is gaining support from think tanks and industry groups\n\n**Technology & Products**\n- **Anthropic** is previewing the **Mythos model** for AI cybersecurity defense, and reportedly in talks for a $200M investment\n- **Broadcom** expanded partnerships — supplying AI chips to Google and computing capacity to Anthropic\n- **Meta** is expected to unseat Google as the world's largest digital ad player, fueled by AI advertising products\n- **Intel** stock has surged significantly, though analysts remain cautious about fundamentals\n\n**Industry Trends**\nThe Forbes AI 50 signals a shift: success now means **control, cost efficiency, and real-world deployment** — not just raw model power. Many companies on the list are under 3 years old but already multibillion-dollar valuations.",
+          "state": "done"
+        }
+      ]
+    }
+  ]
+}

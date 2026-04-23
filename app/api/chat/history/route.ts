@@ -11,9 +11,20 @@ import {
 } from "@/lib/chat-agent";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
-import { normalizeChatModelSelection } from "@/lib/chat-models";
+import {
+  getDefaultChatModelSelection,
+  normalizeChatModelSelection,
+} from "@/lib/chat-models";
+import {
+  getExampleChatById,
+  listExampleChatSummaries,
+} from "@/lib/example-chats";
 import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui-runtime";
 import { getChatToolTraceList } from "@/lib/chat-tools";
+import {
+  isShowcaseOnlyEnabled,
+  showcaseReadOnlyResponse,
+} from "@/lib/showcase-mode";
 import { after } from "next/server";
 
 type SaveRequest = {
@@ -48,6 +59,29 @@ function buildChatTrace(modelSelection: ChatModelSelection) {
 }
 
 export async function GET(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    const id = getIdFromRequest(request);
+
+    if (id) {
+      const example = getExampleChatById(id);
+
+      if (!example) {
+        return new Response("Chat not found.", { status: 404 });
+      }
+
+      return Response.json({
+        id: example.sourceChatId,
+        title: example.title,
+        updatedAt: example.updatedAt,
+        messages: example.messages,
+        modelSelection:
+          example.modelSelection ?? getDefaultChatModelSelection(),
+      });
+    }
+
+    return Response.json({ chats: listExampleChatSummaries() });
+  }
+
   const id = getIdFromRequest(request);
 
   if (id) {
@@ -58,6 +92,10 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: SaveRequest;
 
   try {
@@ -93,6 +131,10 @@ export async function PUT(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: RenameRequest;
 
   try {
@@ -128,6 +170,10 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   const id = getIdFromRequest(request);
 
   if (!id) {

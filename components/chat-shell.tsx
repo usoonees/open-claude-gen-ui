@@ -1069,6 +1069,15 @@ function CopyIcon() {
   );
 }
 
+function ReplayIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 1 0 2.34-5.66" />
+      <path d="M4 4v6h6" />
+    </svg>
+  );
+}
+
 function DownloadIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -1263,7 +1272,13 @@ function messageScrollSignature(messages: ChatUIMessage[]) {
     .join(";");
 }
 
-export function ChatShell({ initialChatId }: { initialChatId?: string }) {
+export function ChatShell({
+  initialChatId,
+  readOnly = false,
+}: {
+  initialChatId?: string;
+  readOnly?: boolean;
+}) {
   const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [starterPrompts, setStarterPrompts] = useState<string[]>([]);
@@ -1579,6 +1594,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           .reverse()
           .find((message) => message.role === "assistant")?.id ?? null
       : null;
+  const lastAssistantMessageId =
+    [...messages].reverse().find((message) => message.role === "assistant")?.id ??
+    null;
   const activeModelSelection = chatId
     ? chatModelSelections[chatId] ?? defaultModelSelection
     : draftModelSelection;
@@ -2912,6 +2930,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function toggleModelPicker() {
+    if (readOnly) {
+      return;
+    }
+
     setIsSettingsOpen(false);
     setIsProviderPickerOpen(false);
     setIsManageModelsOpen(false);
@@ -2942,6 +2964,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function openProviderPicker() {
+    if (readOnly) {
+      return;
+    }
+
     setProviderQuery("");
     resetProviderCredentialForm();
     setReturnToManageModelsAfterProviderPicker(isManageModelsOpen);
@@ -2953,6 +2979,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function openManageModels() {
+    if (readOnly) {
+      return;
+    }
+
     setManageModelQuery("");
     setCollapsedManageProviderIds((current) =>
       current.filter((entry) => entry !== activeModelSelection.providerId)
@@ -2964,6 +2994,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function openSettings() {
+    if (readOnly) {
+      return;
+    }
+
     setOpenMenuChatId(null);
     resetTavilyCredentialForm();
     resetGenerativeUIForm();
@@ -2998,6 +3032,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function applyManualModelQuery() {
+    if (readOnly) {
+      return;
+    }
+
     const nextModelId = modelQuery.trim();
 
     if (!nextModelId) {
@@ -3037,7 +3075,42 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
   }
 
+  async function replayMessage(message: ChatUIMessage) {
+    if (
+      readOnly ||
+      isBusy ||
+      message.role !== "assistant" ||
+      message.id !== lastAssistantMessageId
+    ) {
+      return;
+    }
+
+    shouldFollowStreamRef.current = true;
+
+    try {
+      await activeChat.regenerate({
+        messageId: message.id,
+        body: {
+          replayMode: "assistant-message",
+        },
+      });
+
+      requestAnimationFrame(() => {
+        scrollMessagesToBottom("smooth");
+      });
+    } catch (error) {
+      debugChat("replay-message:error", {
+        messageId: message.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   function beginSidebarRename(chat: ChatSummary) {
+    if (readOnly) {
+      return;
+    }
+
     setOpenMenuChatId(null);
     setEditingChatId(chat.id);
     setEditingTitle(chat.title);
@@ -3049,6 +3122,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   async function commitSidebarRename(chat: ChatSummary) {
+    if (readOnly) {
+      cancelSidebarRename();
+      return;
+    }
+
     const nextTitle = editingTitle.trim();
 
     if (!nextTitle || nextTitle === chat.title) {
@@ -3072,12 +3150,16 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function promptSidebarDelete(chat: ChatSummary) {
+    if (readOnly) {
+      return;
+    }
+
     setOpenMenuChatId(null);
     setChatPendingDelete(chat);
   }
 
   async function confirmSidebarDelete() {
-    if (!chatPendingDelete) {
+    if (readOnly || !chatPendingDelete) {
       return;
     }
 
@@ -3112,7 +3194,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   ) {
     const messageText = text.trim();
 
-    if (!messageText || isBusy) {
+    if (readOnly || !messageText || isBusy) {
       return;
     }
 
@@ -3262,7 +3344,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                           current === chat.id ? null : chat.id
                         );
                       }}
-                      title="Chat options"
+                      disabled={readOnly}
+                      title={readOnly ? "Showcase chats are read-only" : "Chat options"}
                       type="button"
                     >
                       <EllipsisIcon />
@@ -3307,7 +3390,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             <button
               className="sidebar-settings-button"
               onClick={openSettings}
-              title="Open settings"
+              disabled={readOnly}
+              title={readOnly ? "Showcase settings are locked" : "Open settings"}
               type="button"
             >
               <span className="sidebar-settings-icon">
@@ -4102,6 +4186,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 const isStreamingAssistantMessage =
                   message.role === "assistant" &&
                   message.id === streamingAssistantMessageId;
+                const showReplayAction =
+                  message.role === "assistant" &&
+                  !isBusy &&
+                  !readOnly &&
+                  message.id === lastAssistantMessageId;
 
                 return (
                   <article
@@ -4169,6 +4258,19 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                                 <CopyIcon />
                               )}
                             </button>
+                            {showReplayAction ? (
+                              <button
+                                aria-label="Replay assistant response"
+                                className="message-action-button"
+                                onClick={() => {
+                                  void replayMessage(message);
+                                }}
+                                title="Replay response"
+                                type="button"
+                              >
+                                <ReplayIcon />
+                              </button>
+                            ) : null}
                             {downloadableWidget ? (
                               <button
                                 aria-label="Download widget HTML files"
@@ -4244,9 +4346,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   <button
                     aria-expanded={isModelPickerOpen}
                     className="model-trigger"
+                    disabled={readOnly}
                     onClick={toggleModelPicker}
                     title={
-                      activeProvider
+                      readOnly
+                        ? "Model selection is locked in showcase mode"
+                        : activeProvider
                         ? `${activeProvider.label} · ${activeModelSelection.modelId}`
                         : activeModelSelection.modelId
                     }
@@ -4422,8 +4527,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 <button
                   aria-label="Send message"
                   className="send-button"
-                  disabled={!trimmedInput}
-                  title="Send message"
+                  disabled={readOnly || !trimmedInput}
+                  title={readOnly ? "Showcase is view-only" : "Send message"}
                   type="submit"
                 >
                   <SendIcon />

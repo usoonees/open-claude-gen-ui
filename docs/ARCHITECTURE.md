@@ -7,16 +7,20 @@ This file is the top-level map for the repository.
 - `app/`: Next.js App Router entry points, pages, layouts, and route handlers.
 - `components/`: reusable React components for the chat surface.
 - `lib/`: server-side integration and shared application helpers.
+- `lib/example-chats/`: repo-tracked read-only example chat snapshots and lookup helpers for static showcase routes.
 - `scripts/`: repository automation that agents can run directly.
 - `docs/`: repository knowledge base and system of record.
 
 ## Runtime Topology
 
 - Browser users load `app/page.tsx`, which renders `components/chat-shell.tsx`.
+- Showcase visitors can load `app/examples/page.tsx` and `app/examples/[slug]/page.tsx`, which render repo-tracked chat snapshots through `components/example-chat-viewer.tsx` without the live chat transport or composer.
+- When `SHOWCASE_ONLY=true`, `app/page.tsx` redirects to the default curated chat, `app/chat/[id]/page.tsx` serves the real `components/chat-shell.tsx` in read-only mode for known example ids, and unknown ids redirect back to the default curated chat.
+- In showcase mode, `app/api/chat/history/route.ts` serves the exported example chat list and message history from `lib/example-chats/`, while write endpoints such as `app/api/chat/route.ts` and history mutations return `405` so the public deployment keeps the original shell but cannot continue the conversation.
 - The chat client uses Vercel AI SDK's `useChat` hook with `DefaultChatTransport` to POST conversation state to `/api/chat`.
 - `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata and frontend key-management mutations, `/api/chat/settings` for Tavily web-search credential state plus the generative-UI trusted-mode toggle, `/api/chat/models` for provider-backed model suggestions plus persisted sync-cache reuse when available, and `/api/chat/preferences` for persisted model-picker visibility preferences, while the last manually chosen provider/model for the next new chat still remains browser-local.
 - `components/chat-shell.tsx` keeps an in-memory `Chat` controller per open conversation so sidebar navigation changes the visible subscription without aborting an in-flight stream for another chat.
-- `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, injects a server-only hidden reminder into the latest user turn when trusted generative UI is enabled, streams a single Vercel AI SDK `ToolLoopAgent`, stamps the active response model id onto assistant message metadata, and rewrites pre-`showWidget` assistant text chunks into reasoning chunks so widget lead-in prose stays in `Thinking` for both live streams and saved chats.
+- `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, injects a server-only hidden reminder into the latest user turn when trusted generative UI is enabled, streams a single Vercel AI SDK `ToolLoopAgent`, can replay the latest saved assistant turn without another model call by synthesizing a UI stream from the stored assistant message, stamps the active response model id onto assistant message metadata, and rewrites pre-`showWidget` assistant text chunks into reasoning chunks so widget lead-in prose stays in `Thinking` for both live streams and saved chats.
 - `app/api/chat/preferences/route.ts` stores global model-picker preferences such as hidden models in `.data/preferences/` so `Manage Models` survives reloads outside the browser.
 - `lib/provider-credentials-store.ts` stores frontend-saved provider API keys in `.data/providers/` with local encryption and masked metadata so new providers can be connected without editing `.env.local` or restarting the app.
 - `app/api/chat/settings/route.ts` stores Tavily web-search credential metadata plus the persisted generative-UI trusted-mode override so the sidebar settings dialog can manage `TAVILY_API_KEY` and widget mode without editing local env files.
@@ -30,6 +34,7 @@ This file is the top-level map for the repository.
 - `lib/deepseek.ts` owns the DeepSeek OpenAI-compatible provider instance and defaults.
 - `lib/generative-ui/` contains widget script allowlist and vendored widget guideline source, while `lib/generative-ui-runtime.ts` resolves the effective trusted-mode setting for each server request.
 - `lib/chat-store.ts` persists each conversation as a trace record that includes the UI messages and their per-message metadata, the current sidebar title state (`pending` placeholder or ready), the selected provider/model, the resolved system prompt, and the enabled tool manifest captured at save time.
+- `scripts/export-example-chats.mjs` curates selected `.data/chats/*.json` records into sanitized repo-tracked snapshots under `lib/example-chats/data/` so Vercel can pre-render read-only example pages without access to local chat storage.
 - `lib/langsmith-ai.ts` wraps the AI SDK with LangSmith tracing so the agent loop, child LLM calls, tool calls, and tool results can be inspected when tracing is enabled.
 - `lib/minimax.ts` owns the MiniMax OpenAI-compatible provider instance and defaults.
 - `lib/openrouter.ts` owns the OpenRouter OpenAI-compatible provider instance and defaults.

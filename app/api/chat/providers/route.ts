@@ -10,6 +10,10 @@ import {
   deleteStoredProviderCredential,
   writeStoredProviderCredential,
 } from "@/lib/provider-credentials-store";
+import {
+  isShowcaseOnlyEnabled,
+  showcaseReadOnlyResponse,
+} from "@/lib/showcase-mode";
 
 type UpdateProviderRequest = {
   providerId?: string;
@@ -32,6 +36,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: UpdateProviderRequest;
 
   try {
@@ -56,6 +64,10 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: UpdateProviderRequest;
 
   try {

@@ -11,7 +11,6 @@ import {
   readStoredProviderModels,
   writeStoredProviderModels,
 } from "@/lib/provider-model-cache";
-
 function getProviderId(request: Request) {
   const url = new URL(request.url);
   return url.searchParams.get("providerId")?.trim() || "";

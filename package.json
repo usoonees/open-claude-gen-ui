@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "export:examples": "node scripts/export-example-chats.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",

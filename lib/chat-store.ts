@@ -245,6 +245,22 @@ export async function readChat(id: string): Promise<StoredChat> {
   };
 }
 
+export async function readReplayableAssistantMessage(
+  id: string,
+  messageId: string
+) {
+  const chat = await readChat(id);
+  const lastAssistantMessage = [...chat.messages]
+    .reverse()
+    .find((message) => message.role === "assistant");
+
+  if (!lastAssistantMessage || lastAssistantMessage.id !== messageId) {
+    return null;
+  }
+
+  return lastAssistantMessage;
+}
+
 export async function writeChat(
   id: string,
   messages: ChatUIMessage[],

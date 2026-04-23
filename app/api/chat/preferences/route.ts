@@ -2,6 +2,10 @@ import {
   readChatPreferences,
   writeChatPreferences,
 } from "@/lib/chat-preferences-store";
+import {
+  isShowcaseOnlyEnabled,
+  showcaseReadOnlyResponse,
+} from "@/lib/showcase-mode";
 
 type SavePreferencesRequest = {
   hiddenModelKeys?: unknown;
@@ -12,6 +16,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  if (isShowcaseOnlyEnabled()) {
+    return showcaseReadOnlyResponse();
+  }
+
   let body: SavePreferencesRequest;
 
   try {

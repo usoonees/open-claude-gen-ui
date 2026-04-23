@@ -1,0 +1,98 @@
+{
+  "slug": "rag",
+  "sourceChatId": "52c3a471-34ef-40f8-a2ff-e0268c651104",
+  "title": "RAG vs fine-tuning vs prompt engineering",
+  "description": "A visual tradeoff map comparing setup cost, latency, control, freshness, and maintenance burden.",
+  "updatedAt": "2026-04-23T07:58:00.145Z",
+  "modelSelection": {
+    "providerId": "openrouter",
+    "modelId": "minimax/minimax-m2.7"
+  },
+  "modelId": "minimax/minimax-m2.7",
+  "messages": [
+    {
+      "id": "local-17d5a7bc-4e2b-4071-978d-6c27cd1ed13e",
+      "role": "user",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Map the tradeoffs between RAG, fine-tuning, and prompt engineering as a visual guide"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "role": "assistant",
+      "metadata": {
+        "modelId": "minimax/minimax-m2.7"
+      },
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user wants a visual guide showing tradeoffs between RAG (Retrieval-Augmented Generation), fine-tuning, and prompt engineering. This is a strongly visual, comparative request - perfect for a generative UI widget.\n\nLet me first call visualizeReadMe to understand the design guidelines for this type of visualization.\n",
+          "state": "done"
+        },
+        {
+          "type": "tool-visualizeReadMe",
+          "toolCallId": "call_81ed6f4a88c94769b7cde6ba",
+          "state": "output-available",
+          "input": {
+            "modules": [
+              "chart",
+              "diagram"
+            ]
+          },
+          "output": {
+            "modules": [
+              "chart",
+              "diagram"
+            ]
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user wants a visual guide mapping the tradeoffs between RAG, fine-tuning, and prompt engineering. This is a decision/comparison topic, so I should use the HTML widget approach for an interactive comparison guide.\n\nLet me think about what this visualization should show:\n- Three approaches: RAG, Fine-tuning, Prompt Engineering\n- Tradeoffs across dimensions: cost, data requirements, latency, flexibility, accuracy, maintenance, etc.\n\nThis is a comparison/decision making use case, so I should use `imagine_html` with card-based comparison. Let me create a rich, informative visualization that maps the tradeoffs across multiple dimensions.\n\nKey dimensions to compare:\n1. Setup complexity / cost\n\n\n2. Data requirements\n3. Latency\n4. Customization / accuracy\n5. Maintenance burden\n6. Hallucination risk\n7. Context awareness\n8. Best use cases\n\nI'll create a visual comparison with interactive elements, maybe a radar-style comparison or a detailed card grid showing each approach with its pros/cons across these dimensions. Let me build an HTML widget with cards for each approach and a comparison table or radar visualization.\n",
+          "state": "done"
+        },
+        {
+          "type": "tool-showWidget",
+          "toolCallId": "call_function_dejjt3sx8y6m_1",
+          "state": "output-available",
+          "input": {
+            "iHaveSeenReadMe": true,
+            "title": "rag-finetune-prompt-tradeoffs",
+            "loadingMessages": [
+              "Mapping tradeoffs…",
+              "Comparing approaches…",
+              "Building visual guide…"
+            ],
+            "widgetCode": "<style>\n  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }\n  .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }\n  .appr-card { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 16px; background: var(--color-background-primary); }\n  .appr-name { font-size: 15px; font-weight: 500; margin: 0 0 4px; }\n  .appr-tag { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: var(--border-radius-md); margin-bottom: 10px; }\n  .appr-desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; margin: 0; }\n  .appr-pros { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; padding-left: 16px; }\n  .appr-pros li { margin-bottom: 2px; }\n  .dim-row { display: grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 10px; }\n  .dim-label { font-size: 12px; color: var(--color-text-secondary); padding-right: 8px; }\n  .dim-bar-wrap { display: flex; align-items: center; gap: 6px; }\n  .dim-bar { height: 8px; border-radius: 4px; flex: 1; background: var(--color-background-secondary); overflow: hidden; }\n  .dim-fill { height: 100%; border-radius: 4px; }\n  .dim-val { font-size: 11px; min-width: 32px; text-align: right; }\n  .legend { display: flex; gap: 16px; margin-bottom: 16px; font-size: 12px; color: var(--color-text-secondary); }\n  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }\n  .verdict { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px; margin-top: 4px; }\n  .verdict-title { font-size: 13px; font-weight: 500; margin: 0 0 8px; }\n  .verdict-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }\n  .verdict-item { font-size: 12px; color: var(--color-text-secondary); }\n  .verdict-item strong { display: block; font-size: 11px; color: var(--color-text-primary); margin-bottom: 2px; }\n  hr.div { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 16px 0; }\n</style>\n\n<p class=\"section-label\">Three approaches to LLM customization</p>\n<div class=\"card-row\">\n  <div class=\"appr-card\">\n    <div class=\"appr-tag\" style=\"background: var(--color-background-info); color: var(--color-text-info)\">No training</div>\n    <p class=\"appr-name\">Prompt engineering</p>\n    <p class=\"appr-desc\">Steering model behavior through carefully crafted instructions, examples, and input formatting at inference time.</p>\n  </div>\n  <div class=\"appr-card\">\n    <div class=\"appr-tag\" style=\"background: var(--color-background-secondary); color: var(--color-text-secondary)\">Light training</div>\n    <p class=\"appr-name\">RAG (Retrieval-Augmented Generation)</p>\n    <p class=\"appr-desc\">Connecting the model to external knowledge bases so it retrieves and grounds responses in up-to-date, domain-specific documents.</p>\n  </div>\n  <div class=\"appr-card\">\n    <div class=\"appr-tag\" style=\"background: var(--color-background-warning); color: var(--color-text-warning)\">Full training</div>\n    <p class=\"appr-name\">Fine-tuning</p>\n    <p class=\"appr-desc\">Updating the model's weights on a labeled dataset to instill knowledge, style, or task-specific behavior permanently.</p>\n  </div>\n</div>\n\n<hr class=\"div\">\n\n<p class=\"section-label\">Tradeoff comparison across key dimensions</p>\n<div class=\"legend\">\n  <span><span class=\"legend-dot\" style=\"background:#3266ad\"></span>Prompt engineering</span>\n  <span><span class=\"legend-dot\" style=\"background:#73726c\"></span>RAG</span>\n  <span><span class=\"legend-dot\" style=\"background:#5c936e\"></span>Fine-tuning</span>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Setup cost</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:15%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">Low</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:50%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Med</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:85%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">High</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Data needs</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:10%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">None</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:45%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Docs</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:90%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">Labeled</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Latency</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:10%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">Fast</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:65%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Med</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:15%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">Fast</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Hallucination risk</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:80%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">High</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:30%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Low</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:55%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">Med</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Knowledge freshness</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:20%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">Fixed</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:95%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Live</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:25%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">Retrain</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Maintenance burden</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:10%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">Low</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:55%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Med</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:75%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">High</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Style / behavior control</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:35%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">Surface</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:40%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Limited</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:90%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">Deep</span>\n  </div>\n</div>\n\n<div class=\"dim-row\">\n  <span class=\"dim-label\">Scalability</span>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:20%;background:#3266ad\"></div></div><span class=\"dim-val\" style=\"color:#3266ad\">Constrained</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:60%;background:#73726c\"></div></div><span class=\"dim-val\" style=\"color:#73726c\">Good</span>\n  </div>\n  <div class=\"dim-bar-wrap\">\n    <div class=\"dim-bar\"><div class=\"dim-fill\" style=\"width:80%;background:#5c936e\"></div></div><span class=\"dim-val\" style=\"color:#5c936e\">Strong</span>\n  </div>\n</div>\n\n<hr class=\"div\">\n\n<p class=\"section-label\">When to use which</p>\n<div class=\"verdict\">\n  <p class=\"verdict-title\">Decision guide</p>\n  <div class=\"verdict-items\">\n    <div class=\"verdict-item\">\n      <strong>Prompt engineering</strong>\n      Rapid prototyping, simple tasks, budget-constrained projects, or as a first step before investing in heavier methods.\n    </div>\n    <div class=\"verdict-item\">\n      <strong>RAG</strong>\n      Tasks requiring up-to-date or large-domain knowledge, factual Q&A, document Q&A, and anywhere citations or traceability matter.\n    </div>\n    <div class=\"verdict-item\">\n      <strong>Fine-tuning</strong>\n      Consistent style or tone needed, private/no-domain data that must be baked in, high-volume specialized tasks, or when latency cannot include retrieval.\n    </div>\n  </div>\n</div>"
+          },
+          "output": {
+            "rendered": true,
+            "title": "rag-finetune-prompt-tradeoffs"
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The widget was rendered successfully. Now let me provide a clear summary to the user explaining the visualization and the key tradeoffs.\n",
+          "state": "done"
+        },
+        {
+          "type": "text",
+          "text": "Here's a visual comparison across 8 key dimensions. A few standout patterns:\n\n**Prompt engineering** is the cheapest, fastest path — but hits a ceiling quickly. Hallucination risk is high because the model has no grounding, and knowledge is frozen at training time.\n\n**RAG** scores best on hallucination risk and knowledge freshness — you can plug in live documents and get cited answers. The tradeoff is added latency (every query hits a retrieval step) and moderate infrastructure complexity.\n\n**Fine-tuning** dominates on deep behavior control and scalability, but comes with high upfront cost, significant data requirements (labeled examples), and the highest maintenance burden — retraining is expensive when knowledge changes.\n\n**The practical shortcut**: most teams should start with prompt engineering to validate the use case, layer in RAG when accuracy or citations matter, and only reach for fine-tuning when a task is high-volume enough to justify the training cost and you need deep behavior change — not just knowledge injection.",
+          "state": "done"
+        }
+      ]
+    }
+  ]
+}
