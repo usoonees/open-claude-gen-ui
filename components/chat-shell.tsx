@@ -992,14 +992,6 @@ function SearchIcon() {
   );
 }
 
-function PlusIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
 function TuneIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -2793,8 +2785,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   className="manage-models-description"
                   id="manage-models-description"
                 >
-                  Show or hide provider models here. Choosing the active model still
-                  happens in the smaller picker above the composer.
+                  Show or hide provider models here, or add another provider.
+                  Choosing the active model still happens in the smaller picker above
+                  the composer.
                 </p>
               </div>
               <button
@@ -2821,6 +2814,13 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   value={manageModelQuery}
                 />
               </div>
+              <button
+                className="picker-text-button manage-models-provider-button"
+                onClick={openProviderPicker}
+                type="button"
+              >
+                Add provider
+              </button>
             </div>
             <div className="manage-models-list">
               {manageableProviderGroups.length === 0 ? (
@@ -3340,15 +3340,6 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                           value={modelQuery}
                         />
                       </div>
-                      <button
-                        aria-label="Connect provider"
-                        className="picker-icon-button"
-                        onClick={openProviderPicker}
-                        title="Connect Provider"
-                        type="button"
-                      >
-                        <PlusIcon />
-                      </button>
                       <button
                         aria-label="Manage models"
                         className="picker-icon-button"
