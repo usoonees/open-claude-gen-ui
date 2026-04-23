@@ -19,6 +19,7 @@ import {
   getAssistantMessageModelId,
   type ChatUIMessage,
 } from "@/lib/chat-message";
+import { stripHiddenGenerativeUIReminderFromText } from "@/lib/chat-hidden-reminders";
 import { Chat as ReactChat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Link from "next/link";
@@ -262,7 +263,7 @@ function widgetInputFromUnknown(input: unknown): WidgetToolInput {
 function textFromMessage(message: ChatUIMessage) {
   return message.parts
     .filter((part) => part.type === "text")
-    .map((part) => part.text)
+    .map((part) => stripHiddenGenerativeUIReminderFromText(part.text))
     .join("");
 }
 
@@ -810,7 +811,9 @@ function ThinkingBlock({
 function renderableItemsFromMessage(message: ChatUIMessage): RenderableMessageItem[] {
   return message.parts.flatMap<RenderableMessageItem>((part, index) => {
     if (part.type === "text") {
-      if (!part.text.trim()) {
+      const text = stripHiddenGenerativeUIReminderFromText(part.text);
+
+      if (!text.trim()) {
         return [];
       }
 
@@ -818,7 +821,7 @@ function renderableItemsFromMessage(message: ChatUIMessage): RenderableMessageIt
         {
           kind: "text",
           key: `${message.id}-text-${index}`,
-          text: part.text,
+          text,
         },
       ];
     }

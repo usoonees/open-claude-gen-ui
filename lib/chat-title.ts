@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
+import { stripHiddenGenerativeUIReminderFromText } from "@/lib/chat-hidden-reminders";
 import {
   getChatLanguageModel,
   isChatModelSelectionConfigured,
@@ -13,7 +14,7 @@ const GENERATED_TITLE_LENGTH = 45;
 function textFromMessage(message: ChatUIMessage) {
   return message.parts
     .filter((part) => part.type === "text")
-    .map((part) => part.text)
+    .map((part) => stripHiddenGenerativeUIReminderFromText(part.text))
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();

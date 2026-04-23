@@ -7,6 +7,10 @@ import {
   normalizeChatModelSelection,
 } from "@/lib/chat-models";
 import {
+  stripHiddenGenerativeUIReminderFromText,
+  stripHiddenGenerativeUIReminders,
+} from "@/lib/chat-hidden-reminders";
+import {
   canGenerateChatTitle,
   fallbackTitleFromMessages,
   generateChatTitle,
@@ -85,7 +89,9 @@ function chatPath(id: string) {
 
 function sanitizeMessages(messages: ChatUIMessage[]) {
   return normalizePreShowWidgetTextMessages(
-    messages.filter((message) => message.role !== "system")
+    stripHiddenGenerativeUIReminders(
+      messages.filter((message) => message.role !== "system")
+    )
   );
 }
 
@@ -130,7 +136,9 @@ export async function listChats(): Promise<ChatSummary[]> {
 
           return {
             id: chat.id,
-            title: chat.title || fallbackTitleFromMessages(chat.messages || []),
+            title:
+              stripHiddenGenerativeUIReminderFromText(chat.title || "") ||
+              fallbackTitleFromMessages(chat.messages || []),
             titleState: chat.titleState === "pending" ? "pending" : "ready",
             updatedAt: chat.updatedAt || new Date(0).toISOString(),
           } satisfies ChatSummary;
@@ -165,9 +173,12 @@ export async function readChat(id: string): Promise<StoredChat> {
   }
 
   const messages = Array.isArray(chat.messages)
-    ? normalizePreShowWidgetTextMessages(chat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(
+        stripHiddenGenerativeUIReminders(chat.messages as ChatUIMessage[])
+      )
     : [];
   const fallbackTitle = fallbackTitleFromMessages(messages);
+  const title = stripHiddenGenerativeUIReminderFromText(chat.title || "").trim();
 
   return {
     id: chat.id || id,
@@ -176,7 +187,7 @@ export async function readChat(id: string): Promise<StoredChat> {
       sanitizeModelSelection(chat.modelSelection) ??
       sanitizeTrace(chat.trace)?.modelSelection ??
       getDefaultChatModelSelection(),
-    title: isCustomTitle(chat) ? chat.title.trim() : chat.title || fallbackTitle,
+    title: title || fallbackTitle,
     updatedAt: chat.updatedAt || new Date(0).toISOString(),
     titleSource: chat.titleSource === "custom" ? "custom" : "generated",
     titleState: chat.titleState === "pending" ? "pending" : "ready",
@@ -223,7 +234,9 @@ export async function writeChat(
     (shouldKeepPendingGeneratedTitle ||
       (options?.deferGeneratedTitle === true &&
         canGenerateChatTitle(cleanMessages, modelSelection)));
-  const title = customTitle || existingResolvedGeneratedTitle || fallbackTitle;
+  const title = stripHiddenGenerativeUIReminderFromText(
+    customTitle || existingResolvedGeneratedTitle || fallbackTitle
+  ).trim();
   const chat: StoredChat = {
     id,
     messages: cleanMessages,
@@ -263,7 +276,9 @@ export async function resolvePendingGeneratedTitle(id: string) {
   }
 
   const messages = Array.isArray(existingChat.messages)
-    ? normalizePreShowWidgetTextMessages(existingChat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(
+        stripHiddenGenerativeUIReminders(existingChat.messages as ChatUIMessage[])
+      )
     : [];
 
   if (hasResolvedGeneratedTitle(existingChat, messages)) {
@@ -287,7 +302,9 @@ export async function resolvePendingGeneratedTitle(id: string) {
   }
 
   const latestMessages = Array.isArray(latestChat.messages)
-    ? normalizePreShowWidgetTextMessages(latestChat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(
+        stripHiddenGenerativeUIReminders(latestChat.messages as ChatUIMessage[])
+      )
     : messages;
   const chat: StoredChat = {
     id: latestChat.id || id,
@@ -296,7 +313,9 @@ export async function resolvePendingGeneratedTitle(id: string) {
       sanitizeModelSelection(latestChat.modelSelection) ??
       sanitizeTrace(latestChat.trace)?.modelSelection ??
       modelSelection,
-    title: generatedTitle || fallbackTitleFromMessages(latestMessages) || fallbackTitle,
+    title: stripHiddenGenerativeUIReminderFromText(
+      generatedTitle || fallbackTitleFromMessages(latestMessages) || fallbackTitle
+    ).trim(),
     updatedAt: latestChat.updatedAt || new Date().toISOString(),
     titleSource: "generated",
     titleState: "ready",
@@ -326,7 +345,9 @@ export async function renameChat(id: string, title: string) {
   }
 
   const messages = Array.isArray(existingChat.messages)
-    ? normalizePreShowWidgetTextMessages(existingChat.messages as ChatUIMessage[])
+    ? normalizePreShowWidgetTextMessages(
+        stripHiddenGenerativeUIReminders(existingChat.messages as ChatUIMessage[])
+      )
     : [];
   const chat: StoredChat = {
     id: existingChat.id || id,
@@ -335,7 +356,7 @@ export async function renameChat(id: string, title: string) {
       sanitizeModelSelection(existingChat.modelSelection) ??
       sanitizeTrace(existingChat.trace)?.modelSelection ??
       getDefaultChatModelSelection(),
-    title: normalizedTitle,
+    title: stripHiddenGenerativeUIReminderFromText(normalizedTitle).trim(),
     updatedAt: new Date().toISOString(),
     titleSource: "custom",
     titleState: "ready",
