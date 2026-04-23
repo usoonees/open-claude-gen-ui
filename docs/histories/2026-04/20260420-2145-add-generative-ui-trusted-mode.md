@@ -8,7 +8,7 @@
 
 ### User Query
 
-> read this article carefully: https://michaellivs.com/blog/reverse-engineering-claude-generative-ui/
+> read this article carefully: <https://michaellivs.com/blog/reverse-engineering-claude-generative-ui/>
 >
 > here is its reference implementation repo
 >

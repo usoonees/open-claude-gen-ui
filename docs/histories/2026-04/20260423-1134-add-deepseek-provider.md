@@ -8,7 +8,7 @@
 
 ### User Query
 
-> add deepseek api provider, check this doc for detail: https://api-docs.deepseek.com/
+> add deepseek api provider, check this doc for detail: <https://api-docs.deepseek.com/>
 
 ### Changes Overview
 

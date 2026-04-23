@@ -5,7 +5,7 @@ This template ships with repository-level CI/CD scaffolding that is intentionall
 ## What Exists By Default
 
 - `ci.yml`: repository checks for docs, hygiene, markdown, and shell validity.
-- `supply-chain-security.yml`: dependency review, OSV scanning, SBOM generation, and Scorecard analysis.
+- `supply-chain-security.yml`: dependency review, OSV scanning, and Scorecard analysis.
 - `release.yml`: a workflow-dispatch release scaffold that packages repository metadata, generates provenance attestations, and creates a GitHub release.
 
 ## Design Principle

@@ -14,7 +14,7 @@
 
 - Area: trusted-mode chat thinking UI
 - Key actions:
-  - Removed the `Selected ` prefix from the visible `visualizeReadMe` tool status line in the thinking card.
+  - Removed the `Selected` prefix from the visible `visualizeReadMe` tool status line in the thinking card.
   - Updated the frontend verification guide to match the new module-name-only render.
 
 ### Design Intent

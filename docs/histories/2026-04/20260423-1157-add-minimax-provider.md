@@ -8,7 +8,7 @@
 
 ### User Query
 
-> add provider minimax: https://platform.minimaxi.com/docs/api-reference/api-overview
+> add provider minimax: <https://platform.minimaxi.com/docs/api-reference/api-overview>
 
 ### Changes Overview
 

@@ -9,9 +9,7 @@
 ### User Query
 
 > For the model selection part down in the input box, remove any gradient color and 3D style, make sure it's compact, also remove the card surround for the model selection, make it compact, only a text there.
-
-> Here is the OpenCode source code: `/Users/bytedance/Developer/githubs/opencode`
-
+> Here is the OpenCode source code: `/path/to/opencode`
 > Check carefully how `Choose model` works, and how `Connect Provider` and `Manage Models` works, make our system consistent with that.
 
 ### Changes Overview

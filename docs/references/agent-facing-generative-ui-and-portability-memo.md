@@ -234,16 +234,16 @@ That gives:
 
 ## Sources
 
-- Model Context Protocol, MCP Apps overview: https://modelcontextprotocol.io/extensions/apps/overview
-- MCP Apps SDK docs: https://apps.extensions.modelcontextprotocol.io/api/
-- MCP Apps patterns: https://apps.extensions.modelcontextprotocol.io/api/documents/patterns.html
-- MCP Apps UI resource metadata: https://apps.extensions.modelcontextprotocol.io/api/interfaces/app.McpUiResourceMeta.html
-- MCP Apps client capabilities: https://apps.extensions.modelcontextprotocol.io/api/interfaces/app.McpUiClientCapabilities.html
-- MCP Apps CSP and CORS guidance: https://apps.extensions.modelcontextprotocol.io/api/documents/csp-and-cors.html
-- MCP-UI README: https://github.com/MCP-UI-Org/mcp-ui
-- FastMCP Generative UI guide: https://gofastmcp.com/apps/generative
-- FastMCP `fastmcp.apps.generative` reference: https://gofastmcp.com/python-sdk/fastmcp-apps-generative
-- `open-codex-computer-use` repository: https://github.com/iFurySt/open-codex-computer-use
-- `open-codex-computer-use` Codex plugin metadata: https://raw.githubusercontent.com/iFurySt/open-codex-computer-use/main/plugins/open-computer-use/.codex-plugin/plugin.json
-- CodePilot repository: https://github.com/op7418/CodePilot
-- CodePilot generative UI doc: https://raw.githubusercontent.com/op7418/CodePilot/main/apps/site/content/docs/en/generative-ui.mdx
+- Model Context Protocol, MCP Apps overview: <https://modelcontextprotocol.io/extensions/apps/overview>
+- MCP Apps SDK docs: <https://apps.extensions.modelcontextprotocol.io/api/>
+- MCP Apps patterns: <https://apps.extensions.modelcontextprotocol.io/api/documents/patterns.html>
+- MCP Apps UI resource metadata: <https://apps.extensions.modelcontextprotocol.io/api/interfaces/app.McpUiResourceMeta.html>
+- MCP Apps client capabilities: <https://apps.extensions.modelcontextprotocol.io/api/interfaces/app.McpUiClientCapabilities.html>
+- MCP Apps CSP and CORS guidance: <https://apps.extensions.modelcontextprotocol.io/api/documents/csp-and-cors.html>
+- MCP-UI README: <https://github.com/MCP-UI-Org/mcp-ui>
+- FastMCP Generative UI guide: <https://gofastmcp.com/apps/generative>
+- FastMCP `fastmcp.apps.generative` reference: <https://gofastmcp.com/python-sdk/fastmcp-apps-generative>
+- `open-codex-computer-use` repository: <https://github.com/iFurySt/open-codex-computer-use>
+- `open-codex-computer-use` Codex plugin metadata: <https://raw.githubusercontent.com/iFurySt/open-codex-computer-use/main/plugins/open-computer-use/.codex-plugin/plugin.json>
+- CodePilot repository: <https://github.com/op7418/CodePilot>
+- CodePilot generative UI doc: <https://raw.githubusercontent.com/op7418/CodePilot/main/apps/site/content/docs/en/generative-ui.mdx>

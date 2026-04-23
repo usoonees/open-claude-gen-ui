@@ -9,7 +9,6 @@
 ### User Query
 
 > Tweak the gen-ui widget: remove the live button, show the download button only on hover, keep the download control from taking a separate content column, and make widgets look like normal text content rather than nested cards.
-
 > Follow-up: remove the `Building interactive view...` loading text and move the download button to the same assistant message action row as the copy button, showing it only when a gen-ui widget exists.
 
 ### Changes Overview

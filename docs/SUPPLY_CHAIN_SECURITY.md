@@ -14,10 +14,10 @@ This document defines the default supply-chain posture for the template.
 ## Current Workflow Mapping
 
 - `actions/dependency-review-action`: blocks pull requests that introduce vulnerable dependencies.
-- `google/osv-scanner-action`: scans the repository for known-vulnerable dependencies based on supported manifests and lockfiles.
+- `google/osv-scanner-action` reusable scheduled-scan workflow: scans the repository for known-vulnerable dependencies based on supported manifests and lockfiles.
 - `anchore/sbom-action`: generates an SPDX SBOM artifact.
 - `actions/attest-build-provenance`: generates signed build provenance for release artifacts.
-- `ossf/scorecard-action`: evaluates repository-level security signals such as branch protection and token permissions.
+- `ossf/scorecard-action`: evaluates repository-level security signals such as branch protection and token permissions. Private repositories need the documented extra read permissions, and private repositories without GitHub Advanced Security should keep the action in non-publishing mode.
 - `scripts/check-action-pinning.sh`: fails CI if workflow actions are referenced by floating tags instead of immutable SHAs.
 
 ## Limits And Assumptions

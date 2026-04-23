@@ -9,7 +9,6 @@
 ### User Query
 
 > The style is too ugly. Refer to the OpenCode style for the provider and model selector below the input box.
-
 > We only need one option: model selection. When clicking it, users should be able to add a new model or switch/add a provider inside the same picker, and the style should stay close to OpenCode.
 
 ### Changes Overview
