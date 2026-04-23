@@ -2,6 +2,8 @@ export const CHAT_PROVIDER_IDS = [
   "volcengine",
   "volcengine-coding",
   "openai",
+  "minimax",
+  "deepseek",
   "openrouter",
   "anthropic",
   "google",
@@ -20,6 +22,9 @@ export type ChatProviderOption = {
   description: string;
   apiKeyEnv: string;
   configured: boolean;
+  credentialSource: "frontend" | "env" | null;
+  credentialUpdatedAt?: string;
+  keyPreview?: string;
   canListModels: boolean;
   defaultModelId: string;
   suggestedModels: string[];

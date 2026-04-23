@@ -20,3 +20,10 @@ The repository now supports a trusted local generative UI mode behind `NEXT_PUBL
 - Before enabling tracing for production or shared users, add redaction for sensitive tool payloads and review LangSmith retention/workspace access.
 
 Repository-wide dependency, SBOM, and provenance defaults live in `docs/SUPPLY_CHAIN_SECURITY.md`.
+
+## Provider Credentials
+
+- Provider API keys can now be saved from the frontend, but they must still stay server-side only.
+- Frontend-saved provider keys are written to `.data/providers/provider-credentials.json` with local encryption and a machine-local key file unless `PROVIDER_CREDENTIALS_MASTER_KEY` is set.
+- The UI should only receive masked metadata such as configured state, source, and key preview. Never return raw provider keys to the browser after save.
+- This storage is suitable for local development, but it is not a replacement for per-user auth, multi-tenant secret storage, or production access control.

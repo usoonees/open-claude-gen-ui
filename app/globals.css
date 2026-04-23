@@ -536,8 +536,8 @@ svg {
 }
 
 .dialog-card {
-  background: rgba(250, 248, 242, 0.98);
-  border: 1px solid rgba(198, 191, 179, 0.92);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(218, 223, 232, 0.96);
   border-radius: 18px;
   box-shadow: 0 18px 40px rgba(21, 22, 26, 0.1);
   max-width: 360px;
@@ -606,6 +606,11 @@ svg {
   background: rgba(247, 244, 239, 1);
   border-color: rgba(187, 178, 164, 0.96);
   box-shadow: none;
+}
+
+.dialog-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .dialog-button.danger {
@@ -744,6 +749,26 @@ svg {
   margin: 0 0 8px;
   padding: 0 4px;
   text-transform: uppercase;
+}
+
+.provider-credential-input {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(214, 210, 202, 0.96);
+  border-radius: 12px;
+  color: var(--foreground);
+  font: inherit;
+  height: 42px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.provider-credential-input:focus {
+  border-color: rgba(121, 116, 107, 0.96);
+  outline: none;
+}
+
+.provider-credential-input.is-masked {
+  -webkit-text-security: disc;
 }
 
 .widget-shell {
@@ -2058,7 +2083,8 @@ svg {
   border: 1px solid rgba(229, 229, 229, 0.96);
   border-radius: 12px;
   color: var(--foreground);
-  display: flex;
+  display: grid;
+  gap: 10px;
   padding: 10px;
   text-align: left;
   transition:
@@ -2075,11 +2101,42 @@ svg {
   box-shadow: none;
 }
 
+.provider-option-summary {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.provider-option-summary:focus-visible {
+  outline: none;
+}
+
+.provider-option:has(.provider-option-summary:focus-visible) {
+  border-color: rgba(163, 163, 163, 0.9);
+  box-shadow: 0 0 0 3px rgba(229, 229, 229, 0.7);
+}
+
 .provider-option-copy {
   display: grid;
   gap: 4px;
   min-width: 0;
   width: 100%;
+}
+
+.provider-option-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.provider-option-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .provider-option-title-row {
@@ -2475,6 +2532,13 @@ svg {
 
 .selector-error {
   color: var(--destructive);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+
+.selector-success {
+  color: #0f766e;
   font-size: 12px;
   line-height: 1.4;
   margin: 10px 0 0;

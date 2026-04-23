@@ -14,7 +14,10 @@ import {
 import { normalizeHiddenModelKeys } from "@/lib/chat-picker-preferences";
 import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import { openTrustedWidgetLink } from "@/lib/generative-ui/browser-links";
-import type { ChatUIMessage } from "@/lib/chat-message";
+import {
+  getAssistantMessageModelId,
+  type ChatUIMessage,
+} from "@/lib/chat-message";
 import { Chat as ReactChat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Link from "next/link";
@@ -45,8 +48,13 @@ type ChatController = ReactChat<ChatUIMessage>;
 type ProviderModelsState = {
   status: "idle" | "loading" | "ready" | "error";
   models: string[];
-  source: "suggested" | "provider-api";
+  source: "suggested" | "provider-api" | "server-cache";
   errorMessage?: string;
+};
+
+type ProviderCredentialMutationState = {
+  status: "idle" | "saving" | "error" | "success";
+  message?: string;
 };
 
 type ModelPickerView = "models" | "providers" | "manage";
@@ -199,6 +207,24 @@ function mergeModelOptions(
   ]);
 }
 
+function providerCredentialSummary(provider: ChatProviderOption | undefined) {
+  if (!provider?.configured) {
+    return "No API key saved yet.";
+  }
+
+  if (provider.credentialSource === "frontend") {
+    return provider.keyPreview
+      ? `Saved locally as ${provider.keyPreview}.`
+      : "Saved locally.";
+  }
+
+  return `Using ${provider.apiKeyEnv} from the environment.`;
+}
+
+function getConfiguredProviderOptions(providers: ChatProviderOption[]) {
+  return providers.filter((provider) => provider.configured);
+}
+
 function asRecord(value: unknown) {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
@@ -219,6 +245,12 @@ function copyTextFromMessage(message: ChatUIMessage) {
 
   if (text) {
     return text;
+  }
+
+  const postWidgetReasoning = postWidgetReasoningFromMessage(message).trim();
+
+  if (postWidgetReasoning) {
+    return postWidgetReasoning;
   }
 
   return reasoningFromMessage(message).trim();
@@ -870,6 +902,8 @@ function MessageContent({
   const showStreamingIndicator = isStreaming && !hasStreamingWidgetLoading;
   const showWidgetReasoningPreview =
     isStreaming && hasWidgetOutput && !hasTextOutput && postWidgetReasoning.length > 0;
+  const showCompletedWidgetFallbackText =
+    !isStreaming && hasWidgetOutput && !hasTextOutput && postWidgetReasoning.length > 0;
 
   return (
     <>
@@ -890,6 +924,9 @@ function MessageContent({
       )}
       {showWidgetReasoningPreview ? (
         <AssistantWidgetReasoningPreview reasoningText={postWidgetReasoning} />
+      ) : null}
+      {showCompletedWidgetFallbackText ? (
+        <MarkdownBlock>{postWidgetReasoning}</MarkdownBlock>
       ) : null}
       {showStreamingIndicator ? <AssistantStreamingIndicator /> : null}
     </>
@@ -1057,6 +1094,19 @@ function createOptimisticUserMessage(text: string): ChatUIMessage {
   };
 }
 
+function assistantRoleLabel(
+  messageOrModelId: ChatUIMessage | string | null | undefined
+) {
+  const modelId =
+    typeof messageOrModelId === "string"
+      ? messageOrModelId
+      : messageOrModelId
+        ? getAssistantMessageModelId(messageOrModelId)
+        : null;
+
+  return modelId ? `Assistant(${modelId})` : "Assistant";
+}
+
 function messageScrollSignature(messages: ChatUIMessage[]) {
   return messages
     .map((message) =>
@@ -1134,6 +1184,13 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [collapsedModelProviderIds, setCollapsedModelProviderIds] = useState<string[]>([]);
   const [collapsedManageProviderIds, setCollapsedManageProviderIds] = useState<string[]>([]);
   const [isProviderPickerOpen, setIsProviderPickerOpen] = useState(false);
+  const [returnToManageModelsAfterProviderPicker, setReturnToManageModelsAfterProviderPicker] =
+    useState(false);
+  const [providerPickerSelectionId, setProviderPickerSelectionId] =
+    useState<ChatProviderId | null>(null);
+  const [providerApiKeyInput, setProviderApiKeyInput] = useState("");
+  const [providerCredentialMutation, setProviderCredentialMutation] =
+    useState<ProviderCredentialMutationState>({ status: "idle" });
   const [isManageModelsOpen, setIsManageModelsOpen] = useState(false);
   const chatIdRef = useRef(chatId);
   const defaultModelSelectionRef = useRef(defaultModelSelection);
@@ -1156,6 +1213,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelSearchInputRef = useRef<HTMLInputElement>(null);
   const providerSearchInputRef = useRef<HTMLInputElement>(null);
+  const providerApiKeyInputRef = useRef<HTMLInputElement>(null);
   const manageModelSearchInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const hasHydratedModelVisibilityRef = useRef(false);
@@ -1169,15 +1227,23 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     value: Partial<ChatModelSelection> | null | undefined
   ) {
     const fallback = defaultModelSelectionRef.current;
+    const configuredProviders = getConfiguredProviderOptions(providerOptions);
     const requestedProviderId = value?.providerId;
     const provider = requestedProviderId
-      ? getProviderOption(requestedProviderId)
-      : getProviderOption(fallback.providerId);
-    const providerId = (provider?.id ?? fallback.providerId) as ChatProviderId;
+      ? configuredProviders.find((entry) => entry.id === requestedProviderId)
+      : configuredProviders.find((entry) => entry.id === fallback.providerId);
+    const fallbackProvider =
+      configuredProviders.find((entry) => entry.id === fallback.providerId) ??
+      configuredProviders[0] ??
+      getProviderOption(fallback.providerId);
 
     return {
-      providerId,
-      modelId: value?.modelId?.trim() || provider?.defaultModelId || fallback.modelId,
+      providerId: (provider?.id ?? fallbackProvider?.id ?? fallback.providerId) as ChatProviderId,
+      modelId:
+        value?.modelId?.trim() ||
+        provider?.defaultModelId ||
+        fallbackProvider?.defaultModelId ||
+        fallback.modelId,
     } satisfies ChatModelSelection;
   }
 
@@ -1358,6 +1424,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     : draftModelSelection;
   const activeProvider = getProviderOption(activeModelSelection.providerId);
   const activeProviderModels = providerModels[activeModelSelection.providerId];
+  const providerCredentialStatusMessage = providerCredentialMutation.message;
 
   function isModelVisible(providerId: string, modelId: string) {
     return !hiddenModelKeys.includes(modelVisibilityKey(providerId, modelId));
@@ -1373,10 +1440,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const groupedModelOptions = useMemo(() => {
     const query = modelQuery.trim().toLowerCase();
     return providerOptions
-      .filter(
-        (provider) =>
-          provider.configured || provider.id === activeModelSelection.providerId
-      )
+      .filter((provider) => provider.configured)
       .map((provider) => {
         const models = getProviderKnownModels(
           provider,
@@ -1441,10 +1505,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const manageableProviderGroups = useMemo(() => {
     const query = manageModelQuery.trim().toLowerCase();
     return providerOptions
-      .filter(
-        (provider) =>
-          provider.configured || provider.id === activeModelSelection.providerId
-      )
+      .filter((provider) => provider.configured)
       .map((provider) => ({
         provider,
         models: getProviderKnownModels(
@@ -1826,8 +1887,11 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       value: Partial<ChatModelSelection> | null | undefined
     ) => {
       const fallback = nextDefaultSelection;
+      const configuredProviders = getConfiguredProviderOptions(nextProviders);
       const provider =
-        nextProviders.find((entry) => entry.id === value?.providerId) ??
+        configuredProviders.find((entry) => entry.id === value?.providerId) ??
+        configuredProviders.find((entry) => entry.id === fallback.providerId) ??
+        configuredProviders[0] ??
         nextProviders.find((entry) => entry.id === fallback.providerId);
       const providerId = (provider?.id ?? fallback.providerId) as ChatProviderId;
 
@@ -1845,6 +1909,21 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       ? normalizeWithProviders(storedManualSelection)
       : null;
     writeManualDefaultModelSelection(nextManualDefaultSelection);
+    if (
+      storedManualSelection &&
+      (!nextManualDefaultSelection ||
+        storedManualSelection.providerId !== nextManualDefaultSelection.providerId ||
+        storedManualSelection.modelId !== nextManualDefaultSelection.modelId)
+    ) {
+      if (nextManualDefaultSelection) {
+        window.localStorage.setItem(
+          MODEL_SELECTION_STORAGE_KEY,
+          JSON.stringify(nextManualDefaultSelection)
+        );
+      } else {
+        window.localStorage.removeItem(MODEL_SELECTION_STORAGE_KEY);
+      }
+    }
     writeDraftModelSelection(
       nextManualDefaultSelection ?? normalizeWithProviders(null)
     );
@@ -1874,7 +1953,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       return;
     }
 
-    if (!force && currentState?.source === "provider-api" && currentState.models.length > 0) {
+    if (
+      !force &&
+      currentState &&
+      currentState.source !== "suggested" &&
+      currentState.models.length > 0
+    ) {
       return;
     }
 
@@ -1892,15 +1976,23 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }));
 
     try {
-      const response = await fetch(
-        `/api/chat/models?providerId=${encodeURIComponent(providerId)}`
-      );
+      const url = new URL("/api/chat/models", window.location.origin);
+      url.searchParams.set("providerId", providerId);
+
+      if (force) {
+        url.searchParams.set("force", "1");
+      }
+
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
         throw new Error(await response.text());
       }
 
-      const data = (await response.json()) as { models?: string[] };
+      const data = (await response.json()) as {
+        models?: string[];
+        source?: ProviderModelsState["source"];
+      };
       const loadedModels = Array.isArray(data.models)
         ? data.models.filter((model): model is string => typeof model === "string")
         : [];
@@ -1913,7 +2005,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             ...mergeModelOptions(provider, current[providerId], ""),
             ...loadedModels,
           ]),
-          source: "provider-api",
+          source:
+            data.source === "server-cache" || data.source === "provider-api"
+              ? data.source
+              : "suggested",
         },
       }));
     } catch (error) {
@@ -2320,6 +2415,109 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     void loadProviderModels(providerId);
   }
 
+  function resetProviderCredentialForm() {
+    setProviderApiKeyInput("");
+    setProviderCredentialMutation({ status: "idle" });
+  }
+
+  async function saveProviderCredential(providerId: ChatProviderId) {
+    const apiKey = providerApiKeyInput.trim();
+
+    if (!apiKey) {
+      setProviderCredentialMutation({
+        status: "error",
+        message: "Enter an API key before saving.",
+      });
+      return;
+    }
+
+    setProviderCredentialMutation({ status: "saving" });
+
+    try {
+      const response = await fetch("/api/chat/providers", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          providerId,
+          apiKey,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      await loadProviderCatalog();
+      setProviderPickerSelectionId(providerId);
+      selectProvider(providerId);
+      await loadProviderModels(providerId, true);
+      setProviderApiKeyInput("");
+      setProviderCredentialMutation({
+        status: "success",
+        message: "API key saved.",
+      });
+    } catch (error) {
+      setProviderCredentialMutation({
+        status: "error",
+        message: error instanceof Error ? error.message : "Unable to save API key.",
+      });
+    }
+  }
+
+  async function removeStoredProviderCredential(providerId: ChatProviderId) {
+    setProviderCredentialMutation({ status: "saving" });
+
+    try {
+      const response = await fetch("/api/chat/providers", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ providerId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      await loadProviderCatalog();
+      setProviderPickerSelectionId(defaultModelSelectionRef.current.providerId);
+      setProviderApiKeyInput("");
+      setProviderCredentialMutation({
+        status: "success",
+        message: "Saved API key removed.",
+      });
+    } catch (error) {
+      setProviderCredentialMutation({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to remove the saved API key.",
+      });
+    }
+  }
+
+  function handleProviderOptionClick(provider: ChatProviderOption) {
+    setProviderPickerSelectionId(provider.id);
+    setProviderApiKeyInput("");
+    setProviderCredentialMutation({ status: "idle" });
+
+    if (provider.configured) {
+      selectProvider(provider.id);
+      setModelQuery("");
+    }
+
+    requestAnimationFrame(() => {
+      if (!provider.configured) {
+        providerApiKeyInputRef.current?.focus();
+        providerApiKeyInputRef.current?.select();
+      }
+    });
+  }
+
   function updateModelId(modelId: string) {
     updateActiveModelSelection({ modelId }, { persistAsManualDefault: true });
   }
@@ -2385,6 +2583,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   function openProviderPicker() {
     setProviderQuery("");
+    resetProviderCredentialForm();
+    setReturnToManageModelsAfterProviderPicker(isManageModelsOpen);
+    setProviderPickerSelectionId(activeModelSelection.providerId);
     setIsModelPickerOpen(false);
     setIsManageModelsOpen(false);
     setIsProviderPickerOpen(true);
@@ -2401,7 +2602,13 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function closeProviderPicker() {
+    resetProviderCredentialForm();
+    setProviderPickerSelectionId(null);
     setIsProviderPickerOpen(false);
+    if (returnToManageModelsAfterProviderPicker) {
+      setIsManageModelsOpen(true);
+    }
+    setReturnToManageModelsAfterProviderPicker(false);
   }
 
   function closeManageModels() {
@@ -2974,8 +3181,8 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   className="provider-picker-description"
                   id="provider-picker-description"
                 >
-                  Switch the active provider here or see which API key is needed
-                  before a provider becomes available.
+                  Switch providers here, save API keys without restarting the app,
+                  and keep the actual secrets on the server.
                 </p>
               </div>
               <button
@@ -2992,6 +3199,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
               <div className="model-search provider-picker-search">
                 <SearchIcon />
                 <input
+                  autoComplete="off"
                   aria-label="Search providers"
                   className="model-search-input"
                   onChange={(event) => {
@@ -2999,6 +3207,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                   }}
                   placeholder="Search providers"
                   ref={providerSearchInputRef}
+                  spellCheck={false}
                   value={providerQuery}
                 />
               </div>
@@ -3015,41 +3224,120 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                         <span>Connected</span>
                       </div>
                       <div className="provider-option-list">
-                        {providerSearchGroups.connected.map((provider) => (
-                          <button
-                            className={
-                              provider.id === activeModelSelection.providerId
-                                ? "provider-option is-active"
-                                : "provider-option"
-                            }
-                            key={provider.id}
-                            onClick={() => {
-                              selectProvider(provider.id);
-                              setModelQuery("");
-                              closeProviderPicker();
-                            }}
-                            type="button"
-                          >
-                            <span className="provider-option-copy">
-                              <span className="provider-option-title-row">
-                                <span className="provider-option-title">
-                                  {provider.label}
-                                </span>
-                                <span className="model-group-badges">
-                                  {provider.id === activeModelSelection.providerId ? (
-                                    <span className="model-group-badge is-current">
-                                      Current
+                        {providerSearchGroups.connected.map((provider) => {
+                          const isActive = provider.id === providerPickerSelectionId;
+
+                          return (
+                            <div
+                              className={isActive ? "provider-option is-active" : "provider-option"}
+                              key={provider.id}
+                            >
+                              <button
+                                className="provider-option-summary"
+                                onClick={() => {
+                                  handleProviderOptionClick(provider);
+                                }}
+                                type="button"
+                              >
+                                <span className="provider-option-copy">
+                                  <span className="provider-option-title-row">
+                                    <span className="provider-option-title">
+                                      {provider.label}
                                     </span>
-                                  ) : null}
-                                  <span className="model-group-badge">Connected</span>
+                                    <span className="model-group-badges">
+                                      {isActive ? (
+                                        <span className="model-group-badge is-current">
+                                          Current
+                                        </span>
+                                      ) : null}
+                                      <span className="model-group-badge">
+                                        {provider.credentialSource === "frontend"
+                                          ? "Saved key"
+                                          : "Env key"}
+                                      </span>
+                                    </span>
+                                  </span>
+                                  <span className="provider-option-description">
+                                    {provider.description}
+                                  </span>
+                                  <span className="provider-option-meta">
+                                    {providerCredentialSummary(provider)}
+                                  </span>
                                 </span>
-                              </span>
-                              <span className="provider-option-description">
-                                {provider.description}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
+                              </button>
+                              {isActive ? (
+                                <form
+                                  autoComplete="off"
+                                  className="provider-option-editor"
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void saveProviderCredential(provider.id);
+                                  }}
+                                >
+                                  <input
+                                    aria-label={`${provider.label} API key`}
+                                    autoCapitalize="off"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    className="provider-credential-input is-masked"
+                                    data-1p-ignore="true"
+                                    data-lpignore="true"
+                                    inputMode="text"
+                                    onChange={(event) => {
+                                      setProviderApiKeyInput(event.target.value);
+                                      if (providerCredentialMutation.status !== "idle") {
+                                        setProviderCredentialMutation({ status: "idle" });
+                                      }
+                                    }}
+                                    placeholder={
+                                      provider.configured
+                                        ? "****************"
+                                        : "Paste API key"
+                                    }
+                                    ref={providerApiKeyInputRef}
+                                    spellCheck={false}
+                                    type="text"
+                                    value={providerApiKeyInput}
+                                  />
+                                  {providerCredentialStatusMessage ? (
+                                    <p
+                                      className={
+                                        providerCredentialMutation.status === "error"
+                                          ? "selector-error"
+                                          : "selector-success"
+                                      }
+                                    >
+                                      {providerCredentialStatusMessage}
+                                    </p>
+                                  ) : null}
+                                  <div className="provider-option-actions">
+                                    <button
+                                      className="dialog-button"
+                                      disabled={providerCredentialMutation.status === "saving"}
+                                      type="submit"
+                                    >
+                                      {providerCredentialMutation.status === "saving"
+                                        ? "Saving..."
+                                        : "Save key"}
+                                    </button>
+                                    {provider.credentialSource === "frontend" ? (
+                                      <button
+                                        className="dialog-button"
+                                        disabled={providerCredentialMutation.status === "saving"}
+                                        onClick={() => {
+                                          void removeStoredProviderCredential(provider.id);
+                                        }}
+                                        type="button"
+                                      >
+                                        Remove saved key
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                </form>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     </section>
                   ) : null}
@@ -3059,47 +3347,97 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                         <span>Available</span>
                       </div>
                       <div className="provider-option-list">
-                        {providerSearchGroups.available.map((provider) => (
-                          <button
-                            className={
-                              provider.id === activeModelSelection.providerId
-                                ? "provider-option is-active"
-                                : "provider-option"
-                            }
-                            key={provider.id}
-                            onClick={() => {
-                              selectProvider(provider.id);
-                              setModelQuery("");
-                              closeProviderPicker();
-                            }}
-                            type="button"
-                          >
-                            <span className="provider-option-copy">
-                              <span className="provider-option-title-row">
-                                <span className="provider-option-title">
-                                  {provider.label}
-                                </span>
-                                <span className="model-group-badges">
-                                  {provider.id === activeModelSelection.providerId ? (
-                                    <span className="model-group-badge is-current">
-                                      Current
+                        {providerSearchGroups.available.map((provider) => {
+                          const isActive = provider.id === providerPickerSelectionId;
+
+                          return (
+                            <div
+                              className={isActive ? "provider-option is-active" : "provider-option"}
+                              key={provider.id}
+                            >
+                              <button
+                                className="provider-option-summary"
+                                onClick={() => {
+                                  handleProviderOptionClick(provider);
+                                }}
+                                type="button"
+                              >
+                                <span className="provider-option-copy">
+                                  <span className="provider-option-title-row">
+                                    <span className="provider-option-title">
+                                      {provider.label}
                                     </span>
-                                  ) : null}
-                                  <span className="model-group-badge">
-                                    Set {provider.apiKeyEnv}
+                                    <span className="model-group-badges">
+                                      {isActive ? (
+                                        <span className="model-group-badge is-current">
+                                          Current
+                                        </span>
+                                      ) : null}
+                                      <span className="model-group-badge">Add API key</span>
+                                    </span>
+                                  </span>
+                                  <span className="provider-option-description">
+                                    {provider.description}
                                   </span>
                                 </span>
-                              </span>
-                              <span className="provider-option-description">
-                                {provider.description}
-                              </span>
-                              <span className="provider-option-meta">
-                                Add {provider.apiKeyEnv} to `.env.local`, then reload to
-                                enable this provider.
-                              </span>
-                            </span>
-                          </button>
-                        ))}
+                              </button>
+                              {isActive ? (
+                                <form
+                                  autoComplete="off"
+                                  className="provider-option-editor"
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void saveProviderCredential(provider.id);
+                                  }}
+                                >
+                                  <input
+                                    aria-label={`${provider.label} API key`}
+                                    autoCapitalize="off"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    className="provider-credential-input is-masked"
+                                    data-1p-ignore="true"
+                                    data-lpignore="true"
+                                    inputMode="text"
+                                    onChange={(event) => {
+                                      setProviderApiKeyInput(event.target.value);
+                                      if (providerCredentialMutation.status !== "idle") {
+                                        setProviderCredentialMutation({ status: "idle" });
+                                      }
+                                    }}
+                                    placeholder="Paste API key"
+                                    ref={providerApiKeyInputRef}
+                                    spellCheck={false}
+                                    type="text"
+                                    value={providerApiKeyInput}
+                                  />
+                                  {providerCredentialStatusMessage ? (
+                                    <p
+                                      className={
+                                        providerCredentialMutation.status === "error"
+                                          ? "selector-error"
+                                          : "selector-success"
+                                      }
+                                    >
+                                      {providerCredentialStatusMessage}
+                                    </p>
+                                  ) : null}
+                                  <div className="provider-option-actions">
+                                    <button
+                                      className="dialog-button"
+                                      disabled={providerCredentialMutation.status === "saving"}
+                                      type="submit"
+                                    >
+                                      {providerCredentialMutation.status === "saving"
+                                        ? "Saving..."
+                                        : "Connect"}
+                                    </button>
+                                  </div>
+                                </form>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     </section>
                   ) : null}
@@ -3194,7 +3532,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                     ) : (
                       <>
                         <div className="message-body">
-                          <span className="message-role">Assistant</span>
+                          <span className="message-role">
+                            {assistantRoleLabel(message)}
+                          </span>
                           <MessageContent
                             isStreaming={isStreamingAssistantMessage}
                             message={message}
@@ -3251,7 +3591,9 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
               })}
               {status === "submitted" && (
                 <article className="message message-assistant">
-                  <span className="message-role">Assistant</span>
+                  <span className="message-role">
+                    {assistantRoleLabel(activeModelSelection.modelId)}
+                  </span>
                   <p className="pulse-text">Thinking...</p>
                 </article>
               )}
@@ -3396,7 +3738,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                                         ) : null}
                                         {!provider.configured ? (
                                           <span className="model-group-badge">
-                                            Set {provider.apiKeyEnv}
+                                            Add API key
                                           </span>
                                         ) : null}
                                       </span>

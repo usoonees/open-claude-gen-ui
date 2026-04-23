@@ -7,19 +7,24 @@ function readEnv(name: string) {
   return process.env[name]?.trim() || "";
 }
 
-export const openrouterConfig = {
-  apiKey: readEnv("OPENROUTER_API_KEY"),
-  baseURL: readEnv("OPENROUTER_BASE_URL") || DEFAULT_BASE_URL,
-  model: readEnv("OPENROUTER_MODEL") || DEFAULT_MODEL,
-};
+export function getOpenRouterConfig() {
+  return {
+    apiKey: readEnv("OPENROUTER_API_KEY"),
+    baseURL: readEnv("OPENROUTER_BASE_URL") || DEFAULT_BASE_URL,
+    model: readEnv("OPENROUTER_MODEL") || DEFAULT_MODEL,
+  };
+}
 
-const openrouter = createOpenAICompatible({
-  name: "openrouter",
-  apiKey: openrouterConfig.apiKey,
-  baseURL: openrouterConfig.baseURL,
-  includeUsage: true,
-});
+export function getOpenRouterProvider(options?: {
+  apiKey?: string;
+  baseURL?: string;
+}) {
+  const config = getOpenRouterConfig();
 
-export function getOpenRouterProvider() {
-  return openrouter;
+  return createOpenAICompatible({
+    name: "openrouter",
+    apiKey: options?.apiKey ?? config.apiKey,
+    baseURL: options?.baseURL ?? config.baseURL,
+    includeUsage: true,
+  });
 }

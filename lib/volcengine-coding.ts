@@ -18,30 +18,36 @@ function readEnv(primary: string, fallback?: string) {
   return process.env[primary] ?? (fallback ? process.env[fallback] : undefined);
 }
 
-export const volcengineCodingConfig = {
-  apiKey:
-    readEnv("VOLCENGINE_CODING_API_KEY", "VOLCENGINE_ARK_CODING_API_KEY") ?? "",
-  baseURL:
-    readEnv("VOLCENGINE_CODING_BASE_URL", "VOLCENGINE_ARK_CODING_BASE_URL") ??
-    DEFAULT_BASE_URL,
-  model:
-    readEnv("VOLCENGINE_CODING_MODEL", "VOLCENGINE_ARK_CODING_MODEL") ??
-    DEFAULT_MODEL,
-};
+export function getVolcengineCodingConfig() {
+  return {
+    apiKey:
+      readEnv("VOLCENGINE_CODING_API_KEY", "VOLCENGINE_ARK_CODING_API_KEY") ??
+      "",
+    baseURL:
+      readEnv("VOLCENGINE_CODING_BASE_URL", "VOLCENGINE_ARK_CODING_BASE_URL") ??
+      DEFAULT_BASE_URL,
+    model:
+      readEnv("VOLCENGINE_CODING_MODEL", "VOLCENGINE_ARK_CODING_MODEL") ??
+      DEFAULT_MODEL,
+  };
+}
 
-const volcengineCoding = createOpenAICompatible({
-  name: "volcengine-coding",
-  apiKey: volcengineCodingConfig.apiKey,
-  baseURL: volcengineCodingConfig.baseURL,
-  includeUsage: true,
-});
+export function getVolcengineCodingProvider(options?: {
+  apiKey?: string;
+  baseURL?: string;
+}) {
+  const config = getVolcengineCodingConfig();
 
-export function getVolcengineCodingProvider() {
-  return volcengineCoding;
+  return createOpenAICompatible({
+    name: "volcengine-coding",
+    apiKey: options?.apiKey ?? config.apiKey,
+    baseURL: options?.baseURL ?? config.baseURL,
+    includeUsage: true,
+  });
 }
 
 export function getVolcengineCodingChatModel(
-  modelId = volcengineCodingConfig.model
+  modelId = getVolcengineCodingConfig().model
 ) {
-  return volcengineCoding.chatModel(modelId);
+  return getVolcengineCodingProvider().chatModel(modelId);
 }

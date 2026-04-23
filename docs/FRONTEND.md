@@ -15,6 +15,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 ## Browser Verification
 
 - Open <http://localhost:3000> after `pnpm dev`.
+- `http://127.0.0.1:3000` should also work in dev; `next.config.ts` explicitly allows that origin for Next.js dev resources.
 - Confirm the empty state fetches randomized gen-ui-oriented prompt suggestions from `/api/starter-prompts`, renders them smoothly above the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
@@ -29,8 +30,8 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm the default `Choose model` view only lists visible models for connected providers, still allows a typed custom model id for the current provider, closes after selection, and lets each provider header collapse or expand its model list with a smooth animation.
 - Confirm an explicit provider or model change in the picker becomes the browser-local default for future `New Chat` sessions, while simply opening a saved conversation with a different model does not rewrite that default.
 - Confirm the inline picker only exposes model search and `Manage Models`; it should no longer show a separate add-provider button in that compact surface.
-- Confirm the `Add provider` action inside `Manage Models` opens a separate `Connect provider` dialog, lets users switch to another provider, and shows the required `.env.local` key for providers that are not configured yet.
-- Confirm the picker `Manage Models` action opens a separate dialog instead of reusing the inline picker, clearly explains that it controls visibility rather than active selection, includes the `Add provider` shortcut, lets provider headers collapse or expand smoothly, changes which entries appear back in `Choose model`, keeps shown rows warmer/brighter than the cooler hidden rows without using 3D effects, presents the list in a compact sidebar-like style without nested card wrappers, lets `Sync` refresh a provider's model list when supported, and preserves those visibility choices after a full page reload.
+- Confirm the `Add provider` action inside `Manage Models` opens a separate `Connect provider` dialog, lets users switch to another provider, save an API key from the frontend without restarting the app, and remove a previously saved local key when needed.
+- Confirm the picker `Manage Models` action opens a separate dialog instead of reusing the inline picker, clearly explains that it controls visibility rather than active selection, includes the `Add provider` shortcut, lets provider headers collapse or expand smoothly, changes which entries appear back in `Choose model`, keeps shown rows warmer/brighter than the cooler hidden rows without using 3D effects, presents the list in a compact sidebar-like style without nested card wrappers, lets `Sync` refresh a provider's model list when supported, and reuses the last successful sync result after a full page reload until the next explicit refresh.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
@@ -49,13 +50,16 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm a generated widget can call `openLink(...)`, and that widget `<a href>` links also open in a new browser tab without navigating the chat surface away.
 - When an assistant response contains a completed gen-ui widget, confirm the widget fills the assistant message content width instead of applying a model-supplied width cap or root wrapper padding; while that assistant turn is still streaming, confirm no copy or download actions are shown; after the turn finishes, hover or focus the message and confirm the action hints read `Copy widget HTML` and `Download widget HTML`; download a widget ZIP and confirm `final-widget.html` does not depend on any model-supplied height hint.
 - If a `showWidget` render finishes before final assistant text starts, confirm the `Thinking` block stays collapsed while the live post-widget reasoning markdown also streams below the widget in a muted italic style, a dot-only loading indicator stays visible below that in-flight content until the assistant turn finishes, and the reasoning preview disappears as soon as final assistant text begins rendering.
-- Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `modelSelection` object, plus a `trace` object with `systemPrompt`, `tools`, `capturedAt`, and `modelSelection`.
+- If a completed widget turn never emits any final assistant `text` parts, confirm the saved and reloaded chat still renders the finished post-widget reasoning as normal markdown content below the widget instead of leaving the assistant response visually empty after the widget.
+- Inspect a saved `.data/chats/*.json` file after chatting and confirm it contains both `messages` and a `modelSelection` object, that assistant messages include per-message `metadata.modelId`, and that the file also contains a `trace` object with `systemPrompt`, `tools`, `capturedAt`, and `modelSelection`.
 - Inspect `.data/preferences/chat-model-picker.json` after hiding or showing models and confirm it contains the latest `hiddenModelKeys` list.
 - With no key configured for the currently selected provider, sending a message should surface the explicit provider-specific missing-key error from `/api/chat`.
 - With a real key configured, verify streaming assistant text appears without a full page reload and any `Thinking` block stays open while reasoning and tool activity are the only visible assistant feedback, stays open after completed tool results if no assistant output is visible yet, then smoothly auto-collapses once visible assistant output exists while remaining manually expandable.
+- Change models between assistant turns and verify each assistant message label reads `Assistant(model_name)` for the model that generated that specific turn, instead of reflecting only the current picker selection.
 - While a real response is still generating and no `showWidget` loading message is active, verify a dot-only loading indicator remains visible for the full in-flight assistant turn: directly under `Thinking` before any visible output exists, then at the bottom of the visible assistant content until the stream ends.
 - While a real response is streaming, verify the message pane follows the newest assistant output until the user scrolls away, then resumes only after the user scrolls back near the bottom or sends another message.
 - When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
+- When a tool call fails, verify the `Thinking` block shows the detailed server-side failure reason, such as the Tavily request status or network cause, instead of a generic `fetch failed` placeholder.
 - Tool badges in the `Thinking` block should render canonical camelCase names, including `tavilySearch`, `visualizeReadMe`, and `showWidget`, without uppercase text transform or inserted spaces.
 - When trusted-mode generation calls `visualizeReadMe`, verify the `Thinking` block renders an explicit visible one-line tool call that shows just the module names, such as `Diagram, Interactive`, before any `showWidget` call, and keeps the large guideline output hidden from the chat UI.
 - Hover or focus a user or assistant message and verify the inline `Copy` action appears and copies that message's rendered text.
@@ -65,13 +69,16 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `components/chat-shell.tsx` owns local chat UI state, draft-chat URL behavior, and the AI SDK client transport.
 - `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
-- `app/api/chat/providers/route.ts` and `app/api/chat/models/route.ts` own provider metadata and server-side model-list discovery.
+- `app/api/chat/providers/route.ts` owns provider metadata plus frontend API-key save/remove flows, and `app/api/chat/models/route.ts` owns server-side model-list discovery plus persisted sync caching.
 - `app/api/chat/preferences/route.ts` owns persisted model-picker visibility preferences.
 - `app/api/starter-prompts/route.ts` owns empty-state starter prompt recommendations, backed by `lib/starter-prompts.ts`.
 - `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
 - `lib/chat-models.ts` owns multi-provider registration, default selections, and provider-specific model-list fetchers.
+- `lib/deepseek.ts` owns DeepSeek-specific provider configuration.
+- `lib/minimax.ts` owns MiniMax-specific provider configuration.
 - `lib/openrouter.ts` owns OpenRouter-specific provider configuration.
 - `lib/volcengine.ts` owns Volcengine-specific provider configuration and environment variable aliases.
+- `lib/volcengine-coding.ts` owns Volcengine coding-specific provider configuration and environment variable aliases.
 
 ## Styling
 
@@ -81,6 +88,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Model, provider, and management surfaces should use solid fills and avoid gradients.
 - These controls should stay visually flat. Do not introduce bevels, stacked shadows, inset highlights, or other fake-3D styling.
 - Provider/setup and management dialogs should stay in the same white surface family rather than using different tinted modal backgrounds.
+- In-app confirmation dialogs such as `Remove` for a chat should also stay on that same plain white dialog surface family.
 - The inline model picker should feel lighter and attached to the composer, while provider/setup dialogs and management dialogs should feel distinct through layout and hierarchy rather than elevation tricks.
 - The `Manage Models` dialog should stay compact and list-driven: provider sections read like grouped sidebar rows, not like a stack of nested cards.
 - Shown model rows should read as warmer and brighter; hidden rows should read as cooler and quieter.
