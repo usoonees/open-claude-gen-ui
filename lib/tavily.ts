@@ -26,6 +26,9 @@ type TavilySearchResponse = {
   response_time?: number;
 };
 
+const tavilyRetryDelaysMs = [300, 1200] as const;
+const tavilyRetryableStatusCodes = new Set([408, 429, 500, 502, 503, 504]);
+
 function summarizeUnknownErrorDetail(value: unknown): string {
   if (!value) {
     return "";
@@ -81,6 +84,46 @@ function summarizeUnknownErrorDetail(value: unknown): string {
   return String(value);
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isRetryableTransportError(error: unknown) {
+  const detail = summarizeUnknownErrorDetail(error).toLowerCase();
+
+  return [
+    "connecttimeouterror",
+    "headers time out",
+    "body timeout",
+    "fetch failed",
+    "socketerror",
+    "etimedout",
+    "econnreset",
+    "econnrefused",
+    "ehostunreach",
+    "enetunreach",
+    "eai_again",
+    "und_err_connect_timeout",
+    "und_err_headers_timeout",
+    "und_err_body_timeout",
+  ].some((token) => detail.includes(token));
+}
+
+function formatTransportFailureMessage(
+  endpoint: string,
+  error: unknown,
+  attemptCount: number
+) {
+  const detail = summarizeUnknownErrorDetail(error);
+  const attemptsSuffix = attemptCount > 1 ? ` after ${attemptCount} attempts` : "";
+
+  return `Tavily request to ${endpoint} failed${attemptsSuffix}${
+    detail ? `: ${detail.slice(0, 400)}` : "."
+  }`;
+}
+
 export async function searchTavily({
   query,
   topic = "general",
@@ -96,58 +139,94 @@ export async function searchTavily({
   }
 
   const endpoint = `${tavilyConfig.baseURL}/search`;
-  let response: Response;
+  let lastError: unknown = null;
+  let lastStatus: number | null = null;
+  let lastStatusDetail = "";
 
-  try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${tavilyConfig.apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-        topic,
-        search_depth: "advanced",
-        include_answer: true,
-        include_raw_content: false,
-        include_images: false,
-        max_results: maxResults,
-        ...(topic === "general" ? { country } : {}),
-      }),
-    });
-  } catch (error) {
-    const detail = summarizeUnknownErrorDetail(error);
+  for (let attempt = 0; attempt <= tavilyRetryDelaysMs.length; attempt += 1) {
+    let response: Response;
 
-    throw new Error(
-      `Tavily request to ${endpoint} failed${
-        detail ? `: ${detail.slice(0, 400)}` : "."
-      }`,
-      {
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tavilyConfig.apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          topic,
+          search_depth: "advanced",
+          include_answer: true,
+          include_raw_content: false,
+          include_images: false,
+          max_results: maxResults,
+          ...(topic === "general" ? { country } : {}),
+        }),
+      });
+    } catch (error) {
+      lastError = error;
+
+      if (
+        attempt < tavilyRetryDelaysMs.length &&
+        isRetryableTransportError(error)
+      ) {
+        await sleep(tavilyRetryDelaysMs[attempt]);
+        continue;
+      }
+
+      throw new Error(formatTransportFailureMessage(endpoint, error, attempt + 1), {
         cause: error instanceof Error ? error : undefined,
+      });
+    }
+
+    if (!response.ok) {
+      const detail = await response.text();
+      lastStatus = response.status;
+      lastStatusDetail = detail;
+
+      if (
+        attempt < tavilyRetryDelaysMs.length &&
+        tavilyRetryableStatusCodes.has(response.status)
+      ) {
+        await sleep(tavilyRetryDelaysMs[attempt]);
+        continue;
+      }
+
+      const attemptsSuffix = attempt > 0 ? ` after ${attempt + 1} attempts` : "";
+      throw new Error(
+        `Tavily search failed with status ${response.status}${attemptsSuffix}: ${detail.slice(0, 300)}`
+      );
+    }
+
+    const payload = (await response.json()) as TavilySearchResponse;
+
+    return {
+      query: payload.query ?? query,
+      answer: payload.answer ?? "",
+      responseTime: payload.response_time ?? null,
+      results: (payload.results ?? []).map((result) => ({
+        title: result.title,
+        url: result.url,
+        content: result.content ?? "",
+        score: result.score ?? null,
+        publishedDate: result.published_date ?? null,
+      })),
+    };
+  }
+
+  if (lastError) {
+    throw new Error(
+      formatTransportFailureMessage(endpoint, lastError, tavilyRetryDelaysMs.length + 1),
+      {
+        cause: lastError instanceof Error ? lastError : undefined,
       }
     );
   }
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(
-      `Tavily search failed with status ${response.status}: ${detail.slice(0, 300)}`
-    );
-  }
-
-  const payload = (await response.json()) as TavilySearchResponse;
-
-  return {
-    query: payload.query ?? query,
-    answer: payload.answer ?? "",
-    responseTime: payload.response_time ?? null,
-    results: (payload.results ?? []).map((result) => ({
-      title: result.title,
-      url: result.url,
-      content: result.content ?? "",
-      score: result.score ?? null,
-      publishedDate: result.published_date ?? null,
-    })),
-  };
+  throw new Error(
+    `Tavily search failed with status ${lastStatus ?? 500} after ${
+      tavilyRetryDelaysMs.length + 1
+    } attempts: ${lastStatusDetail.slice(0, 300)}`
+  );
 }
