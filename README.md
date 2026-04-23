@@ -14,7 +14,7 @@ pnpm install
 cp .env.example .env.local
 ```
 
-Fill in one or more provider keys in `.env.local` when you are ready to call models, or save them from the frontend through `Connect provider`. Frontend-saved provider keys are stored server-side in `.data/providers/` and take precedence over env values for the same provider without requiring a restart. Synced provider model lists are also cached under `.data/providers/` so a successful `Sync` survives reloads until you refresh it again. `VOLCENGINE_ACK_API_KEY`, `VOLCENGINE_CODING_API_KEY`, `OPENAI_API_KEY`, `MINIMAX_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, and `GOOGLE_GENERATIVE_AI_API_KEY` are all supported. The composer lets you switch providers per chat, sync a provider model list when that provider exposes one, or manually type any model id the provider accepts. Add `TAVILY_API_KEY` if you want the agent to use live web search. Set `LANGSMITH_TRACING=true` and add `LANGSMITH_API_KEY` if you want LangSmith traces for the agent loop, LLM calls, tool calls, and tool results. Keys are intentionally blank in source control examples.
+Fill in one or more provider keys in `.env.local` when you are ready to call models, or save them from the frontend through `Connect provider`. Frontend-saved provider keys are stored server-side in `.data/providers/` and take precedence over env values for the same provider without requiring a restart. Synced provider model lists are also cached under `.data/providers/` so a successful `Sync` survives reloads until you refresh it again. `VOLCENGINE_ACK_API_KEY`, `VOLCENGINE_CODING_API_KEY`, `OPENAI_API_KEY`, `MINIMAX_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, and `GOOGLE_GENERATIVE_AI_API_KEY` are all supported. The composer lets you switch providers per chat, sync a provider model list when that provider exposes one, or manually type any model id the provider accepts. Add `TAVILY_API_KEY` if you want the agent to use live web search. Trusted generative UI widgets are enabled by default and can be toggled from `Settings` without restarting. Set `LANGSMITH_TRACING=true` and add `LANGSMITH_API_KEY` if you want LangSmith traces for the agent loop, LLM calls, tool calls, and tool results. Keys are intentionally blank in source control examples.
 
 Run the app:
 
@@ -51,6 +51,7 @@ Open <http://localhost:3000>.
 | `GOOGLE_MODEL` | `gemini-2.5-flash` | Default Google model shown when a new chat selects Google. |
 | `PROVIDER_CREDENTIALS_MASTER_KEY` | empty | Optional master secret for encrypting frontend-saved provider keys. If unset, the app generates a local machine key under `.data/providers/provider-credentials.key`. |
 | `TAVILY_API_KEY` | empty | Server-side Tavily API key used by the agent's web-search tool. |
+| `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED` | `true` | Default trusted-widget mode. The Settings dialog can still override this locally without a restart. |
 | `LANGSMITH_TRACING` | `false` | Enables LangSmith tracing when set to `true`. |
 | `LANGSMITH_ENDPOINT` | `https://api.smith.langchain.com` | LangSmith API endpoint. |
 | `LANGSMITH_API_KEY` | empty | Server-side LangSmith API key used for trace ingestion. |

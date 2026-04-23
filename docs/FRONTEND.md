@@ -8,7 +8,7 @@ The repository now includes a single Next.js chat surface.
 - Run local dev server: `pnpm dev`
 - Type-check: `pnpm check`
 - Production build: `pnpm build`
-- Trusted-mode widgets: set `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true` in `.env.local`
+- Trusted-mode widgets are enabled by default. Set `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=false` in `.env.local` for an env default, or flip the local override in `Settings`.
 
 Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does not match `packageManager`.
 
@@ -30,18 +30,20 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm the default `Choose model` view only lists visible models for connected providers, hides entries immediately after they are hidden in `Manage Models` even if one was previously selected, still allows a typed custom model id for the current provider, closes after selection, and lets each provider header collapse or expand its model list with a smooth animation.
 - Confirm an explicit provider or model change in the picker becomes the browser-local default for future `New Chat` sessions, while simply opening a saved conversation with a different model does not rewrite that default.
 - Confirm the inline picker only exposes model search and `Manage Models`; it should no longer show a separate add-provider button in that compact surface.
-- Confirm the left-bottom sidebar footer now exposes a `Settings` entry that opens a separate dialog for Tavily web-search configuration and model-management shortcuts.
+- Confirm the left-bottom sidebar footer now exposes a `Settings` entry that opens a separate dialog for Tavily web-search configuration, generative-UI widget mode, and model-management shortcuts.
 - In `Settings`, confirm users can save a Tavily API key locally without restarting, remove a frontend-saved Tavily key when present, and still see env-backed Tavily configuration summarized without exposing the raw secret.
+- In `Settings`, confirm trusted generative UI starts in the `On` state by default, users can toggle it on or off without restarting, and the status text reflects whether the current value came from a saved local override, the environment, or the default fallback.
 - Confirm the `Add provider` action inside `Manage Models` opens a separate `Connect provider` dialog, lets users switch to another provider, save an API key from the frontend without restarting the app, and remove a previously saved local key when needed.
 - From `Settings`, confirm the `Manage models` shortcut closes the settings dialog and opens the existing `Manage Models` dialog.
 - Confirm the picker `Manage Models` action opens a separate dialog instead of reusing the inline picker, clearly explains that it controls visibility rather than active selection, includes the `Add provider` shortcut, lets provider headers collapse or expand smoothly, changes which entries appear back in `Choose model`, keeps shown rows warmer/brighter than the cooler hidden rows without using 3D effects, presents the list in a compact sidebar-like style without nested card wrappers, lets `Sync` refresh a provider's model list when supported, and reuses the last successful sync result after a full page reload until the next explicit refresh.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
 - Confirm choosing `Remove` opens a compact in-app confirmation dialog, then deleting removes the chat from the list and returns the UI to `/` if that chat was currently open.
-- With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=false`, confirm the chat still behaves as a text/tool-only assistant with no widget output.
-- With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, ask for a strongly visual explanation and confirm the assistant first makes an explicit `visualizeReadMe` call in `Thinking`, then later streams an inline widget card while the `showWidget` tool input is still arriving.
+- With trusted mode turned off in `Settings` or `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=false`, confirm the chat still behaves as a text/tool-only assistant with no widget output.
+- With trusted mode enabled, ask for a strongly visual explanation and confirm the assistant first makes an explicit `visualizeReadMe` call in `Thinking`, then later streams an inline widget card while the `showWidget` tool input is still arriving.
+- Confirm the trusted-mode reminder that nudges widget usage is server-only: it should influence tool choice, but it must not render in the chat UI or appear in saved user message text after reload.
 - When an assistant turn eventually calls `showWidget`, confirm any earlier assistant prose in that same turn stays inside `Thinking` alongside reasoning and tool events instead of rendering in the main message body before the widget; only text that arrives after the first widget should render below it as normal assistant content.
-- With `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, ask for several different visual tasks and confirm the assistant tends to prioritize richer gen-ui widgets over plain text when a widget would help, and that the resulting widgets are not all the same generic card pattern.
+- With trusted mode enabled, ask for several different visual tasks and confirm the assistant tends to prioritize richer gen-ui widgets over plain text when a widget would help, and that the resulting widgets are not all the same generic card pattern.
 - While a trusted-mode widget is still streaming, confirm its required `loadingMessages` input renders as a compact in-flow status line directly below the widget content, does not overlap the widget itself, and rotates slowly enough to read with a subtle trailing ellipsis.
 - Confirm trusted-mode widgets resolve the documented `--color-*`, `--font-*`, and `--border-radius-*` design tokens in the live chat view, not only in downloaded HTML.
 - For trusted-mode widgets that load external CDN scripts, confirm named `onload` callbacks such as `initChart()` or `initCalculator()` still initialize inside the widget host without throwing global-scope errors.
@@ -62,6 +64,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - While a real response is still generating and no `showWidget` loading message is active, verify a dot-only loading indicator remains visible for the full in-flight assistant turn: directly under `Thinking` before any visible output exists, then at the bottom of the visible assistant content until the stream ends.
 - While a real response is streaming, verify the message pane follows the newest assistant output even when the transcript first grows taller than the viewport, then stops only after the user scrolls away and resumes only after the user scrolls back near the bottom or sends another message.
 - When the assistant uses tools, verify both the in-flight tool call and the completed tool result render inside the `Thinking` block in message-part order instead of as a separate section above it.
+- Confirm plain reasoning content inside `Thinking` renders as raw text with preserved line breaks instead of Markdown formatting, while tool calls in that same block keep their structured card UI.
 - When a tool call fails, verify the `Thinking` block shows the detailed server-side failure reason, such as the Tavily request status or network cause, instead of a generic `fetch failed` placeholder.
 - Tool badges in the `Thinking` block should render canonical camelCase names, including `tavilySearch`, `visualizeReadMe`, and `showWidget`, without uppercase text transform or inserted spaces.
 - When trusted-mode generation calls `visualizeReadMe`, verify the `Thinking` block renders an explicit visible one-line tool call that shows just the module names, such as `Diagram, Interactive`, before any `showWidget` call, and keeps the large guideline output hidden from the chat UI.
@@ -98,7 +101,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - The `Manage Models` dialog should stay compact and list-driven: provider sections read like grouped sidebar rows, not like a stack of nested cards.
 - Shown model rows should read as warmer and brighter; hidden rows should read as cooler and quieter.
 - Trusted-mode widget HTML renders inside an isolated shadow-root host. The host still exposes the documented widget design tokens, SVG helper classes (`t`, `ts`, `th`, `box`, `arr`, `leader`, `node`, and `c-*` ramps), but generated widget CSS and DOM queries must remain confined to that widget host and must not affect the surrounding chat UI.
-- Before trusted-mode widget scripts are mounted into the live DOM, external `src`, inline classic-script execution, and non-script inline event attributes are made inert. The widget runtime then replays allowed external scripts, executes inline classic scripts in widget scope, and rebinds inline event handlers against that same per-widget scope so React dev-mode effect replays and CDN callback ordering do not reintroduce global-scope or race-condition failures.
+- Before trusted-mode widget scripts are mounted into the live DOM, external `src`, inline classic-script execution, and non-script inline event attributes are made inert. The widget runtime then replays allowed external scripts, executes inline classic scripts in widget scope, and rebinds inline event handlers against that same per-widget scope, including handlers inserted later by widget-side `innerHTML` rerenders, so React dev-mode effect replays and CDN callback ordering do not reintroduce global-scope or race-condition failures.
 
 ## Testing Strategy
 

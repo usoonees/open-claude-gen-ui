@@ -1,5 +1,6 @@
 import { writeChat } from "@/lib/chat-store";
 import { createChatAgent, getChatSystemPrompt } from "@/lib/chat-agent";
+import { applyHiddenGenerativeUIReminder } from "@/lib/chat-hidden-reminders";
 import {
   normalizePreShowWidgetTextMessages,
   normalizePreShowWidgetTextStream,
@@ -11,6 +12,7 @@ import {
   isChatModelSelectionConfigured,
   normalizeChatModelSelection,
 } from "@/lib/chat-models";
+import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui-runtime";
 import { getChatToolTraceList } from "@/lib/chat-tools";
 import { langsmithClient } from "@/lib/langsmith-ai";
 import { createAgentUIStream, createUIMessageStreamResponse } from "ai";
@@ -29,11 +31,12 @@ function buildAssistantMessageMetadata(
 function buildChatTrace(
   modelSelection: ChatModelSelection,
   systemPrompt: string,
-  capturedAt: string
+  capturedAt: string,
+  generativeUITrustedModeEnabled: boolean
 ) {
   return {
     systemPrompt,
-    tools: getChatToolTraceList(),
+    tools: getChatToolTraceList(generativeUITrustedModeEnabled),
     capturedAt,
     modelSelection,
   };
@@ -65,9 +68,16 @@ export async function POST(request: Request) {
   }
 
   const modelSelection = normalizeChatModelSelection(body.modelSelection);
+  const generativeUITrustedModeEnabled = isGenerativeUITrustedModeEnabled();
   const now = new Date();
-  const systemPrompt = getChatSystemPrompt(now);
+  const systemPrompt = getChatSystemPrompt(now, {
+    generativeUITrustedModeEnabled,
+  });
   const capturedAt = now.toISOString();
+  const agentMessages = applyHiddenGenerativeUIReminder(
+    body.messages,
+    generativeUITrustedModeEnabled
+  );
 
   if (!isChatModelSelectionConfigured(modelSelection)) {
     return new Response(getMissingProviderKeyMessage(modelSelection), { status: 503 });
@@ -81,8 +91,12 @@ export async function POST(request: Request) {
 
   const stream = normalizePreShowWidgetTextStream(
     await createAgentUIStream({
-      agent: createChatAgent(modelSelection, systemPrompt),
-      uiMessages: body.messages,
+      agent: createChatAgent(
+        modelSelection,
+        systemPrompt,
+        generativeUITrustedModeEnabled
+      ),
+      uiMessages: agentMessages,
       messageMetadata: () => buildAssistantMessageMetadata(modelSelection),
       sendReasoning: true,
       onFinish: async ({ messages }) => {
@@ -90,7 +104,12 @@ export async function POST(request: Request) {
           body.id as string,
           normalizePreShowWidgetTextMessages(messages as ChatUIMessage[]),
           {
-            trace: buildChatTrace(modelSelection, systemPrompt, capturedAt),
+            trace: buildChatTrace(
+              modelSelection,
+              systemPrompt,
+              capturedAt,
+              generativeUITrustedModeEnabled
+            ),
             modelSelection,
           }
         );

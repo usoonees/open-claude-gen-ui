@@ -4,13 +4,13 @@ Use this document to make secure defaults explicit and legible to agents.
 
 ## Generative UI Trusted Mode
 
-The repository now supports a trusted local generative UI mode behind `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`.
+The repository now supports a trusted local generative UI mode that is enabled by default and can be overridden locally from `Settings` or via `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED`.
 
 - Treat this mode as local/dev-only. Generated widget HTML and JavaScript run in the same browser document as the chat surface.
 - Never expose server secrets, authenticated browser capabilities, or privileged host APIs to widget code.
 - The supported host bridges are `window.sendPrompt(text)`, which appends a new user prompt into the current chat, and `window.openLink(url)`, which only opens sanitized `http(s)` URLs in a new tab.
 - Widget script execution only permits external script URLs from the allowlist in `lib/generative-ui/index.ts`.
-- If broader deployment safety is required later, move away from same-document injection before enabling the feature by default.
+- If broader deployment safety is required later, move away from same-document injection before exposing the feature in shared or production contexts.
 
 ## Trace Data
 

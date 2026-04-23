@@ -33,24 +33,24 @@ const WIDGET_DOWNLOAD_HOST_STYLES = `:root {
   --color-background-primary: #ffffff;
   --color-background-secondary: #f5f5f5;
   --color-background-tertiary: #fafafa;
-  --color-background-info: #e6f1fb;
-  --color-background-danger: #fcebeb;
-  --color-background-success: #eaf3de;
-  --color-background-warning: #faeeda;
+  --color-background-info: #d7ebff;
+  --color-background-danger: #fde1e1;
+  --color-background-success: #e0f4dd;
+  --color-background-warning: #fff0cf;
   --color-text-primary: #171717;
   --color-text-secondary: #525252;
   --color-text-tertiary: #737373;
-  --color-text-info: #0c447c;
-  --color-text-danger: #791f1f;
-  --color-text-success: #27500a;
-  --color-text-warning: #633806;
+  --color-text-info: #004b91;
+  --color-text-danger: #9a1f1f;
+  --color-text-success: #1f6a12;
+  --color-text-warning: #7a4b00;
   --color-border-primary: rgba(15, 23, 42, 0.4);
   --color-border-secondary: rgba(15, 23, 42, 0.3);
   --color-border-tertiary: rgba(15, 23, 42, 0.15);
-  --color-border-info: #185fa5;
-  --color-border-danger: #a32d2d;
-  --color-border-success: #3b6d11;
-  --color-border-warning: #854f0b;
+  --color-border-info: #0062c4;
+  --color-border-danger: #c63a3a;
+  --color-border-success: #2f8a1d;
+  --color-border-warning: #b36b00;
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -870,6 +870,11 @@ function bindScopedInlineEventHandlers(container: HTMLElement) {
   }
 }
 
+function syncScopedInlineEventHandlers(container: HTMLElement) {
+  prepareWidgetInlineEventHandlersForMount(container);
+  bindScopedInlineEventHandlers(container);
+}
+
 function getOrCreateShadowMount(host: HTMLDivElement) {
   const shadowRoot = host.shadowRoot ?? host.attachShadow({ mode: "open" });
 
@@ -1102,6 +1107,49 @@ export function GenerativeWidget({
     }
 
     const source = getOrCreateShadowMount(hostRef.current);
+    const observer = new MutationObserver((mutations) => {
+      const shouldSync = mutations.some(
+        (mutation) =>
+          mutation.type === "childList" ||
+          (mutation.type === "attributes" &&
+            mutation.attributeName !== null &&
+            mutation.attributeName.startsWith("on"))
+      );
+
+      if (!shouldSync) {
+        return;
+      }
+
+      syncInlineHandlers();
+    });
+
+    function syncInlineHandlers() {
+      observer.disconnect();
+
+      try {
+        syncScopedInlineEventHandlers(source);
+      } finally {
+        observer.observe(source, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+        });
+      }
+    }
+
+    syncInlineHandlers();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hostRef.current) {
+      return;
+    }
+
+    const source = getOrCreateShadowMount(hostRef.current);
 
     if (!hasRenderableMarkup) {
       source.replaceChildren();
@@ -1153,7 +1201,7 @@ export function GenerativeWidget({
 
     if (status === "ready" && lastExecutedMarkupRef.current !== widgetCode) {
       executeScripts(source);
-      bindScopedInlineEventHandlers(source);
+      syncScopedInlineEventHandlers(source);
       lastExecutedMarkupRef.current = widgetCode;
     }
   }, [hasRenderableMarkup, status, widgetCode]);

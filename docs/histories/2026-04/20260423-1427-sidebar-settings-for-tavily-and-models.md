@@ -18,6 +18,7 @@
 - Key actions:
   - Added a new left-bottom sidebar `Settings` launcher that opens a dedicated settings dialog.
   - Refined that sidebar launcher into a minimal icon-plus-label row by removing the extra helper description and boxed visual treatment.
+  - Tightened the sidebar launcher spacing further so the footer row reads closer to a compact sidebar item than a utility button.
   - Added a settings dialog section for saving and removing a local Tavily API key, with masked status text that distinguishes frontend-saved keys from env-backed configuration.
   - Added a settings dialog shortcut that closes the settings surface and opens the existing `Manage Models` dialog.
   - Added `/api/chat/settings` plus a frontend-safe Tavily settings payload so the UI can read and mutate Tavily credential state.

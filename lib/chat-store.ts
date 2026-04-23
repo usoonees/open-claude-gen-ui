@@ -17,6 +17,8 @@ import {
 } from "@/lib/chat-title";
 import { normalizePreShowWidgetTextMessages } from "@/lib/chat-widget-stream";
 import type { ChatToolTrace } from "@/lib/chat-tools";
+import { hasShowWidgetRenderablePayload } from "@/lib/generative-ui/show-widget-input";
+import { SHOW_WIDGET_REQUIRES_README_ERROR } from "@/lib/generative-ui/show-widget-validation";
 
 const storeDir = path.join(process.cwd(), ".data", "chats");
 
@@ -89,10 +91,60 @@ function chatPath(id: string) {
 
 function sanitizeMessages(messages: ChatUIMessage[]) {
   return normalizePreShowWidgetTextMessages(
-    stripHiddenGenerativeUIReminders(
-      messages.filter((message) => message.role !== "system")
+    stripFalseShowWidgetPreconditionErrors(
+      stripHiddenGenerativeUIReminders(
+        messages.filter((message) => message.role !== "system")
+      )
     )
   );
+}
+
+function stripFalseShowWidgetPreconditionErrors(messages: ChatUIMessage[]) {
+  return messages.map((message) => {
+    if (message.role !== "assistant") {
+      return message;
+    }
+
+    let lastSuccessfulWidgetIndex = -1;
+
+    for (let index = message.parts.length - 1; index >= 0; index -= 1) {
+      const part = message.parts[index];
+
+      if (part.type === "tool-showWidget" && part.state === "output-available") {
+        lastSuccessfulWidgetIndex = index;
+        break;
+      }
+    }
+
+    if (lastSuccessfulWidgetIndex < 0) {
+      return message;
+    }
+
+    let sawCompletedReadMe = false;
+    let changed = false;
+    const parts = message.parts.filter((part, index) => {
+      if (part.type === "tool-visualizeReadMe" && part.state === "output-available") {
+        sawCompletedReadMe = true;
+      }
+
+      const shouldStrip =
+        index < lastSuccessfulWidgetIndex &&
+        part.type === "tool-showWidget" &&
+        part.state === "output-error" &&
+        part.errorText === SHOW_WIDGET_REQUIRES_README_ERROR &&
+        sawCompletedReadMe &&
+        hasShowWidgetRenderablePayload(part.input);
+
+      if (shouldStrip) {
+        changed = true;
+        return false;
+      }
+
+      return true;
+    });
+
+    return changed ? { ...message, parts } : message;
+  });
 }
 
 function isLegacyGeneratedTitle(
@@ -173,9 +225,7 @@ export async function readChat(id: string): Promise<StoredChat> {
   }
 
   const messages = Array.isArray(chat.messages)
-    ? normalizePreShowWidgetTextMessages(
-        stripHiddenGenerativeUIReminders(chat.messages as ChatUIMessage[])
-      )
+    ? sanitizeMessages(chat.messages as ChatUIMessage[])
     : [];
   const fallbackTitle = fallbackTitleFromMessages(messages);
   const title = stripHiddenGenerativeUIReminderFromText(chat.title || "").trim();

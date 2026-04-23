@@ -17,24 +17,24 @@
   --color-background-primary: #ffffff;
   --color-background-secondary: #f5f5f5;
   --color-background-tertiary: #fafafa;
-  --color-background-info: #e6f1fb;
-  --color-background-danger: #fcebeb;
-  --color-background-success: #eaf3de;
-  --color-background-warning: #faeeda;
+  --color-background-info: #d7ebff;
+  --color-background-danger: #fde1e1;
+  --color-background-success: #e0f4dd;
+  --color-background-warning: #fff0cf;
   --color-text-primary: #171717;
   --color-text-secondary: #525252;
   --color-text-tertiary: #737373;
-  --color-text-info: #0c447c;
-  --color-text-danger: #791f1f;
-  --color-text-success: #27500a;
-  --color-text-warning: #633806;
+  --color-text-info: #004b91;
+  --color-text-danger: #9a1f1f;
+  --color-text-success: #1f6a12;
+  --color-text-warning: #7a4b00;
   --color-border-primary: rgba(15, 23, 42, 0.4);
   --color-border-secondary: rgba(15, 23, 42, 0.3);
   --color-border-tertiary: rgba(15, 23, 42, 0.15);
-  --color-border-info: #185fa5;
-  --color-border-danger: #a32d2d;
-  --color-border-success: #3b6d11;
-  --color-border-warning: #854f0b;
+  --color-border-info: #0062c4;
+  --color-border-danger: #c63a3a;
+  --color-border-success: #2f8a1d;
+  --color-border-warning: #b36b00;
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -534,51 +534,40 @@ svg {
   align-items: center;
   background: rgba(255, 255, 255, 0);
   border: 0;
-  border-radius: 12px;
-  box-shadow: none;
   color: #202020;
   display: flex;
-  gap: 8px;
-  min-height: 32px;
-  padding: 8px 10px;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0;
   text-align: left;
   transition:
-    background 140ms ease,
-    box-shadow 140ms ease,
     color 140ms ease,
-    opacity 140ms ease,
-    transform 140ms ease;
-  width: 100%;
+    opacity 140ms ease;
 }
 
 .sidebar-settings-button:hover {
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    0 8px 18px rgba(15, 23, 42, 0.06);
   color: #111111;
-  opacity: 1;
-  transform: translateY(-1px);
+  opacity: 0.86;
 }
 
 .sidebar-settings-icon {
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  height: 16px;
+  height: 14px;
   justify-content: center;
-  width: 16px;
+  width: 14px;
 }
 
 .sidebar-settings-icon svg {
-  height: 16px;
-  width: 16px;
+  height: 14px;
+  width: 14px;
 }
 
 .sidebar-settings-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .dialog-backdrop {
@@ -797,6 +786,92 @@ svg {
   align-items: flex-start;
   display: flex;
   gap: 8px;
+}
+
+.settings-toggle-row {
+  display: flex;
+}
+
+.settings-switch {
+  align-items: center;
+  background: rgba(248, 246, 241, 0.96);
+  border: 1px solid rgba(226, 221, 212, 0.96);
+  border-radius: 14px;
+  color: #171717;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 12px;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.settings-switch:hover:not(:disabled) {
+  border-color: rgba(187, 178, 164, 0.98);
+  background: rgba(250, 248, 244, 0.98);
+}
+
+.settings-switch:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.settings-switch-track {
+  align-items: center;
+  background: rgba(191, 186, 178, 0.9);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 3px;
+  transition: background-color 140ms ease;
+  width: 48px;
+}
+
+.settings-switch-thumb {
+  background: #fffdf9;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.18);
+  display: block;
+  height: 22px;
+  transition: transform 140ms ease;
+  width: 22px;
+}
+
+.settings-switch-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-switch-label {
+  color: #171717;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.settings-switch-caption {
+  color: #6b655d;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-switch.is-active {
+  border-color: rgba(102, 123, 63, 0.24);
+  background: rgba(245, 248, 239, 0.98);
+}
+
+.settings-switch.is-active .settings-switch-track {
+  background: #5f7d38;
+}
+
+.settings-switch.is-active .settings-switch-thumb {
+  transform: translateX(20px);
 }
 
 .settings-actions {
@@ -1842,9 +1917,15 @@ svg {
   overflow: hidden;
 }
 
-.reasoning-block .markdown-body {
+.reasoning-plain-text {
+  color: inherit;
+  font-family: inherit;
   font-size: 13px;
   line-height: 1.55;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .thinking-stack {

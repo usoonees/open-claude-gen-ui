@@ -12,6 +12,7 @@ import {
 import type { ChatModelSelection } from "@/lib/chat-model-config";
 import type { ChatUIMessage } from "@/lib/chat-message";
 import { normalizeChatModelSelection } from "@/lib/chat-models";
+import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui-runtime";
 import { getChatToolTraceList } from "@/lib/chat-tools";
 import { after } from "next/server";
 
@@ -33,11 +34,14 @@ function getIdFromRequest(request: Request) {
 
 function buildChatTrace(modelSelection: ChatModelSelection) {
   const now = new Date();
-  const systemPrompt = getChatSystemPrompt(now);
+  const generativeUITrustedModeEnabled = isGenerativeUITrustedModeEnabled();
+  const systemPrompt = getChatSystemPrompt(now, {
+    generativeUITrustedModeEnabled,
+  });
 
   return {
     systemPrompt,
-    tools: getChatToolTraceList(),
+    tools: getChatToolTraceList(generativeUITrustedModeEnabled),
     capturedAt: now.toISOString(),
     modelSelection,
   };

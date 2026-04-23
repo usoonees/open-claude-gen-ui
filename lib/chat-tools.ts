@@ -2,10 +2,16 @@ import { jsonSchema, tool, type InferUITools } from "ai";
 import {
   generativeUIModuleNames,
   getGenerativeUIGuidelines,
-  isGenerativeUITrustedModeEnabled,
   type GenerativeUIModule,
 } from "@/lib/generative-ui";
-import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
+import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui-runtime";
+import {
+  normalizeShowWidgetToolInput,
+} from "@/lib/generative-ui/show-widget-input";
+import {
+  hasCompletedVisualizeReadMeInModelMessages,
+  SHOW_WIDGET_REQUIRES_README_ERROR,
+} from "@/lib/generative-ui/show-widget-validation";
 import { searchTavily } from "@/lib/tavily";
 
 const tavilySearchDescription =
@@ -124,14 +130,15 @@ export const showWidgetTool = tool({
     loadingMessages: string[];
     widgetCode: string;
   }>(showWidgetInputSchema),
-  execute: async (input) => {
+  execute: async (input, options) => {
     const { iHaveSeenReadMe, title, loadingMessages, widgetCode } =
       normalizeShowWidgetToolInput(input);
+    const hasPriorReadMe =
+      iHaveSeenReadMe ||
+      hasCompletedVisualizeReadMeInModelMessages(options.messages);
 
-    if (!iHaveSeenReadMe) {
-      throw new Error(
-        "showWidget requires visualizeReadMe first. Call visualizeReadMe, then retry showWidget with iHaveSeenReadMe: true."
-      );
+    if (!hasPriorReadMe) {
+      throw new Error(SHOW_WIDGET_REQUIRES_README_ERROR);
     }
 
     if (!title || !widgetCode || !loadingMessages?.length) {
@@ -162,8 +169,10 @@ export type ChatToolTrace = {
   enabled: boolean;
 };
 
-export function getChatTools() {
-  if (isGenerativeUITrustedModeEnabled()) {
+export function getChatTools(
+  generativeUIEnabled = isGenerativeUITrustedModeEnabled()
+) {
+  if (generativeUIEnabled) {
     return allChatTools;
   }
 
@@ -172,9 +181,9 @@ export function getChatTools() {
   };
 }
 
-export function getChatToolTraceList(): ChatToolTrace[] {
-  const generativeUIEnabled = isGenerativeUITrustedModeEnabled();
-
+export function getChatToolTraceList(
+  generativeUIEnabled = isGenerativeUITrustedModeEnabled()
+) {
   return [
     {
       name: "tavilySearch",

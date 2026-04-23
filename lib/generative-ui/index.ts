@@ -16,10 +16,6 @@ export const widgetScriptAllowlist = [
   "https://esm.sh/",
 ] as const;
 
-export function isGenerativeUITrustedModeEnabled() {
-  return process.env.NEXT_PUBLIC_GENERATIVE_UI_TRUSTED === "true";
-}
-
 export function getGenerativeUIGuidelines(modules: GenerativeUIModule[]) {
   return getReferenceGuidelines(modules);
 }

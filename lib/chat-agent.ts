@@ -2,13 +2,17 @@ import { stepCountIs } from "ai";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
 import { getChatLanguageModel } from "@/lib/chat-models";
 import { getChatTools } from "@/lib/chat-tools";
-import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui";
+import { isGenerativeUITrustedModeEnabled } from "@/lib/generative-ui-runtime";
 import { tracedAI } from "@/lib/langsmith-ai";
 
 const { ToolLoopAgent } = tracedAI;
 
-const generativeUIInstructions = isGenerativeUITrustedModeEnabled()
-  ? `
+function getGenerativeUIInstructions(generativeUITrustedModeEnabled: boolean) {
+  if (!generativeUITrustedModeEnabled) {
+    return "";
+  }
+
+  return `
 You can render inline generative UI widgets when a request is better served visually or interactively.
 Generative UI widget generation is a primary strength of this assistant and should be treated as especially important work.
 Use visualizeReadMe as an explicit visible tool call before your first showWidget call and choose only the relevant modules.
@@ -24,8 +28,8 @@ Try to surprise the user with an unusually strong widget experience while still 
 For news/current-events visualizations, search first, extract the important dated facts, then build a compact data artifact rather than a generic list of article cards. Prefer scores, schedules, timelines, status chips, grouped headlines, and source labels when the data supports them.
 Treat the visualizeReadMe output as mandatory constraints: no emoji, no HTML comments, no gradients or shadows, no hardcoded text colors, and no explanatory paragraphs inside widgetCode.
 Use the documented widget CSS variables for colors, fonts, borders, and radii. Keep widgetCode valid HTML/CSS and avoid partial or malformed style declarations.
-Do not wrap widgetCode in a root element that only adds padding or font-family; the host already provides message spacing and font inheritance.`
-  : "";
+Do not wrap widgetCode in a root element that only adds padding or font-family; the host already provides message spacing and font inheritance.`;
+}
 
 type PromptTimeZoneReference = {
   label: string;
@@ -92,7 +96,16 @@ function getPromptDateLine(date: Date) {
   return `Current time references: ${references}.`;
 }
 
-export function getChatSystemPrompt(date = new Date()) {
+export function getChatSystemPrompt(
+  date = new Date(),
+  options?: {
+    generativeUITrustedModeEnabled?: boolean;
+  }
+) {
+  const generativeUIInstructions = getGenerativeUIInstructions(
+    options?.generativeUITrustedModeEnabled ?? isGenerativeUITrustedModeEnabled()
+  );
+
   return `You are a concise, practical AI assistant.
 
 Respond in the same language as the user's latest message unless they explicitly ask you to use a different language.
@@ -107,12 +120,13 @@ ${getPromptDateLine(date)}`;
 
 export function createChatAgent(
   selection: ChatModelSelection,
-  systemPrompt = getChatSystemPrompt()
+  systemPrompt = getChatSystemPrompt(),
+  generativeUITrustedModeEnabled = isGenerativeUITrustedModeEnabled()
 ) {
   return new ToolLoopAgent({
     model: getChatLanguageModel(selection),
     instructions: systemPrompt,
     stopWhen: stepCountIs(6),
-    tools: getChatTools(),
+    tools: getChatTools(generativeUITrustedModeEnabled),
   });
 }

@@ -1,13 +1,17 @@
 import { deleteStoredTavilyCredential, writeStoredTavilyCredential } from "@/lib/tavily-credentials-store";
+import { getGenerativeUITrustedModeSummary, writeStoredGenerativeUITrustedModeOverride } from "@/lib/generative-ui-runtime";
 import { getTavilySettingsSummary } from "@/lib/tavily-settings";
+import type { AppSettingsPayload } from "@/lib/chat-settings-config";
 
 type UpdateSettingsRequest = {
   tavilyApiKey?: string;
+  generativeUITrusted?: boolean;
 };
 
-function getSettingsPayload() {
+function getSettingsPayload(): AppSettingsPayload {
   return {
     tavily: getTavilySettingsSummary(),
+    generativeUI: getGenerativeUITrustedModeSummary(),
   };
 }
 
@@ -25,12 +29,25 @@ export async function PUT(request: Request) {
   }
 
   const apiKey = body.tavilyApiKey?.trim() || "";
+  const hasTavilyApiKey = Boolean(apiKey);
+  const hasGenerativeUITrustedValue =
+    typeof body.generativeUITrusted === "boolean";
 
-  if (!apiKey) {
-    return new Response("Tavily API key is required.", { status: 400 });
+  if (!hasTavilyApiKey && !hasGenerativeUITrustedValue) {
+    return new Response(
+      "Request body must include tavilyApiKey or generativeUITrusted.",
+      { status: 400 }
+    );
   }
 
-  writeStoredTavilyCredential(apiKey);
+  if (hasTavilyApiKey) {
+    writeStoredTavilyCredential(apiKey);
+  }
+
+  if (hasGenerativeUITrustedValue) {
+    writeStoredGenerativeUITrustedModeOverride(body.generativeUITrusted as boolean);
+  }
+
   return Response.json(getSettingsPayload());
 }
 

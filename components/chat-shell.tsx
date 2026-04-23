@@ -12,7 +12,11 @@ import {
   ChatProviderOption,
 } from "@/lib/chat-model-config";
 import { normalizeHiddenModelKeys } from "@/lib/chat-picker-preferences";
-import type { TavilySettingsSummary } from "@/lib/chat-settings-config";
+import type {
+  AppSettingsPayload,
+  GenerativeUISettingsSummary,
+  TavilySettingsSummary,
+} from "@/lib/chat-settings-config";
 import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import { openTrustedWidgetLink } from "@/lib/generative-ui/browser-links";
 import {
@@ -57,10 +61,6 @@ type ProviderModelsState = {
 type ProviderCredentialMutationState = {
   status: "idle" | "saving" | "error" | "success";
   message?: string;
-};
-
-type AppSettingsPayload = {
-  tavily?: TavilySettingsSummary;
 };
 
 type ModelPickerView = "models" | "providers" | "manage";
@@ -158,6 +158,12 @@ const DEFAULT_TAVILY_SETTINGS: TavilySettingsSummary = {
   baseURL: "https://api.tavily.com",
 };
 
+const DEFAULT_GENERATIVE_UI_SETTINGS: GenerativeUISettingsSummary = {
+  enabled: true,
+  envVar: "NEXT_PUBLIC_GENERATIVE_UI_TRUSTED",
+  source: "default",
+};
+
 const MODEL_VISIBILITY_STORAGE_KEY = "open-visual-layout:model-visibility:v1";
 const MODEL_SELECTION_STORAGE_KEY = "open-visual-layout:model-selection:v1";
 
@@ -246,6 +252,26 @@ function tavilyCredentialSummary(settings: TavilySettingsSummary | null | undefi
   }
 
   return `Using ${settings.apiKeyEnv} from the environment.`;
+}
+
+function generativeUISettingsSummary(
+  settings: GenerativeUISettingsSummary | null | undefined
+) {
+  if (!settings) {
+    return "Generative UI widgets are on by default.";
+  }
+
+  if (settings.source === "frontend") {
+    return settings.enabled
+      ? "Saved locally. Generative UI widgets are enabled."
+      : "Saved locally. Generative UI widgets are disabled.";
+  }
+
+  if (settings.source === "env") {
+    return `Using ${settings.envVar} from the environment.`;
+  }
+
+  return "Using the app default. Generative UI widgets are enabled.";
 }
 
 function getConfiguredProviderOptions(providers: ChatProviderOption[]) {
@@ -719,6 +745,20 @@ function MarkdownListItem({
   );
 }
 
+function PlainTextBlock({
+  children,
+  className = "plain-text-body",
+}: {
+  children: string;
+  className?: string;
+}) {
+  if (!children.trim()) {
+    return null;
+  }
+
+  return <pre className={className}>{children}</pre>;
+}
+
 function ToolEventCard({ event }: { event: ToolEvent }) {
   return (
     <section
@@ -796,7 +836,12 @@ function ThinkingBlock({
           <div className="thinking-stack">
             {items.map((item) =>
               item.kind === "reasoning" ? (
-                <MarkdownBlock key={item.key}>{item.text}</MarkdownBlock>
+                <PlainTextBlock
+                  className="reasoning-plain-text"
+                  key={item.key}
+                >
+                  {item.text}
+                </PlainTextBlock>
               ) : (
                 <ToolEventCard event={item.event} key={item.key} />
               )
@@ -1229,8 +1274,12 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     useState<ChatProviderId | null>(null);
   const [tavilySettings, setTavilySettings] =
     useState<TavilySettingsSummary>(DEFAULT_TAVILY_SETTINGS);
+  const [generativeUISettings, setGenerativeUISettings] =
+    useState<GenerativeUISettingsSummary>(DEFAULT_GENERATIVE_UI_SETTINGS);
   const [tavilyApiKeyInput, setTavilyApiKeyInput] = useState("");
   const [tavilyCredentialMutation, setTavilyCredentialMutation] =
+    useState<ProviderCredentialMutationState>({ status: "idle" });
+  const [generativeUIMutation, setGenerativeUIMutation] =
     useState<ProviderCredentialMutationState>({ status: "idle" });
   const [providerApiKeyInput, setProviderApiKeyInput] = useState("");
   const [providerCredentialMutation, setProviderCredentialMutation] =
@@ -1319,6 +1368,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     }
 
     const data = (await response.json()) as AppSettingsPayload;
+    applySettingsPayload(data);
+  }
+
+  function applySettingsPayload(data: AppSettingsPayload) {
     setTavilySettings(
       data.tavily
         ? {
@@ -1326,6 +1379,14 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             ...data.tavily,
           }
         : DEFAULT_TAVILY_SETTINGS
+    );
+    setGenerativeUISettings(
+      data.generativeUI
+        ? {
+            ...DEFAULT_GENERATIVE_UI_SETTINGS,
+            ...data.generativeUI,
+          }
+        : DEFAULT_GENERATIVE_UI_SETTINGS
     );
   }
 
@@ -2560,6 +2621,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setTavilyCredentialMutation({ status: "idle" });
   }
 
+  function resetGenerativeUIForm() {
+    setGenerativeUIMutation({ status: "idle" });
+  }
+
   async function saveTavilyCredential() {
     const apiKey = tavilyApiKeyInput.trim();
 
@@ -2589,14 +2654,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       }
 
       const data = (await response.json()) as AppSettingsPayload;
-      setTavilySettings(
-        data.tavily
-          ? {
-              ...DEFAULT_TAVILY_SETTINGS,
-              ...data.tavily,
-            }
-          : DEFAULT_TAVILY_SETTINGS
-      );
+      applySettingsPayload(data);
       setTavilyApiKeyInput("");
       setTavilyCredentialMutation({
         status: "success",
@@ -2626,14 +2684,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       }
 
       const data = (await response.json()) as AppSettingsPayload;
-      setTavilySettings(
-        data.tavily
-          ? {
-              ...DEFAULT_TAVILY_SETTINGS,
-              ...data.tavily,
-            }
-          : DEFAULT_TAVILY_SETTINGS
-      );
+      applySettingsPayload(data);
       setTavilyApiKeyInput("");
       setTavilyCredentialMutation({
         status: "success",
@@ -2646,6 +2697,48 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           error instanceof Error
             ? error.message
             : "Unable to remove the saved Tavily API key.",
+      });
+    }
+  }
+
+  async function updateGenerativeUITrustedMode(enabled: boolean) {
+    if (generativeUISettings.enabled === enabled) {
+      resetGenerativeUIForm();
+      return;
+    }
+
+    setGenerativeUIMutation({ status: "saving" });
+
+    try {
+      const response = await fetch("/api/chat/settings", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          generativeUITrusted: enabled,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const data = (await response.json()) as AppSettingsPayload;
+      applySettingsPayload(data);
+      setGenerativeUIMutation({
+        status: "success",
+        message: enabled
+          ? "Generative UI widgets enabled."
+          : "Generative UI widgets disabled.",
+      });
+    } catch (error) {
+      setGenerativeUIMutation({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to update generative UI settings.",
       });
     }
   }
@@ -2837,6 +2930,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   function openSettings() {
     setOpenMenuChatId(null);
     resetTavilyCredentialForm();
+    resetGenerativeUIForm();
     setIsModelPickerOpen(false);
     setIsProviderPickerOpen(false);
     setIsManageModelsOpen(false);
@@ -2845,6 +2939,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   function closeSettings() {
     resetTavilyCredentialForm();
+    resetGenerativeUIForm();
     setIsSettingsOpen(false);
   }
 
@@ -3248,10 +3343,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             <div className="settings-header">
               <div className="settings-copy">
                 <p className="settings-eyebrow">Settings</p>
-                <h2 id="settings-title">Search and models</h2>
+                <h2 id="settings-title">Search, widgets, and models</h2>
                 <p className="settings-description" id="settings-description">
-                  Save a Tavily API key for live web search, or jump into model
-                  management from the sidebar footer.
+                  Manage live web search, trusted generative UI widgets, and model
+                  visibility from the sidebar footer.
                 </p>
               </div>
               <button
@@ -3343,6 +3438,66 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                     ) : null}
                   </div>
                 </form>
+              </section>
+
+              <section className="settings-section-card">
+                <div className="settings-section-copy">
+                  <p className="settings-section-eyebrow">Generative UI</p>
+                  <h3>Trusted widget mode</h3>
+                  <p className="settings-section-description">
+                    Inline widgets are enabled by default. Turn them off here if you
+                    want the assistant to stay in text-and-tool mode.
+                  </p>
+                  <p className="settings-section-meta">
+                    {generativeUISettingsSummary(generativeUISettings)}
+                  </p>
+                </div>
+                <div className="settings-toggle-row">
+                  <button
+                    aria-checked={generativeUISettings.enabled}
+                    className={`settings-switch${
+                      generativeUISettings.enabled ? " is-active" : ""
+                    }`}
+                    disabled={generativeUIMutation.status === "saving"}
+                    onClick={() => {
+                      void updateGenerativeUITrustedMode(
+                        !generativeUISettings.enabled
+                      );
+                    }}
+                    role="switch"
+                    title={
+                      generativeUISettings.enabled
+                        ? "Turn trusted widget mode off"
+                        : "Turn trusted widget mode on"
+                    }
+                    type="button"
+                  >
+                    <span className="settings-switch-track">
+                      <span className="settings-switch-thumb" />
+                    </span>
+                    <span className="settings-switch-copy">
+                      <span className="settings-switch-label">
+                        {generativeUISettings.enabled ? "On" : "Off"}
+                      </span>
+                      <span className="settings-switch-caption">
+                        {generativeUISettings.enabled
+                          ? "Prefer widgets"
+                          : "Text-first replies"}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+                {generativeUIMutation.message ? (
+                  <p
+                    className={
+                      generativeUIMutation.status === "error"
+                        ? "selector-error"
+                        : "selector-success"
+                    }
+                  >
+                    {generativeUIMutation.message}
+                  </p>
+                ) : null}
               </section>
 
               <section className="settings-section-card">
