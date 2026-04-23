@@ -1450,11 +1450,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
             ? activeModelSelection.modelId
             : ""
         ).filter((modelId) => {
-          const isCurrentSelection =
-            modelId === activeModelSelection.modelId &&
-            provider.id === activeModelSelection.providerId;
-
-          if (!isCurrentSelection && !isModelVisible(provider.id, modelId)) {
+          if (!isModelVisible(provider.id, modelId)) {
             return false;
           }
 
