@@ -248,6 +248,13 @@ function mergeModelOptions(
   ]);
 }
 
+function buildLoadedProviderModels(
+  provider: ChatProviderOption | undefined,
+  loadedModels: string[]
+) {
+  return uniqueStrings([...(provider?.suggestedModels ?? []), ...loadedModels]);
+}
+
 function providerCredentialSummary(provider: ChatProviderOption | undefined) {
   if (!provider?.configured) {
     return "No API key saved yet.";
@@ -2214,10 +2221,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
         ...current,
         [providerId]: {
           status: "ready",
-          models: uniqueStrings([
-            ...mergeModelOptions(provider, current[providerId], ""),
-            ...loadedModels,
-          ]),
+          models: buildLoadedProviderModels(provider, loadedModels),
           source:
             data.source === "server-cache" || data.source === "provider-api"
               ? data.source
