@@ -49,6 +49,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - For trusted-mode widgets that load external CDN scripts, confirm named `onload` callbacks such as `initChart()` or `initCalculator()` still initialize inside the widget host without throwing global-scope errors.
 - For trusted-mode widgets that combine a CDN script with a later inline classic script, confirm saved chart conversations still initialize after a hard reload in Next.js dev mode, without `initChart is not defined` or similar callback-race errors.
 - For trusted-mode widgets that use inline DOM event attributes such as `onclick="switchTab('...')"`, confirm the saved conversation still switches tabs after reload without `... is not defined` errors and that handler queries stay scoped to that widget host.
+- If a trusted-mode widget ships malformed inline JavaScript, confirm the widget shows a local inline runtime error message and the rest of the chat UI stays usable instead of crashing the page.
 - For trusted-mode widgets that summarize complex prompts, confirm they include enough concrete information to be useful on their own, such as labels, grouped facts, comparisons, statuses, or multiple meaningful sections instead of a sparse shell.
 - Confirm the final widget becomes interactive only after the tool input completes, rather than during partial HTML streaming.
 - Confirm a generated widget can call `sendPrompt(...)` and create a new user turn in the same chat.

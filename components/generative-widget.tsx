@@ -28,6 +28,16 @@ type ZipTextFile = {
   content: string;
 };
 
+type WidgetExecutionResult =
+  | {
+      ok: true;
+      value: unknown;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 const WIDGET_DOWNLOAD_HOST_STYLES = `:root {
   color-scheme: light dark;
   --color-background-primary: #ffffff;
@@ -728,6 +738,42 @@ function widgetFunctionRegistrationBlock(functionNames: string[]) {
     : "";
 }
 
+function widgetExecutionErrorMessage(stage: string, error: unknown) {
+  const detail =
+    error instanceof Error ? error.message : "Unknown widget runtime error.";
+
+  return `${stage}: ${detail}`;
+}
+
+function runWidgetExecutor(
+  stage: string,
+  args: string[],
+  body: string,
+  values: unknown[]
+): WidgetExecutionResult {
+  try {
+    const executor = new Function(...args, body);
+
+    return {
+      ok: true,
+      value: executor(...values),
+    };
+  } catch (error) {
+    const message = widgetExecutionErrorMessage(stage, error);
+
+    console.error("[open-visual-layout] widget execution failed", {
+      stage,
+      error,
+      bodyPreview: body.slice(0, 600),
+    });
+
+    return {
+      ok: false,
+      message,
+    };
+  }
+}
+
 function runScopedInlineClassicScript(
   currentScript: HTMLScriptElement,
   textContent: string | null,
@@ -735,16 +781,14 @@ function runScopedInlineClassicScript(
 ) {
   const { widgetDocument, widgetFns, widgetRoot, widgetWindow } =
     getWidgetScriptScope(currentScript);
-  const executor = new Function(
-    "document",
-    "window",
-    "widgetFns",
-    "widgetRoot",
-    `${textContent ?? ""}
-${widgetFunctionRegistrationBlock(functionNames)}`
-  );
 
-  executor(widgetDocument, widgetWindow, widgetFns, widgetRoot);
+  return runWidgetExecutor(
+    "Inline widget script failed",
+    ["document", "window", "widgetFns", "widgetRoot"],
+    `${textContent ?? ""}
+${widgetFunctionRegistrationBlock(functionNames)}`,
+    [widgetDocument, widgetWindow, widgetFns, widgetRoot]
+  );
 }
 
 function runScopedWidgetCallback(
@@ -753,15 +797,13 @@ function runScopedWidgetCallback(
 ) {
   const { widgetDocument, widgetFns, widgetRoot, widgetWindow } =
     getWidgetScriptScope(currentNode);
-  const executor = new Function(
-    "document",
-    "window",
-    "widgetFns",
-    "widgetRoot",
-    `with (widgetFns) { ${callbackSource} }`
-  );
 
-  executor(widgetDocument, widgetWindow, widgetFns, widgetRoot);
+  return runWidgetExecutor(
+    "Widget callback failed",
+    ["document", "window", "widgetFns", "widgetRoot"],
+    `with (widgetFns) { ${callbackSource} }`,
+    [widgetDocument, widgetWindow, widgetFns, widgetRoot]
+  );
 }
 
 function runScopedWidgetInlineEventHandler(
@@ -771,15 +813,6 @@ function runScopedWidgetInlineEventHandler(
 ) {
   const { widgetDocument, widgetFns, widgetRoot, widgetWindow } =
     getWidgetScriptScope(currentNode);
-  const executor = new Function(
-    "document",
-    "window",
-    "widgetFns",
-    "widgetRoot",
-    "event",
-    "element",
-    `with (widgetFns) { return (function(event) { ${handlerSource} }).call(element, event); }`
-  );
   const eventWindow = widgetWindow as typeof window & { event?: Event };
   const hadEvent = "event" in eventWindow;
   const previousEvent = eventWindow.event;
@@ -787,14 +820,14 @@ function runScopedWidgetInlineEventHandler(
   eventWindow.event = event;
 
   try {
-    return executor(
-      widgetDocument,
-      widgetWindow,
-      widgetFns,
-      widgetRoot,
-      event,
-      currentNode
+    const result = runWidgetExecutor(
+      "Widget event handler failed",
+      ["document", "window", "widgetFns", "widgetRoot", "event", "element"],
+      `with (widgetFns) { return (function(event) { ${handlerSource} }).call(element, event); }`,
+      [widgetDocument, widgetWindow, widgetFns, widgetRoot, event, currentNode]
     );
+
+    return result.ok ? result.value : undefined;
   } finally {
     if (hadEvent) {
       eventWindow.event = previousEvent;
@@ -907,6 +940,7 @@ function executeScripts(container: HTMLElement) {
     script: HTMLScriptElement;
   }> = [];
   let externalCallbacksReady = false;
+  const errors: string[] = [];
 
   WIDGET_FUNCTION_REGISTRY.set(widgetRoot, {});
   (
@@ -962,7 +996,11 @@ function executeScripts(container: HTMLElement) {
 
         if (externalCallbacksReady && nextScript.dataset.widgetCallbackRan !== "true") {
           nextScript.dataset.widgetCallbackRan = "true";
-          runScopedWidgetCallback(nextScript, callbackSource);
+          const result = runScopedWidgetCallback(nextScript, callbackSource);
+
+          if (!result.ok) {
+            errors.push(result.message);
+          }
         }
       });
 
@@ -972,11 +1010,15 @@ function executeScripts(container: HTMLElement) {
     script.replaceWith(nextScript);
 
     if (!externalSrc && isPreparedInlineClassic) {
-      runScopedInlineClassicScript(
+      const result = runScopedInlineClassicScript(
         nextScript,
         script.textContent,
         widgetFunctionNamesFromScript(script.textContent)
       );
+
+      if (!result.ok) {
+        errors.push(result.message);
+      }
     }
   }
 
@@ -988,9 +1030,15 @@ function executeScripts(container: HTMLElement) {
       script.dataset.widgetCallbackRan !== "true"
     ) {
       script.dataset.widgetCallbackRan = "true";
-      runScopedWidgetCallback(script, callbackSource);
+      const result = runScopedWidgetCallback(script, callbackSource);
+
+      if (!result.ok) {
+        errors.push(result.message);
+      }
     }
   }
+
+  return errors;
 }
 
 export function downloadGenerativeWidgetZip({
@@ -1033,6 +1081,7 @@ export function GenerativeWidget({
   const hostRef = useRef<HTMLDivElement>(null);
   const lastExecutedMarkupRef = useRef<string | null>(null);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [widgetRuntimeError, setWidgetRuntimeError] = useState<string | null>(null);
 
   const hasRenderableMarkup = widgetCode.trim().length > 0;
   const visibleLoadingMessage = useMemo(() => {
@@ -1154,6 +1203,7 @@ export function GenerativeWidget({
     if (!hasRenderableMarkup) {
       source.replaceChildren();
       lastExecutedMarkupRef.current = null;
+      setWidgetRuntimeError(null);
       return;
     }
 
@@ -1200,9 +1250,12 @@ export function GenerativeWidget({
     }
 
     if (status === "ready" && lastExecutedMarkupRef.current !== widgetCode) {
-      executeScripts(source);
+      const executionErrors = executeScripts(source);
       syncScopedInlineEventHandlers(source);
+      setWidgetRuntimeError(executionErrors[0] ?? null);
       lastExecutedMarkupRef.current = widgetCode;
+    } else if (status !== "ready") {
+      setWidgetRuntimeError(null);
     }
   }, [hasRenderableMarkup, status, widgetCode]);
 
@@ -1250,6 +1303,10 @@ export function GenerativeWidget({
 
         {status === "error" && errorText ? (
           <p className="widget-error-text">{errorText}</p>
+        ) : null}
+
+        {status !== "error" && widgetRuntimeError ? (
+          <p className="widget-error-text">{widgetRuntimeError}</p>
         ) : null}
       </div>
     </section>
