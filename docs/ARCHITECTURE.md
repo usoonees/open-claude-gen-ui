@@ -14,11 +14,12 @@ This file is the top-level map for the repository.
 
 - Browser users load `app/page.tsx`, which renders `components/chat-shell.tsx`.
 - The chat client uses Vercel AI SDK's `useChat` hook with `DefaultChatTransport` to POST conversation state to `/api/chat`.
-- `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata and frontend key-management mutations, `/api/chat/models` for provider-backed model suggestions plus persisted sync-cache reuse when available, and `/api/chat/preferences` for persisted model-picker visibility preferences, while the last manually chosen provider/model for the next new chat still remains browser-local.
+- `components/chat-shell.tsx` also loads `/api/chat/providers` for provider metadata and frontend key-management mutations, `/api/chat/settings` for Tavily web-search credential state, `/api/chat/models` for provider-backed model suggestions plus persisted sync-cache reuse when available, and `/api/chat/preferences` for persisted model-picker visibility preferences, while the last manually chosen provider/model for the next new chat still remains browser-local.
 - `components/chat-shell.tsx` keeps an in-memory `Chat` controller per open conversation so sidebar navigation changes the visible subscription without aborting an in-flight stream for another chat.
 - `app/api/chat/route.ts` validates the request, normalizes the selected provider/model, streams a single Vercel AI SDK `ToolLoopAgent`, stamps the active response model id onto assistant message metadata, and rewrites pre-`showWidget` assistant text chunks into reasoning chunks so widget lead-in prose stays in `Thinking` for both live streams and saved chats.
 - `app/api/chat/preferences/route.ts` stores global model-picker preferences such as hidden models in `.data/preferences/` so `Manage Models` survives reloads outside the browser.
 - `lib/provider-credentials-store.ts` stores frontend-saved provider API keys in `.data/providers/` with local encryption and masked metadata so new providers can be connected without editing `.env.local` or restarting the app.
+- `app/api/chat/settings/route.ts` stores Tavily web-search credential metadata and frontend save/remove mutations so the sidebar settings dialog can manage `TAVILY_API_KEY` without editing local env files.
 - `lib/provider-model-cache.ts` stores successful provider model-sync results in `.data/providers/` so server-side model lists can survive reloads and be refreshed explicitly by `Sync`.
 - When `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, the agent can call `visualizeReadMe` and `showWidget`, and `components/generative-widget.tsx` renders streamed widget HTML inline inside assistant messages inside an isolated shadow-root host with a browser-side ZIP download action once rendering is complete. The ZIP includes the raw widget fragment and a standalone wrapped HTML file.
 - `lib/chat-agent.ts` defines the single-agent prompt, response-language matching rule, gen-ui behavior bias, and step limit, while `lib/chat-models.ts` owns provider resolution, default selections, and live model-list fetchers.
@@ -32,6 +33,7 @@ This file is the top-level map for the repository.
 - `lib/minimax.ts` owns the MiniMax OpenAI-compatible provider instance and defaults.
 - `lib/openrouter.ts` owns the OpenRouter OpenAI-compatible provider instance and defaults.
 - `lib/tavily.ts` calls Tavily's search API so the agent can fetch current web information during a tool loop.
+- `lib/tavily-credentials-store.ts` stores a frontend-saved Tavily API key in `.data/settings/` with the same local encryption key material used for provider credentials.
 - `lib/volcengine.ts` owns the Volcengine ACK OpenAI-compatible provider instance and env aliases.
 - `lib/volcengine-coding.ts` owns the Volcengine coding OpenAI-compatible provider instance and env aliases.
 
@@ -49,7 +51,7 @@ This file is the top-level map for the repository.
 - `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, and `OPENROUTER_MODEL` provide the env fallback and defaults for OpenRouter in the provider selector.
 - `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` provide the env fallback and default model for Anthropic in the provider selector.
 - `GOOGLE_GENERATIVE_AI_API_KEY` and `GOOGLE_MODEL` provide the env fallback and default model for Gemini in the provider selector.
-- `PROVIDER_CREDENTIALS_MASTER_KEY` optionally overrides the local encryption key used for frontend-saved provider API keys. If it is unset, the app creates `.data/providers/provider-credentials.key` on first use.
+- `PROVIDER_CREDENTIALS_MASTER_KEY` optionally overrides the local encryption key used for frontend-saved provider API keys and the Tavily web-search key. If it is unset, the app creates `.data/providers/provider-credentials.key` on first use.
 - `TAVILY_API_KEY` enables the agent's live web-search tool and is intentionally blank in `.env.example`.
 - `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true` enables trusted-mode generative UI tools and inline widget rendering.
 - `LANGSMITH_TRACING=true` enables LangSmith trace capture through `langsmith/experimental/vercel`.
@@ -60,6 +62,7 @@ This file is the top-level map for the repository.
 
 - Keep provider credentials and inference configuration server-side only.
 - Prefer frontend-saved provider keys over env fallbacks for the same provider so local configuration changes apply immediately without a restart.
+- Prefer a frontend-saved Tavily key over the env fallback so web-search configuration can change immediately without a restart.
 - Keep UI state in React components until persistence is explicitly added; the remaining browser-local exception today is the last manually chosen provider/model for future new chats, while hidden model-picker entries now persist server-side and each saved chat still persists its own provider/model so reloads keep the same inference target.
 - Put shared provider logic in `lib/` before spreading it across route handlers.
 - Keep infrastructure and runtime orchestration explicit and versioned.

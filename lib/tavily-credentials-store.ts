@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { ChatProviderId } from "@/lib/chat-model-config";
 import {
   createKeyPreview,
   decryptStoredSecret,
@@ -8,69 +7,63 @@ import {
   ensureCredentialDirectory,
 } from "@/lib/local-credential-utils";
 
-const providerCredentialsDir = path.join(process.cwd(), ".data", "providers");
-const providerCredentialsPath = path.join(
-  providerCredentialsDir,
-  "provider-credentials.json"
+const tavilyCredentialsDir = path.join(process.cwd(), ".data", "settings");
+const tavilyCredentialsPath = path.join(
+  tavilyCredentialsDir,
+  "tavily-credentials.json"
 );
 
-export type ProviderCredentialSource = "frontend" | "env";
-
-type StoredProviderCredentialRecord = {
+type StoredTavilyCredentialRecord = {
   encryptedApiKey: string;
   keyPreview: string;
   updatedAt: string;
 };
 
-type StoredProviderCredentialFile = {
+type StoredTavilyCredentialFile = {
   version: 1;
-  providers: Partial<Record<ChatProviderId, StoredProviderCredentialRecord>>;
+  tavily: StoredTavilyCredentialRecord | null;
 };
 
-export type StoredProviderCredential = {
+export type StoredTavilyCredential = {
   apiKey: string;
   keyPreview: string;
   source: "frontend";
   updatedAt: string;
 };
 
-function ensureProviderCredentialsDir() {
-  ensureCredentialDirectory(providerCredentialsDir);
-}
-
 function sanitizeStoredCredentialFile(
-  value: Partial<StoredProviderCredentialFile> | null | undefined
-): StoredProviderCredentialFile {
+  value: Partial<StoredTavilyCredentialFile> | null | undefined
+): StoredTavilyCredentialFile {
   return {
     version: 1,
-    providers:
-      value?.providers && typeof value.providers === "object" ? value.providers : {},
+    tavily:
+      value?.tavily && typeof value.tavily === "object" ? value.tavily : null,
   };
 }
 
 function readStoredCredentialFile() {
-  ensureProviderCredentialsDir();
+  ensureCredentialDirectory(tavilyCredentialsDir);
 
   try {
     return sanitizeStoredCredentialFile(
-      JSON.parse(readFileSync(providerCredentialsPath, "utf8")) as Partial<StoredProviderCredentialFile>
+      JSON.parse(
+        readFileSync(tavilyCredentialsPath, "utf8")
+      ) as Partial<StoredTavilyCredentialFile>
     );
   } catch {
     return sanitizeStoredCredentialFile(null);
   }
 }
 
-function writeStoredCredentialFile(value: StoredProviderCredentialFile) {
-  ensureProviderCredentialsDir();
-  writeFileSync(providerCredentialsPath, `${JSON.stringify(value, null, 2)}\n`, {
+function writeStoredCredentialFile(value: StoredTavilyCredentialFile) {
+  ensureCredentialDirectory(tavilyCredentialsDir);
+  writeFileSync(tavilyCredentialsPath, `${JSON.stringify(value, null, 2)}\n`, {
     mode: 0o600,
   });
 }
 
-export function readStoredProviderCredential(
-  providerId: ChatProviderId
-): StoredProviderCredential | null {
-  const record = readStoredCredentialFile().providers[providerId];
+export function readStoredTavilyCredential(): StoredTavilyCredential | null {
+  const record = readStoredCredentialFile().tavily;
 
   if (!record?.encryptedApiKey || !record.updatedAt) {
     return null;
@@ -94,10 +87,7 @@ export function readStoredProviderCredential(
   }
 }
 
-export function writeStoredProviderCredential(
-  providerId: ChatProviderId,
-  apiKey: string
-) {
+export function writeStoredTavilyCredential(apiKey: string) {
   const trimmedApiKey = apiKey.trim();
 
   if (!trimmedApiKey) {
@@ -109,9 +99,9 @@ export function writeStoredProviderCredential(
     encryptedApiKey: encryptStoredSecret(trimmedApiKey),
     keyPreview: createKeyPreview(trimmedApiKey),
     updatedAt: new Date().toISOString(),
-  } satisfies StoredProviderCredentialRecord;
+  } satisfies StoredTavilyCredentialRecord;
 
-  file.providers[providerId] = nextCredential;
+  file.tavily = nextCredential;
   writeStoredCredentialFile(file);
 
   return {
@@ -120,14 +110,14 @@ export function writeStoredProviderCredential(
   };
 }
 
-export function deleteStoredProviderCredential(providerId: ChatProviderId) {
+export function deleteStoredTavilyCredential() {
   const file = readStoredCredentialFile();
 
-  if (!file.providers[providerId]) {
+  if (!file.tavily) {
     return false;
   }
 
-  delete file.providers[providerId];
+  file.tavily = null;
   writeStoredCredentialFile(file);
   return true;
 }

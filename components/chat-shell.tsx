@@ -12,6 +12,7 @@ import {
   ChatProviderOption,
 } from "@/lib/chat-model-config";
 import { normalizeHiddenModelKeys } from "@/lib/chat-picker-preferences";
+import type { TavilySettingsSummary } from "@/lib/chat-settings-config";
 import { normalizeShowWidgetToolInput } from "@/lib/generative-ui/show-widget-input";
 import { openTrustedWidgetLink } from "@/lib/generative-ui/browser-links";
 import {
@@ -55,6 +56,10 @@ type ProviderModelsState = {
 type ProviderCredentialMutationState = {
   status: "idle" | "saving" | "error" | "success";
   message?: string;
+};
+
+type AppSettingsPayload = {
+  tavily?: TavilySettingsSummary;
 };
 
 type ModelPickerView = "models" | "providers" | "manage";
@@ -145,6 +150,13 @@ const DEFAULT_MODEL_SELECTION: ChatModelSelection = {
   modelId: "doubao-seed-2-0-pro-260215",
 };
 
+const DEFAULT_TAVILY_SETTINGS: TavilySettingsSummary = {
+  apiKeyEnv: "TAVILY_API_KEY",
+  configured: false,
+  credentialSource: null,
+  baseURL: "https://api.tavily.com",
+};
+
 const MODEL_VISIBILITY_STORAGE_KEY = "open-visual-layout:model-visibility:v1";
 const MODEL_SELECTION_STORAGE_KEY = "open-visual-layout:model-selection:v1";
 
@@ -219,6 +231,20 @@ function providerCredentialSummary(provider: ChatProviderOption | undefined) {
   }
 
   return `Using ${provider.apiKeyEnv} from the environment.`;
+}
+
+function tavilyCredentialSummary(settings: TavilySettingsSummary | null | undefined) {
+  if (!settings?.configured) {
+    return "No Tavily API key saved yet.";
+  }
+
+  if (settings.credentialSource === "frontend") {
+    return settings.keyPreview
+      ? `Saved locally as ${settings.keyPreview}.`
+      : "Saved locally.";
+  }
+
+  return `Using ${settings.apiKeyEnv} from the environment.`;
 }
 
 function getConfiguredProviderOptions(providers: ChatProviderOption[]) {
@@ -1042,6 +1068,15 @@ function TuneIcon() {
   );
 }
 
+function SettingsIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+      <path d="M19 12a7 7 0 0 0-.08-1l2.02-1.58-2-3.46-2.46.7a7.3 7.3 0 0 0-1.72-1l-.38-2.52h-4l-.38 2.52a7.3 7.3 0 0 0-1.72 1l-2.46-.7-2 3.46L5.08 11A7 7 0 0 0 5 12c0 .34.03.67.08 1l-2.02 1.58 2 3.46 2.46-.7c.53.41 1.11.74 1.72 1l.38 2.52h4l.38-2.52c.61-.26 1.19-.59 1.72-1l2.46.7 2-3.46L18.92 13c.05-.33.08-.66.08-1Z" />
+    </svg>
+  );
+}
+
 function CloseIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -1183,11 +1218,17 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const [hiddenModelKeys, setHiddenModelKeys] = useState<string[]>([]);
   const [collapsedModelProviderIds, setCollapsedModelProviderIds] = useState<string[]>([]);
   const [collapsedManageProviderIds, setCollapsedManageProviderIds] = useState<string[]>([]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProviderPickerOpen, setIsProviderPickerOpen] = useState(false);
   const [returnToManageModelsAfterProviderPicker, setReturnToManageModelsAfterProviderPicker] =
     useState(false);
   const [providerPickerSelectionId, setProviderPickerSelectionId] =
     useState<ChatProviderId | null>(null);
+  const [tavilySettings, setTavilySettings] =
+    useState<TavilySettingsSummary>(DEFAULT_TAVILY_SETTINGS);
+  const [tavilyApiKeyInput, setTavilyApiKeyInput] = useState("");
+  const [tavilyCredentialMutation, setTavilyCredentialMutation] =
+    useState<ProviderCredentialMutationState>({ status: "idle" });
   const [providerApiKeyInput, setProviderApiKeyInput] = useState("");
   const [providerCredentialMutation, setProviderCredentialMutation] =
     useState<ProviderCredentialMutationState>({ status: "idle" });
@@ -1214,6 +1255,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const sidebarMenuRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelSearchInputRef = useRef<HTMLInputElement>(null);
+  const tavilyApiKeyInputRef = useRef<HTMLInputElement>(null);
   const providerSearchInputRef = useRef<HTMLInputElement>(null);
   const providerApiKeyInputRef = useRef<HTMLInputElement>(null);
   const manageModelSearchInputRef = useRef<HTMLInputElement>(null);
@@ -1263,6 +1305,25 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   function getPreferredNewChatModelSelection() {
     return manualDefaultModelSelectionRef.current ?? defaultModelSelectionRef.current;
+  }
+
+  async function loadAppSettings() {
+    const response = await fetch("/api/chat/settings");
+
+    if (!response.ok) {
+      debugChat("settings:error", { status: response.status });
+      return;
+    }
+
+    const data = (await response.json()) as AppSettingsPayload;
+    setTavilySettings(
+      data.tavily
+        ? {
+            ...DEFAULT_TAVILY_SETTINGS,
+            ...data.tavily,
+          }
+        : DEFAULT_TAVILY_SETTINGS
+    );
   }
 
   async function loadModelVisibilityPreferences() {
@@ -1426,6 +1487,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     : draftModelSelection;
   const activeProvider = getProviderOption(activeModelSelection.providerId);
   const activeProviderModels = providerModels[activeModelSelection.providerId];
+  const tavilyCredentialStatusMessage = tavilyCredentialMutation.message;
   const providerCredentialStatusMessage = providerCredentialMutation.message;
 
   function isModelVisible(providerId: string, modelId: string) {
@@ -1747,6 +1809,29 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isManageModelsOpen]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      tavilyApiKeyInputRef.current?.focus();
+      tavilyApiKeyInputRef.current?.select();
+    });
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeSettings();
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isSettingsOpen]);
 
   useEffect(() => {
     if (!isProviderPickerOpen) {
@@ -2090,6 +2175,10 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
 
   useEffect(() => {
     void loadProviderCatalog();
+  }, []);
+
+  useEffect(() => {
+    void loadAppSettings();
   }, []);
 
   useEffect(() => {
@@ -2463,6 +2552,101 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setProviderCredentialMutation({ status: "idle" });
   }
 
+  function resetTavilyCredentialForm() {
+    setTavilyApiKeyInput("");
+    setTavilyCredentialMutation({ status: "idle" });
+  }
+
+  async function saveTavilyCredential() {
+    const apiKey = tavilyApiKeyInput.trim();
+
+    if (!apiKey) {
+      setTavilyCredentialMutation({
+        status: "error",
+        message: "Enter a Tavily API key before saving.",
+      });
+      return;
+    }
+
+    setTavilyCredentialMutation({ status: "saving" });
+
+    try {
+      const response = await fetch("/api/chat/settings", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          tavilyApiKey: apiKey,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const data = (await response.json()) as AppSettingsPayload;
+      setTavilySettings(
+        data.tavily
+          ? {
+              ...DEFAULT_TAVILY_SETTINGS,
+              ...data.tavily,
+            }
+          : DEFAULT_TAVILY_SETTINGS
+      );
+      setTavilyApiKeyInput("");
+      setTavilyCredentialMutation({
+        status: "success",
+        message: "Tavily API key saved.",
+      });
+    } catch (error) {
+      setTavilyCredentialMutation({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to save the Tavily API key.",
+      });
+    }
+  }
+
+  async function removeStoredTavilyCredential() {
+    setTavilyCredentialMutation({ status: "saving" });
+
+    try {
+      const response = await fetch("/api/chat/settings", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const data = (await response.json()) as AppSettingsPayload;
+      setTavilySettings(
+        data.tavily
+          ? {
+              ...DEFAULT_TAVILY_SETTINGS,
+              ...data.tavily,
+            }
+          : DEFAULT_TAVILY_SETTINGS
+      );
+      setTavilyApiKeyInput("");
+      setTavilyCredentialMutation({
+        status: "success",
+        message: "Saved Tavily API key removed.",
+      });
+    } catch (error) {
+      setTavilyCredentialMutation({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to remove the saved Tavily API key.",
+      });
+    }
+  }
+
   async function saveProviderCredential(providerId: ChatProviderId) {
     const apiKey = providerApiKeyInput.trim();
 
@@ -2596,6 +2780,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }
 
   function toggleModelPicker() {
+    setIsSettingsOpen(false);
     setIsProviderPickerOpen(false);
     setIsManageModelsOpen(false);
     setModelPickerView("models");
@@ -2630,6 +2815,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     setReturnToManageModelsAfterProviderPicker(isManageModelsOpen);
     setProviderPickerSelectionId(activeModelSelection.providerId);
     setIsModelPickerOpen(false);
+    setIsSettingsOpen(false);
     setIsManageModelsOpen(false);
     setIsProviderPickerOpen(true);
   }
@@ -2641,7 +2827,22 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     );
     setModelPickerView("models");
     setIsModelPickerOpen(false);
+    setIsSettingsOpen(false);
     setIsManageModelsOpen(true);
+  }
+
+  function openSettings() {
+    setOpenMenuChatId(null);
+    resetTavilyCredentialForm();
+    setIsModelPickerOpen(false);
+    setIsProviderPickerOpen(false);
+    setIsManageModelsOpen(false);
+    setIsSettingsOpen(true);
+  }
+
+  function closeSettings() {
+    resetTavilyCredentialForm();
+    setIsSettingsOpen(false);
   }
 
   function closeProviderPicker() {
@@ -2967,6 +3168,20 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
               )}
             </div>
           </div>
+
+          <div className="sidebar-footer">
+            <button
+              className="sidebar-settings-button"
+              onClick={openSettings}
+              title="Open settings"
+              type="button"
+            >
+              <span className="sidebar-settings-icon">
+                <SettingsIcon />
+              </span>
+              <span className="sidebar-settings-title">Settings</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -3006,6 +3221,154 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
                 type="button"
               >
                 Delete
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {isSettingsOpen ? (
+        <div
+          aria-label="Settings dialog"
+          className="dialog-backdrop"
+          onClick={closeSettings}
+          role="presentation"
+        >
+          <section
+            aria-describedby="settings-description"
+            aria-labelledby="settings-title"
+            className="dialog-card settings-dialog"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="settings-header">
+              <div className="settings-copy">
+                <p className="settings-eyebrow">Settings</p>
+                <h2 id="settings-title">Search and models</h2>
+                <p className="settings-description" id="settings-description">
+                  Save a Tavily API key for live web search, or jump into model
+                  management from the sidebar footer.
+                </p>
+              </div>
+              <button
+                aria-label="Close settings"
+                className="picker-icon-button settings-close"
+                onClick={closeSettings}
+                title="Close"
+                type="button"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="settings-stack">
+              <section className="settings-section-card">
+                <div className="settings-section-copy">
+                  <p className="settings-section-eyebrow">Web search</p>
+                  <h3>Tavily API key</h3>
+                  <p className="settings-section-description">
+                    The assistant uses Tavily for current web results. Saved keys stay
+                    local to this app and work without restarting.
+                  </p>
+                  <p className="settings-section-meta">
+                    {tavilyCredentialSummary(tavilySettings)}
+                  </p>
+                </div>
+                <form
+                  autoComplete="off"
+                  className="provider-option-editor settings-secret-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveTavilyCredential();
+                  }}
+                >
+                  <input
+                    aria-label="Tavily API key"
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    className="provider-credential-input is-masked"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    inputMode="text"
+                    onChange={(event) => {
+                      setTavilyApiKeyInput(event.target.value);
+                      if (tavilyCredentialMutation.status !== "idle") {
+                        setTavilyCredentialMutation({ status: "idle" });
+                      }
+                    }}
+                    placeholder={
+                      tavilySettings.configured ? "****************" : "Paste Tavily API key"
+                    }
+                    ref={tavilyApiKeyInputRef}
+                    spellCheck={false}
+                    type="text"
+                    value={tavilyApiKeyInput}
+                  />
+                  {tavilyCredentialStatusMessage ? (
+                    <p
+                      className={
+                        tavilyCredentialMutation.status === "error"
+                          ? "selector-error"
+                          : "selector-success"
+                      }
+                    >
+                      {tavilyCredentialStatusMessage}
+                    </p>
+                  ) : null}
+                  <div className="provider-option-actions">
+                    <button
+                      className="dialog-button"
+                      disabled={tavilyCredentialMutation.status === "saving"}
+                      type="submit"
+                    >
+                      {tavilyCredentialMutation.status === "saving"
+                        ? "Saving..."
+                        : "Save key"}
+                    </button>
+                    {tavilySettings.credentialSource === "frontend" ? (
+                      <button
+                        className="dialog-button"
+                        disabled={tavilyCredentialMutation.status === "saving"}
+                        onClick={() => {
+                          void removeStoredTavilyCredential();
+                        }}
+                        type="button"
+                      >
+                        Remove saved key
+                      </button>
+                    ) : null}
+                  </div>
+                </form>
+              </section>
+
+              <section className="settings-section-card">
+                <div className="settings-section-copy">
+                  <p className="settings-section-eyebrow">Models</p>
+                  <h3>Visibility and providers</h3>
+                  <p className="settings-section-description">
+                    Open the existing model management window to show or hide models
+                    and connect providers.
+                  </p>
+                </div>
+                <div className="settings-shortcuts">
+                  <button
+                    className="dialog-button danger"
+                    onClick={openManageModels}
+                    type="button"
+                  >
+                    Manage models
+                  </button>
+                </div>
+              </section>
+            </div>
+            <div className="dialog-actions settings-actions">
+              <button
+                className="dialog-button"
+                onClick={closeSettings}
+                type="button"
+              >
+                Close
               </button>
             </div>
           </section>

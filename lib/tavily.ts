@@ -1,11 +1,5 @@
 import { inspect } from "node:util";
-
-const DEFAULT_TAVILY_BASE_URL = "https://api.tavily.com";
-
-export const tavilyConfig = {
-  apiKey: process.env.TAVILY_API_KEY ?? "",
-  baseURL: process.env.TAVILY_BASE_URL ?? DEFAULT_TAVILY_BASE_URL,
-};
+import { getTavilyRuntimeConfig } from "@/lib/tavily-settings";
 
 type TavilySearchTopic = "general" | "news";
 type TavilySearchCountry = "china" | "united states";
@@ -93,9 +87,11 @@ export async function searchTavily({
   country = "china",
   maxResults = 8,
 }: TavilySearchArgs) {
+  const tavilyConfig = getTavilyRuntimeConfig();
+
   if (!tavilyConfig.apiKey) {
     throw new Error(
-      "TAVILY_API_KEY is empty. Add it to your local environment before using web search."
+      "No Tavily API key is configured. Save one in Settings or set TAVILY_API_KEY in .env.local before using web search."
     );
   }
 

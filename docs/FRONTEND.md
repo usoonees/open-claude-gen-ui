@@ -30,7 +30,10 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Confirm the default `Choose model` view only lists visible models for connected providers, hides entries immediately after they are hidden in `Manage Models` even if one was previously selected, still allows a typed custom model id for the current provider, closes after selection, and lets each provider header collapse or expand its model list with a smooth animation.
 - Confirm an explicit provider or model change in the picker becomes the browser-local default for future `New Chat` sessions, while simply opening a saved conversation with a different model does not rewrite that default.
 - Confirm the inline picker only exposes model search and `Manage Models`; it should no longer show a separate add-provider button in that compact surface.
+- Confirm the left-bottom sidebar footer now exposes a `Settings` entry that opens a separate dialog for Tavily web-search configuration and model-management shortcuts.
+- In `Settings`, confirm users can save a Tavily API key locally without restarting, remove a frontend-saved Tavily key when present, and still see env-backed Tavily configuration summarized without exposing the raw secret.
 - Confirm the `Add provider` action inside `Manage Models` opens a separate `Connect provider` dialog, lets users switch to another provider, save an API key from the frontend without restarting the app, and remove a previously saved local key when needed.
+- From `Settings`, confirm the `Manage models` shortcut closes the settings dialog and opens the existing `Manage Models` dialog.
 - Confirm the picker `Manage Models` action opens a separate dialog instead of reusing the inline picker, clearly explains that it controls visibility rather than active selection, includes the `Add provider` shortcut, lets provider headers collapse or expand smoothly, changes which entries appear back in `Choose model`, keeps shown rows warmer/brighter than the cooler hidden rows without using 3D effects, presents the list in a compact sidebar-like style without nested card wrappers, lets `Sync` refresh a provider's model list when supported, and reuses the last successful sync result after a full page reload until the next explicit refresh.
 - Hover a saved sidebar chat and confirm the three-dot trigger appears, opening a menu with `Rename` and `Remove` actions.
 - Confirm choosing `Rename` turns the title into an inline editor, then saves on `Enter` or blur, cancels on `Escape`, and persists after a reload even after sending more messages in that chat.
@@ -70,6 +73,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - `components/generative-widget.tsx` owns inline generative widget rendering, streamed DOM patching, and final script execution.
 - `app/api/chat/route.ts` owns request validation and streaming.
 - `app/api/chat/providers/route.ts` owns provider metadata plus frontend API-key save/remove flows, and `app/api/chat/models/route.ts` owns server-side model-list discovery plus persisted sync caching.
+- `app/api/chat/settings/route.ts` owns Tavily web-search key save/remove flows and settings metadata used by the sidebar footer dialog.
 - `app/api/chat/preferences/route.ts` owns persisted model-picker visibility preferences.
 - `app/api/starter-prompts/route.ts` owns empty-state starter prompt recommendations, backed by `lib/starter-prompts.ts`.
 - `lib/chat-title.ts` owns server-side placeholder-title detection and background AI title resolution.
@@ -88,6 +92,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 - Model, provider, and management surfaces should use solid fills and avoid gradients.
 - These controls should stay visually flat. Do not introduce bevels, stacked shadows, inset highlights, or other fake-3D styling.
 - Provider/setup and management dialogs should stay in the same white surface family rather than using different tinted modal backgrounds.
+- The sidebar footer settings launcher should feel like a native part of the navigation rail, not a detached utility badge.
 - In-app confirmation dialogs such as `Remove` for a chat should also stay on that same plain white dialog surface family.
 - The inline model picker should feel lighter and attached to the composer, while provider/setup dialogs and management dialogs should feel distinct through layout and hierarchy rather than elevation tricks.
 - The `Manage Models` dialog should stay compact and list-driven: provider sections read like grouped sidebar rows, not like a stack of nested cards.
