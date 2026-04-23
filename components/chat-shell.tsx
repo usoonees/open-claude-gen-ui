@@ -1204,6 +1204,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const draftChatRef = useRef<ChatController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const shouldFollowStreamRef = useRef(true);
   const copyResetTimerRef = useRef<number | null>(null);
@@ -1582,6 +1583,40 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
       }
     });
   }, [isBusy, status, streamScrollSignature]);
+
+  useEffect(() => {
+    if (!isBusy || !shouldFollowStreamRef.current) {
+      return;
+    }
+
+    const listElement = messageListRef.current;
+
+    if (!listElement || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    let frameId = 0;
+
+    const syncScroll = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        if (shouldFollowStreamRef.current) {
+          scrollMessagesToBottom();
+        }
+      });
+    };
+
+    const observer = new ResizeObserver(() => {
+      syncScroll();
+    });
+
+    observer.observe(listElement);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, [chatId, isBusy, messages.length]);
 
   useEffect(() => {
     chatIdRef.current = chatId;
@@ -3505,7 +3540,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
               <p>Ask a question, write code, or explore ideas.</p>
             </div>
           ) : (
-            <div className="message-list">
+            <div className="message-list" ref={messageListRef}>
               {messages.map((message, index) => {
                 const downloadableWidget =
                   message.role === "assistant"
