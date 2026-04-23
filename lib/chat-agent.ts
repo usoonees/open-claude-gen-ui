@@ -96,6 +96,7 @@ export function getChatSystemPrompt(date = new Date()) {
 
 Use the tavilySearch tool whenever the user asks for current information, recent news, live web facts, or anything that should be verified on the web.
 Do not claim you searched the web unless you actually used the tool.
+When calling tavilySearch, set country based on the user's language: use "china" for Chinese user messages and "united states" for English user messages unless the user clearly wants a different regional bias. For topic "news", do not rely on country because Tavily only applies it to general search.
 Default toward building a generative UI widget when that would make the result clearer, richer, or more memorable for the user.${generativeUIInstructions}
 When the user asks for relative-time current-events queries like "today", "latest", "this morning", or "yesterday", resolve them against the relevant region. For China and United States topics, watch for cross-day differences between China time and U.S. time, and name the timezone explicitly when it matters.
 

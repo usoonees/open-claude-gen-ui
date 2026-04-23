@@ -24,6 +24,12 @@ const tavilySearchInputSchema = {
       enum: ["general", "news"],
       description: "Use news for recent events and general for broader lookup.",
     },
+    country: {
+      type: "string",
+      enum: ["china", "united states"],
+      description:
+        "Country bias for general web search. Default to china for Chinese user messages and united states for English user messages.",
+    },
     maxResults: {
       type: "integer",
       minimum: 1,
@@ -39,10 +45,11 @@ export const tavilySearchTool = tool({
   inputSchema: jsonSchema<{
     query: string;
     topic?: "general" | "news";
+    country?: "china" | "united states";
     maxResults?: number;
   }>(tavilySearchInputSchema),
-  execute: async ({ query, topic, maxResults }) =>
-    searchTavily({ query, topic, maxResults }),
+  execute: async ({ query, topic, country, maxResults }) =>
+    searchTavily({ query, topic, country, maxResults }),
 });
 
 const visualizeReadMeDescription =

@@ -6,10 +6,12 @@ export const tavilyConfig = {
 };
 
 type TavilySearchTopic = "general" | "news";
+type TavilySearchCountry = "china" | "united states";
 
 type TavilySearchArgs = {
   query: string;
   topic?: TavilySearchTopic;
+  country?: TavilySearchCountry;
   maxResults?: number;
 };
 
@@ -31,6 +33,7 @@ type TavilySearchResponse = {
 export async function searchTavily({
   query,
   topic = "general",
+  country = "china",
   maxResults = 8,
 }: TavilySearchArgs) {
   if (!tavilyConfig.apiKey) {
@@ -47,6 +50,7 @@ export async function searchTavily({
     },
     body: JSON.stringify({
       query,
+      ...(topic === "general" ? { country } : {}),
       topic,
       search_depth: "advanced",
       include_answer: true,
