@@ -16,7 +16,7 @@ Use `corepack prepare pnpm@10.32.1 --activate` if the local `pnpm` version does 
 
 - Open <http://localhost:3000> after `pnpm dev`.
 - `http://127.0.0.1:3000` should also work in dev; `next.config.ts` explicitly allows that origin for Next.js dev resources.
-- Confirm the empty state fetches randomized gen-ui-oriented prompt suggestions from `/api/starter-prompts`, renders them smoothly above the composer, and `New Chat` returns the UI to `/` without creating a saved sidebar entry.
+- Confirm the empty state fetches randomized gen-ui-oriented prompt suggestions from `/api/starter-prompts`, renders them smoothly above the composer, and every `New Chat` refreshes that batch while returning the UI to `/` without creating a saved sidebar entry.
 - Confirm clicking `New Chat` or pressing `Cmd+K` starts a fresh chat and places keyboard focus in the composer input.
 - Confirm clicking either sidebar toggle button or pressing `Cmd+B` collapses and reopens the sidebar without resetting the active chat.
 - Confirm the sidebar show/hide transition animates smoothly instead of popping in or out.

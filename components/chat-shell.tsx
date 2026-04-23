@@ -1209,6 +1209,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   const copyResetTimerRef = useRef<number | null>(null);
   const titleAnimationTimersRef = useRef<Map<string, number>>(new Map());
   const knownChatTitlesRef = useRef<Map<string, string>>(new Map());
+  const starterPromptRequestIdRef = useRef(0);
   const sidebarMenuRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelSearchInputRef = useRef<HTMLInputElement>(null);
@@ -2061,7 +2062,14 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
   }, []);
 
   useEffect(() => {
+    if (chatId !== null) {
+      return;
+    }
+
     let ignore = false;
+    const requestId = starterPromptRequestIdRef.current + 1;
+    starterPromptRequestIdRef.current = requestId;
+    setStarterPrompts([]);
 
     async function loadStarterPrompts() {
       try {
@@ -2076,10 +2084,14 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
           ? data.prompts.filter((prompt): prompt is string => typeof prompt === "string")
           : [];
 
-        if (!ignore) {
+        if (!ignore && starterPromptRequestIdRef.current === requestId) {
           setStarterPrompts(prompts);
         }
       } catch (error) {
+        if (!ignore && starterPromptRequestIdRef.current === requestId) {
+          setStarterPrompts([]);
+        }
+
         debugChat("starter-prompts:error", {
           error: error instanceof Error ? error.message : String(error),
         });
@@ -2091,7 +2103,7 @@ export function ChatShell({ initialChatId }: { initialChatId?: string }) {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [chatId]);
 
   useEffect(() => {
     const hasPendingTitle = chatList.some((chat) => chat.titleState === "pending");

@@ -22,7 +22,7 @@ This file is the top-level map for the repository.
 - `lib/provider-model-cache.ts` stores successful provider model-sync results in `.data/providers/` so server-side model lists can survive reloads and be refreshed explicitly by `Sync`.
 - When `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`, the agent can call `visualizeReadMe` and `showWidget`, and `components/generative-widget.tsx` renders streamed widget HTML inline inside assistant messages inside an isolated shadow-root host with a browser-side ZIP download action once rendering is complete. The ZIP includes the raw widget fragment and a standalone wrapped HTML file.
 - `lib/chat-agent.ts` defines the single-agent prompt, response-language matching rule, gen-ui behavior bias, and step limit, while `lib/chat-models.ts` owns provider resolution, default selections, and live model-list fetchers.
-- `lib/starter-prompts.ts` owns backend starter recommendation copy, and `/api/starter-prompts` returns a randomized subset for the empty chat composer.
+- `lib/starter-prompts.ts` owns backend starter recommendation copy, and `/api/starter-prompts` returns a randomized subset each time the UI enters the empty new-chat composer.
 - `lib/chat-title.ts` decides whether a chat title can be generated, saves the first user prompt as the immediate placeholder title, and later resolves a short AI title in the background with the selected chat provider/model when inference is available.
 - `lib/chat-tools.ts` defines the shared Tavily and generative-UI tool contracts used by the chat agent and the typed chat UI.
 - `lib/deepseek.ts` owns the DeepSeek OpenAI-compatible provider instance and defaults.
