@@ -5,7 +5,7 @@ import {
   normalizePreShowWidgetTextStream,
 } from "@/lib/chat-widget-stream";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
-import type { ChatUIMessage } from "@/lib/chat-message";
+import type { ChatMessageMetadata, ChatUIMessage } from "@/lib/chat-message";
 import {
   getMissingProviderKeyMessage,
   isChatModelSelectionConfigured,
@@ -17,6 +17,14 @@ import { createAgentUIStream, createUIMessageStreamResponse } from "ai";
 import { after } from "next/server";
 
 export const maxDuration = 60;
+
+function buildAssistantMessageMetadata(
+  modelSelection: ChatModelSelection
+): ChatMessageMetadata {
+  return {
+    modelId: modelSelection.modelId,
+  };
+}
 
 function buildChatTrace(
   modelSelection: ChatModelSelection,
@@ -75,6 +83,7 @@ export async function POST(request: Request) {
     await createAgentUIStream({
       agent: createChatAgent(modelSelection, systemPrompt),
       uiMessages: body.messages,
+      messageMetadata: () => buildAssistantMessageMetadata(modelSelection),
       sendReasoning: true,
       onFinish: async ({ messages }) => {
         await writeChat(

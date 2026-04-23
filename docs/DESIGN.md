@@ -12,6 +12,7 @@ Use this document to capture product-wide design principles that should stay sta
 
 - Model-selection surfaces should read as compact flat controls attached to the composer.
 - Provider and model-management dialogs should feel distinct through scale, spacing, and copy hierarchy, not through fake physical depth.
+- In-app confirmation dialogs, including delete-chat confirmations, should use the same plain white surface family as setup and management dialogs instead of warm or tinted cards.
 - Separation between surfaces should come from clean borders, solid backgrounds, and restrained ambient shadows only.
 
 ## State Contrast

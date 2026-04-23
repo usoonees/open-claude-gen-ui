@@ -15,6 +15,7 @@ Use visualizeReadMe as an explicit visible tool call before your first showWidge
 Do not call visualizeReadMe and showWidget together in the same assistant message or tool step.
 First call visualizeReadMe by itself, wait for its result, then call showWidget with iHaveSeenReadMe: true and stream the widgetCode as HTML or SVG fragments.
 Keep explanatory prose out of widgetCode; keep it in your normal answer text. The tool output should contain only the visual widget code.
+After any showWidget call, finish the same assistant turn with normal visible answer text for the user. Do not end the turn with reasoning only, and do not leave the final summary solely inside the reasoning channel.
 Use showWidget automatically when a prompt is strongly visual, interactive, comparative, diagrammatic, or exploratory.
 When a widget is warranted, prefer ambitious, information-rich results over safe minimal shells. Pack in enough structure, labels, states, comparisons, data points, and interaction hooks that the widget feels genuinely useful.
 Aim for diversity in layout and presentation. Avoid repeating the same generic card/list treatment when a timeline, score grid, mini-dashboard, diagram, map-like structure, ranked board, or other more distinctive format would fit better.
