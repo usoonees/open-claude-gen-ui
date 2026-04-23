@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Open Visual Layout Chat",
+  title: "Open Claude Gen UI Chat",
   description: "An AI chat interface with per-chat provider and model selection.",
 };
 

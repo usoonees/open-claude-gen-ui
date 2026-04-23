@@ -164,10 +164,7 @@ const DEFAULT_GENERATIVE_UI_SETTINGS: GenerativeUISettingsSummary = {
   source: "default",
 };
 
-const LEGACY_MODEL_VISIBILITY_STORAGE_KEY =
-  "open-visual-layout:model-visibility:v1";
 const MODEL_VISIBILITY_STORAGE_KEY = "open-claude-gen-ui:model-visibility:v1";
-const LEGACY_MODEL_SELECTION_STORAGE_KEY = "open-visual-layout:model-selection:v1";
 const MODEL_SELECTION_STORAGE_KEY = "open-claude-gen-ui:model-selection:v1";
 
 function uniqueStrings(values: string[]) {
@@ -176,25 +173,6 @@ function uniqueStrings(values: string[]) {
 
 function modelVisibilityKey(providerId: string, modelId: string) {
   return `${providerId}:${modelId}`;
-}
-
-function getLocalStorageValueWithLegacyFallback(
-  primaryKey: string,
-  legacyKey: string
-) {
-  const primaryValue = window.localStorage.getItem(primaryKey);
-
-  if (primaryValue !== null) {
-    return primaryValue;
-  }
-
-  const legacyValue = window.localStorage.getItem(legacyKey);
-
-  if (legacyValue !== null) {
-    window.localStorage.setItem(primaryKey, legacyValue);
-  }
-
-  return legacyValue;
 }
 
 function modelSelectionFromUnknown(value: unknown) {
@@ -1439,12 +1417,7 @@ export function ChatShell({
 
     try {
       localHiddenModelKeys = normalizeHiddenModelKeys(
-        JSON.parse(
-          getLocalStorageValueWithLegacyFallback(
-            MODEL_VISIBILITY_STORAGE_KEY,
-            LEGACY_MODEL_VISIBILITY_STORAGE_KEY
-          ) ?? "[]"
-        )
+        JSON.parse(window.localStorage.getItem(MODEL_VISIBILITY_STORAGE_KEY) ?? "[]")
       );
     } catch {
       localHiddenModelKeys = [];
@@ -1493,7 +1466,6 @@ export function ChatShell({
       MODEL_SELECTION_STORAGE_KEY,
       JSON.stringify(normalizedSelection)
     );
-    window.localStorage.removeItem(LEGACY_MODEL_SELECTION_STORAGE_KEY);
   }
 
   function cacheChatModelSelection(chatKey: string, selection: ChatModelSelection) {
@@ -1837,7 +1809,6 @@ export function ChatShell({
       MODEL_VISIBILITY_STORAGE_KEY,
       JSON.stringify(hiddenModelKeys)
     );
-    window.localStorage.removeItem(LEGACY_MODEL_VISIBILITY_STORAGE_KEY);
 
     void saveModelVisibilityPreferences(hiddenModelKeys).catch((error) => {
       debugChat("model-visibility:save:error", {
@@ -2108,12 +2079,7 @@ export function ChatShell({
 
     try {
       storedManualSelection = modelSelectionFromUnknown(
-        JSON.parse(
-          getLocalStorageValueWithLegacyFallback(
-            MODEL_SELECTION_STORAGE_KEY,
-            LEGACY_MODEL_SELECTION_STORAGE_KEY
-          ) ?? "null"
-        )
+        JSON.parse(window.localStorage.getItem(MODEL_SELECTION_STORAGE_KEY) ?? "null")
       );
     } catch {
       storedManualSelection = null;
@@ -2156,10 +2122,8 @@ export function ChatShell({
           MODEL_SELECTION_STORAGE_KEY,
           JSON.stringify(nextManualDefaultSelection)
         );
-        window.localStorage.removeItem(LEGACY_MODEL_SELECTION_STORAGE_KEY);
       } else {
         window.localStorage.removeItem(MODEL_SELECTION_STORAGE_KEY);
-        window.localStorage.removeItem(LEGACY_MODEL_SELECTION_STORAGE_KEY);
       }
     }
     writeDraftModelSelection(

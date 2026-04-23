@@ -1,6 +1,6 @@
-# Open Visual Layout
+# Open Claude Gen UI
 
-Open Visual Layout is a Next.js app for building AI chat experiences that do more than stream text. It supports multi-provider chat, trusted generative UI widgets, live tool use, and a showcase flow that turns saved conversations into read-only public demos.
+Open Claude Gen UI is a Next.js app for building AI chat experiences that do more than stream text. It supports multi-provider chat, trusted generative UI widgets, live tool use, and a showcase flow that turns saved conversations into read-only public demos.
 
 ## What It Does
 
