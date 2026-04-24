@@ -982,6 +982,32 @@ function MessageContent({
   );
 }
 
+function ConversationSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading conversation"
+      className="conversation-skeleton"
+      role="status"
+    >
+      <div className="conversation-skeleton-message">
+        <div className="conversation-skeleton-role" />
+        <div className="conversation-skeleton-block wide" />
+        <div className="conversation-skeleton-block medium" />
+        <div className="conversation-skeleton-block short" />
+      </div>
+      <div className="conversation-skeleton-message user">
+        <div className="conversation-skeleton-block user-line" />
+      </div>
+      <div className="conversation-skeleton-message">
+        <div className="conversation-skeleton-role" />
+        <div className="conversation-skeleton-block medium" />
+        <div className="conversation-skeleton-block wide" />
+      </div>
+    </div>
+  );
+}
+
 function SendIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -1228,6 +1254,9 @@ export function ChatShell({
   const [chatId, setChatId] = useState<string | null>(() => initialChatId ?? null);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [starterPrompts, setStarterPrompts] = useState<string[]>([]);
+  const [loadingConversationId, setLoadingConversationId] = useState<string | null>(
+    () => initialChatId ?? null
+  );
   const [input, setInput] = useState("");
   const [providerOptions, setProviderOptions] = useState<ChatProviderOption[]>([]);
   const [defaultModelSelection, setDefaultModelSelection] =
@@ -1282,6 +1311,7 @@ export function ChatShell({
   );
   const draftModelSelectionRef = useRef(draftModelSelection);
   const lastLoadedChatIdRef = useRef<string | null>(null);
+  const loadedChatIdsRef = useRef<Set<string>>(new Set());
   const chatControllersRef = useRef<Map<string, ChatController>>(new Map());
   const chatModelSelectionsRef = useRef<Map<string, ChatModelSelection>>(new Map());
   const draftChatRef = useRef<ChatController | null>(null);
@@ -1544,9 +1574,33 @@ export function ChatShell({
   const activeProviderModels = providerModels[activeModelSelection.providerId];
   const tavilyCredentialStatusMessage = tavilyCredentialMutation.message;
   const providerCredentialStatusMessage = providerCredentialMutation.message;
+  const isLoadingConversation =
+    chatId !== null &&
+    loadingConversationId === chatId &&
+    messages.length === 0;
 
   function isModelVisible(providerId: string, modelId: string) {
     return !hiddenModelKeys.includes(modelVisibilityKey(providerId, modelId));
+  }
+
+  function hasLocalConversation(chatKey: string) {
+    const existingController = chatControllersRef.current.get(chatKey);
+
+    return (
+      loadedChatIdsRef.current.has(chatKey) ||
+      (existingController !== undefined &&
+        (existingController.messages.length > 0 ||
+          existingController.status !== "ready"))
+    );
+  }
+
+  function setConversationLoadingTarget(chatKey: string | null) {
+    if (!chatKey || hasLocalConversation(chatKey)) {
+      setLoadingConversationId(null);
+      return;
+    }
+
+    setLoadingConversationId(chatKey);
   }
 
   function getProviderKnownModels(
@@ -2299,6 +2353,7 @@ export function ChatShell({
         from: chatIdRef.current,
         to: nextChatId,
       });
+      setConversationLoadingTarget(nextChatId);
       setChatId(nextChatId);
       chatIdRef.current = nextChatId;
     }
@@ -2310,12 +2365,17 @@ export function ChatShell({
     async function loadHistory() {
       if (!chatId) {
         lastLoadedChatIdRef.current = null;
+        setLoadingConversationId(null);
         setMessages([]);
         debugChat("chat-load:skip-empty-id");
         return;
       }
 
-      if (lastLoadedChatIdRef.current === chatId) {
+      if (loadedChatIdsRef.current.has(chatId)) {
+        lastLoadedChatIdRef.current = chatId;
+        setLoadingConversationId((current) =>
+          current === chatId ? null : current
+        );
         debugChat("chat-load:skip-same-id", { chatId });
         return;
       }
@@ -2328,6 +2388,10 @@ export function ChatShell({
           existingController.status !== "ready")
       ) {
         lastLoadedChatIdRef.current = chatId;
+        loadedChatIdsRef.current.add(chatId);
+        setLoadingConversationId((current) =>
+          current === chatId ? null : current
+        );
         debugChat("chat-load:skip-local-controller", {
           chatId,
           messageCount: existingController.messages.length,
@@ -2338,11 +2402,17 @@ export function ChatShell({
 
       const startedAt = performance.now();
       debugChat("chat-load:start", { chatId });
+      setLoadingConversationId(chatId);
       const response = await fetch(
         `/api/chat/history?id=${encodeURIComponent(chatId)}`
       );
 
       if (!response.ok) {
+        if (!ignore) {
+          setLoadingConversationId((current) =>
+            current === chatId ? null : current
+          );
+        }
         debugChat("chat-load:error", { chatId, status: response.status });
         return;
       }
@@ -2355,10 +2425,14 @@ export function ChatShell({
 
       if (!ignore) {
         lastLoadedChatIdRef.current = chatId;
+        loadedChatIdsRef.current.add(chatId);
         if (chat.modelSelection) {
           cacheChatModelSelection(chatId, chat.modelSelection);
         }
         setMessages(nextMessages);
+        setLoadingConversationId((current) =>
+          current === chatId ? null : current
+        );
         debugChat("chat-load:done", {
           chatId,
           messageCount: nextMessages.length,
@@ -2514,6 +2588,7 @@ export function ChatShell({
     setChatId(null);
     chatIdRef.current = null;
     lastLoadedChatIdRef.current = null;
+    setLoadingConversationId(null);
     draftChatRef.current!.messages = [];
     writeDraftModelSelection(getPreferredNewChatModelSelection());
     setInput("");
@@ -2537,6 +2612,7 @@ export function ChatShell({
     setEditingChatId(null);
     setEditingTitle("");
     setChatPendingDelete(null);
+    setConversationLoadingTarget(nextId);
     setChatId(nextId);
     chatIdRef.current = nextId;
     replaceUrl(nextId);
@@ -2552,6 +2628,8 @@ export function ChatShell({
     // the history effect does not immediately replace the optimistic first user
     // message with an empty server response.
     lastLoadedChatIdRef.current = nextId;
+    loadedChatIdsRef.current.add(nextId);
+    setLoadingConversationId(null);
     setChatId(nextId);
     chatIdRef.current = nextId;
     cacheChatModelSelection(nextId, draftModelSelectionRef.current);
@@ -3096,6 +3174,7 @@ export function ChatShell({
     const chatController = chatControllersRef.current.get(chat.id);
     void chatController?.stop();
     chatControllersRef.current.delete(chat.id);
+    loadedChatIdsRef.current.delete(chat.id);
 
     const response = await fetch(
       `/api/chat/history?id=${encodeURIComponent(chat.id)}`,
@@ -4085,7 +4164,9 @@ export function ChatShell({
           onScroll={handleMessageScroll}
           ref={messageScrollRef}
         >
-          {messages.length === 0 ? (
+          {isLoadingConversation ? (
+            <ConversationSkeleton />
+          ) : messages.length === 0 ? (
             <div className="empty-state">
               <h1>What can I help with?</h1>
               <p>Ask a question, write code, or explore ideas.</p>
@@ -4219,7 +4300,9 @@ export function ChatShell({
         </div>
 
         <div className="composer-wrap">
-          {messages.length === 0 && starterPrompts.length > 0 && (
+          {!isLoadingConversation &&
+          messages.length === 0 &&
+          starterPrompts.length > 0 ? (
             <div className="starter-grid">
               {starterPrompts.map((prompt) => (
                 <button
@@ -4232,7 +4315,7 @@ export function ChatShell({
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
 
           {error && <p className="error-banner">{error.message}</p>}
 

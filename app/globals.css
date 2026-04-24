@@ -1476,6 +1476,80 @@ svg {
   margin: 12px 0 0;
 }
 
+.conversation-skeleton {
+  display: grid;
+  gap: 22px;
+  margin: 0 auto;
+  max-width: calc(var(--chat-content-max-width) - 32px);
+  padding: 24px 0 40px;
+  width: 100%;
+}
+
+.conversation-skeleton-message {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  max-width: 76%;
+}
+
+.conversation-skeleton-message.user {
+  justify-self: end;
+  justify-items: end;
+  max-width: 58%;
+  width: 58%;
+}
+
+.conversation-skeleton-role,
+.conversation-skeleton-block {
+  background: linear-gradient(
+    90deg,
+    rgba(229, 229, 229, 0.7),
+    rgba(246, 246, 247, 0.95),
+    rgba(229, 229, 229, 0.7)
+  );
+  background-size: 220% 100%;
+  animation: conversation-skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+.conversation-skeleton-role {
+  border-radius: 999px;
+  height: 12px;
+  width: 96px;
+}
+
+.conversation-skeleton-block {
+  border-radius: 12px;
+  height: 16px;
+}
+
+.conversation-skeleton-block.wide {
+  width: min(560px, 100%);
+}
+
+.conversation-skeleton-block.medium {
+  width: min(440px, 82%);
+}
+
+.conversation-skeleton-block.short {
+  width: min(280px, 54%);
+}
+
+.conversation-skeleton-block.user-line {
+  border-radius: 16px;
+  height: 42px;
+  width: min(360px, 100%);
+}
+
+@keyframes conversation-skeleton-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .message-list {
   display: grid;
   gap: 20px;
@@ -2016,6 +2090,8 @@ svg {
   .thinking-panel,
   .reasoning-block.is-open .thinking-panel,
   .starter-card,
+  .conversation-skeleton-role,
+  .conversation-skeleton-block,
   .message-streaming-dot {
     transition: none;
     animation: none;
