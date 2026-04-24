@@ -1499,9 +1499,9 @@ svg {
   display: grid;
   gap: 8px;
   justify-self: start;
-  max-width: min(760px, 92%);
+  max-width: 100%;
   padding: 2px 0;
-  width: min(760px, 92%);
+  width: 100%;
 }
 
 .message-role {
