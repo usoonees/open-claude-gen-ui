@@ -12,11 +12,12 @@
 > Follow-up: add a description below every image and add references below the gallery.
 > Follow-up: add the Claude source about interactive charts, diagrams, and visualizations.
 > Follow-up: treat the Claude source as the project starting point and place it at the top of the README, not in references.
+> Follow-up: change the gallery from two rows by three columns to three rows by two columns.
 
 ### Changes Overview
 
 - Area: README documentation
-- Key actions: replaced the sequential Markdown image list with a GitHub-renderable HTML table that lays the examples out as a 2x3 grid, added per-image descriptions, kept the video attachment on its own line for GitHub inline rendering, added a references list below the gallery, and moved the Claude visuals announcement to the top as the project starting point.
+- Key actions: replaced the sequential Markdown image list with a GitHub-renderable HTML table that lays the examples out as a 3x2 grid, added per-image descriptions, kept the video attachment on its own line for GitHub inline rendering, added a references list below the gallery, and moved the Claude visuals announcement to the top as the project starting point.
 
 ### Design Intent
 
