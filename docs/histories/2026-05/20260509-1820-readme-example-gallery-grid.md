@@ -16,7 +16,7 @@
 ### Changes Overview
 
 - Area: README documentation
-- Key actions: replaced the sequential Markdown image list with a GitHub-renderable HTML table that lays the examples out as a 2x3 grid, added per-image descriptions, labeled the demo link, added a references list below the gallery, and moved the Claude visuals announcement to the top as the project starting point.
+- Key actions: replaced the sequential Markdown image list with a GitHub-renderable HTML table that lays the examples out as a 2x3 grid, added per-image descriptions, kept the video attachment on its own line for GitHub inline rendering, added a references list below the gallery, and moved the Claude visuals announcement to the top as the project starting point.
 
 ### Design Intent
 

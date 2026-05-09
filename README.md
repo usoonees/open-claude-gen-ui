@@ -2,7 +2,7 @@
 
 This project started from Claude's visual response direction: [Claude now creates interactive charts, diagrams and visualizations](https://claude.com/blog/claude-builds-visuals).
 
-demo:
+
 https://github.com/user-attachments/assets/9d42f827-fe32-49c0-bb97-b4d58e52f260
 
 
