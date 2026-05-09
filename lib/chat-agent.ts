@@ -1,4 +1,3 @@
-import { stepCountIs } from "ai";
 import type { ChatModelSelection } from "@/lib/chat-model-config";
 import { getChatLanguageModel } from "@/lib/chat-models";
 import { getChatTools } from "@/lib/chat-tools";
@@ -126,7 +125,6 @@ export function createChatAgent(
   return new ToolLoopAgent({
     model: getChatLanguageModel(selection),
     instructions: systemPrompt,
-    stopWhen: stepCountIs(6),
     tools: getChatTools(generativeUITrustedModeEnabled),
   });
 }

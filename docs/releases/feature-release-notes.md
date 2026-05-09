@@ -1,5 +1,12 @@
 # Feature Release Notes
 
+## 2026-05
+
+| Date | Area | User Impact | Change Summary |
+| --- | --- | --- | --- |
+| 2026-05-07 | Chatbot | Research-heavy generative UI prompts no longer stop because of an app-level fixed step budget. | Removed the chat agent `stepCountIs` stop condition so turns that search, call `visualizeReadMe`, render `showWidget`, and finish with text can run until the model completes. |
+| 2026-05-07 | Chatbot | New DeepSeek selections default to DeepSeek V4 Pro, while the picker still offers current V4 Flash and legacy compatibility ids. | Updated the DeepSeek provider default and suggested model catalog to use `deepseek-v4-pro` from the current official DeepSeek API docs. |
+
 ## 2026-04
 
 | Date | Area | User Impact | Change Summary |

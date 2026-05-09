@@ -92,6 +92,7 @@ When enabled, the app serves the curated example chats through the normal `/chat
 ## Configuration Highlights
 
 - `VOLCENGINE_ACK_API_KEY`, `VOLCENGINE_CODING_API_KEY`, `OPENAI_API_KEY`, `MINIMAX_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`: provider credentials.
+- `DEEPSEEK_MODEL=deepseek-v4-pro`: selects the DeepSeek default model for new provider selections.
 - `TAVILY_API_KEY`: enables live web search for the agent.
 - `NEXT_PUBLIC_GENERATIVE_UI_TRUSTED=true`: enables trusted widget rendering by default unless overridden in Settings.
 - `LANGSMITH_TRACING=true` plus `LANGSMITH_API_KEY`: enables LangSmith tracing for model calls, tool calls, and agent steps.

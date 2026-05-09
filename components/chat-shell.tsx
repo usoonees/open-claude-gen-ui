@@ -505,6 +505,7 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
           label,
           tone: "running",
           detail: input.loadingMessages?.[0] ?? "Streaming widget...",
+          inputPreview: createToolInputPreview(part.input) ?? undefined,
         };
       }
 
@@ -521,6 +522,7 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
           label,
           tone: "running",
           detail: "Finalizing widget...",
+          inputPreview: createToolInputPreview(part.input) ?? undefined,
         };
       }
 
@@ -546,6 +548,7 @@ function summarizeToolPart(part: MessagePart): ToolEvent | null {
             typeof output?.title === "string"
               ? `Widget "${output.title.replace(/_/g, " ")}" ready.`
               : "Widget ready.",
+          inputPreview: createToolInputPreview(part.input) ?? undefined,
         };
       }
 
@@ -1352,13 +1355,18 @@ export function ChatShell({
       configuredProviders.find((entry) => entry.id === fallback.providerId) ??
       configuredProviders[0] ??
       getProviderOption(fallback.providerId);
+    const selectedProvider = provider ?? fallbackProvider;
+    const requestedModelId = value?.modelId?.trim() ?? "";
+    const canKeepRequestedModel =
+      Boolean(requestedModelId) &&
+      Boolean(requestedProviderId) &&
+      selectedProvider?.id === requestedProviderId;
 
     return {
-      providerId: (provider?.id ?? fallbackProvider?.id ?? fallback.providerId) as ChatProviderId,
+      providerId: (selectedProvider?.id ?? fallback.providerId) as ChatProviderId,
       modelId:
-        value?.modelId?.trim() ||
-        provider?.defaultModelId ||
-        fallbackProvider?.defaultModelId ||
+        (canKeepRequestedModel ? requestedModelId : "") ||
+        selectedProvider?.defaultModelId ||
         fallback.modelId,
     } satisfies ChatModelSelection;
   }
@@ -2118,10 +2126,16 @@ export function ChatShell({
         configuredProviders[0] ??
         nextProviders.find((entry) => entry.id === fallback.providerId);
       const providerId = (provider?.id ?? fallback.providerId) as ChatProviderId;
+      const requestedModelId = value?.modelId?.trim() ?? "";
+      const canKeepRequestedModel =
+        Boolean(requestedModelId) && providerId === value?.providerId;
 
       return {
         providerId,
-        modelId: value?.modelId?.trim() || provider?.defaultModelId || fallback.modelId,
+        modelId:
+          (canKeepRequestedModel ? requestedModelId : "") ||
+          provider?.defaultModelId ||
+          fallback.modelId,
       } satisfies ChatModelSelection;
     };
 

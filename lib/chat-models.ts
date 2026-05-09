@@ -24,7 +24,7 @@ import { getVolcengineConfig, getVolcengineProvider } from "@/lib/volcengine";
 
 const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
 const DEFAULT_MINIMAX_MODEL = "MiniMax-M2.7";
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro";
 const DEFAULT_OPENROUTER_MODEL = "openai/gpt-5-mini";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5";
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
@@ -40,6 +40,8 @@ const MINIMAX_SUGGESTED_MODELS = [
 ] as const;
 const DEEPSEEK_SUGGESTED_MODELS = [
   DEFAULT_DEEPSEEK_MODEL,
+  "deepseek-v4-flash",
+  "deepseek-chat",
   "deepseek-reasoner",
 ] as const;
 
@@ -56,6 +58,12 @@ function uniqueStrings(values: string[]) {
 
 function readEnv(name: string) {
   return process.env[name]?.trim() || "";
+}
+
+function readAnthropicModelEnv() {
+  const model = readEnv("ANTHROPIC_MODEL");
+
+  return model.startsWith("claude-") ? model : "";
 }
 
 function isChatProviderId(value: string): value is ChatProviderId {
@@ -115,6 +123,7 @@ function buildProviderCatalog() {
   const minimaxConfig = getMiniMaxConfig();
   const deepseekConfig = getDeepSeekConfig();
   const openrouterConfig = getOpenRouterConfig();
+  const anthropicModel = readAnthropicModelEnv() || DEFAULT_ANTHROPIC_MODEL;
 
   const providerCatalog = {
     volcengine: {
@@ -190,9 +199,9 @@ function buildProviderCatalog() {
       description: "Claude models through Anthropic Messages API",
       apiKeyEnv: "ANTHROPIC_API_KEY",
       canListModels: true,
-      defaultModelId: readEnv("ANTHROPIC_MODEL") || DEFAULT_ANTHROPIC_MODEL,
+      defaultModelId: anthropicModel,
       suggestedModels: [
-        readEnv("ANTHROPIC_MODEL") || DEFAULT_ANTHROPIC_MODEL,
+        anthropicModel,
         "claude-opus-4-1",
         "claude-3-5-haiku-latest",
       ],

@@ -6,6 +6,10 @@ import {
 import { createChatAgent, getChatSystemPrompt } from "@/lib/chat-agent";
 import { applyHiddenGenerativeUIReminder } from "@/lib/chat-hidden-reminders";
 import {
+  createCodexCLIUIStream,
+  isCodexChatRuntimeEnabled,
+} from "@/lib/codex-cli-chat";
+import {
   normalizePreShowWidgetTextMessages,
   normalizePreShowWidgetTextStream,
 } from "@/lib/chat-widget-stream";
@@ -122,6 +126,34 @@ export async function POST(request: Request) {
     body.messages,
     generativeUITrustedModeEnabled
   );
+
+  if (isCodexChatRuntimeEnabled()) {
+    const stream = normalizePreShowWidgetTextStream(
+      createCodexCLIUIStream({
+        chatId: body.id,
+        messages: agentMessages,
+        modelSelection,
+        systemPrompt,
+        onFinish: async (messages) => {
+          await writeChat(
+            body.id as string,
+            normalizePreShowWidgetTextMessages(messages as ChatUIMessage[]),
+            {
+              trace: buildChatTrace(
+                modelSelection,
+                systemPrompt,
+                capturedAt,
+                generativeUITrustedModeEnabled
+              ),
+              modelSelection,
+            }
+          );
+        },
+      })
+    );
+
+    return createUIMessageStreamResponse({ stream });
+  }
 
   if (!isChatModelSelectionConfigured(modelSelection)) {
     return new Response(getMissingProviderKeyMessage(modelSelection), { status: 503 });
