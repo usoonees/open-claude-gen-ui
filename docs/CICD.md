@@ -5,7 +5,8 @@ template's split repository-scaffold jobs.
 
 ## GitHub Actions
 
-- `.github/workflows/ci.yml` runs on pull requests and pushes to `main`.
+- `.github/workflows/ci.yml` runs on pull requests, pushes to `main`, and
+  manual dispatches.
 - The workflow checks out the repo, installs Node 22 and pnpm 10.32.1, installs
   dependencies with the lockfile, runs repository hygiene scripts, type-checks,
   builds the Next.js app, and lints Markdown.
