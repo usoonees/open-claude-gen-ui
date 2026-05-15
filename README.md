@@ -2,7 +2,7 @@
 
 This project started from Claude's visual response direction: [Claude now creates interactive charts, diagrams and visualizations](https://claude.com/blog/claude-builds-visuals).
 
-https://github.com/user-attachments/assets/9d42f827-fe32-49c0-bb97-b4d58e52f260
+<https://github.com/user-attachments/assets/9d42f827-fe32-49c0-bb97-b4d58e52f260>
 
 ## Start
 
@@ -54,7 +54,7 @@ Open <http://localhost:3000>. Add provider keys from the UI or `.env.local`.
 
 ## References
 
-- https://github.com/Michaelliv/pi-generative-ui
-- https://michaellivs.com/blog/reverse-engineering-claude-generative-ui/
-- https://github.com/op7418/CodePilot
-- https://github.com/op7418/Generative-UI-MCP
+- <https://github.com/Michaelliv/pi-generative-ui>
+- <https://michaellivs.com/blog/reverse-engineering-claude-generative-ui/>
+- <https://github.com/op7418/CodePilot>
+- <https://github.com/op7418/Generative-UI-MCP>

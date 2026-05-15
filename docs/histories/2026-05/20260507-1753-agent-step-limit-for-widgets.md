@@ -8,7 +8,7 @@
 
 ### User Query
 
-> for this conversation, why it suddenly stop after call visualizaReadme: http://localhost:3000/chat/4730b48c-0391-464b-85a3-21ee602113bd
+> for this conversation, why it suddenly stop after call visualizaReadme: <http://localhost:3000/chat/4730b48c-0391-464b-85a3-21ee602113bd>
 > remove the step limitation
 
 ### Changes Overview

@@ -1,36 +1,36 @@
 # CI/CD Guide
 
-This template ships with repository-level CI/CD scaffolding that is intentionally language-agnostic.
+This repository uses a single project CI workflow instead of the original
+template's split repository-scaffold jobs.
 
-## What Exists By Default
+## GitHub Actions
 
-- `ci.yml`: repository checks for docs, hygiene, markdown, and shell validity.
-- `supply-chain-security.yml`: dependency review, OSV scanning, and Scorecard analysis.
-- `release.yml`: a workflow-dispatch release scaffold that packages repository metadata, generates provenance attestations, and creates a GitHub release.
+- `.github/workflows/ci.yml` runs on pull requests and pushes to `main`.
+- The workflow checks out the repo, installs Node 22 and pnpm 10.32.1, installs
+  dependencies with the lockfile, runs repository hygiene scripts, type-checks,
+  builds the Next.js app, and lints Markdown.
 
-## Design Principle
+All GitHub Actions in workflows are pinned to commit SHAs. Keep that property
+when updating actions.
 
-The default workflows prove out the delivery plumbing without pretending to know the real build command for your future project.
+## Local Verification
 
-You should replace the placeholder packaging step with your product's real build and deployment steps once the stack is known.
+Run the same high-signal checks before pushing CI changes:
 
-All GitHub Actions in the workflows are pinned to commit SHAs. Keep that property when updating actions.
+```sh
+corepack prepare pnpm@10.32.1 --activate
+corepack pnpm install --frozen-lockfile
+make ci
+corepack pnpm check
+corepack pnpm build
+```
 
-## Recommended Customization Sequence
+`make ci` covers documentation scaffold checks, repository hygiene checks,
+GitHub Action pinning, and shell syntax validation.
 
-1. Keep `ci.yml` as the always-on repository gate.
-2. Extend `scripts/ci.sh` with project-specific verification.
-3. Replace `scripts/release-package.sh` with the real build or publish packaging logic.
-4. Add environment-specific deployment jobs after a real runtime and target environment exist.
-5. Keep artifact provenance and SBOM generation in place when the build becomes real.
+## Deferred Release Automation
 
-## Release Workflow Output
-
-The default release pipeline produces:
-
-- `release-manifest.json`
-- `repo-metadata.tgz`
-- `sbom.spdx.json`
-- a GitHub artifact attestation for the packaged artifact
-
-This gives downstream consumers a verifiable, reproducible release envelope before product-specific deployment exists.
+The template release, supply-chain, and duplicate docs/hygiene workflows were
+removed because this app does not yet have a real release or deployment target.
+Add release, SBOM, provenance, dependency review, or deployment workflows back
+when they are tied to an actual product delivery path.
