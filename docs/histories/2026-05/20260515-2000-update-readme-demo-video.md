@@ -9,12 +9,13 @@
 ### User Query
 
 > Update the README to use the newly uploaded GitHub user-attachments demo video.
+> Follow-up: replace it with the regenerated no-right-black-border video asset.
 
 ### Changes Overview
 
 - Area: README demo media.
 - Key actions:
-  - Replaced the README's top demo video attachment link with the newly uploaded asset URL.
+  - Replaced the README's top demo video attachment link with the latest uploaded asset URL.
   - Kept the demo video near the top of the README so visitors see the product behavior before setup details.
 
 ### Design Intent
